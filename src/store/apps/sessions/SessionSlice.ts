@@ -1,5 +1,5 @@
 // src/store/apps/sessions/SessionSlice.ts
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axiosServices from 'src/utils/axios'; 
 import { SessionType } from 'src/types/apps/session';
 
@@ -43,7 +43,15 @@ export const createSession = createAsyncThunk(
 const sessionSlice = createSlice({
   name: 'session',
   initialState,
-  reducers: {},
+  reducers: {
+    updateSession: (state, action: PayloadAction<{ sessionId: number; changes: Partial<SessionType> }>) => {
+      const { sessionId, changes } = action.payload;
+      const index = state.sessions.findIndex(s => s.id === sessionId);
+      if (index !== -1) {
+        state.sessions[index] = { ...state.sessions[index], ...changes };
+      }
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchSessions.fulfilled, (state, action) => {
@@ -58,4 +66,5 @@ const sessionSlice = createSlice({
   },
 });
 
+export const { updateSession } = sessionSlice.actions;
 export default sessionSlice.reducer;

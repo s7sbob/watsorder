@@ -1,0 +1,28 @@
+2025/01/12-20:23:27.759 1568 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736679586066\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/01/12-20:23:27.760 1568 Recovering log #971
+2025/01/12-20:23:27.812 1568 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736679586066\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000971.log 
+2025/01/12-20:23:30.780 1568 Level-0 table #991: started
+2025/01/12-20:23:30.789 1568 Level-0 table #991: 242778 bytes OK
+2025/01/12-20:23:30.791 1568 Delete type=0 #971
+2025/01/12-20:23:30.796 1568 Manual compaction at level-0 from '\x00V\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00W\x00\x00\x00' @ 0 : 0; will stop at '\x00V\x00\x00\x05' @ 2356653 : 1
+2025/01/12-20:23:30.796 1568 Compacting 1@0 + 0@1 files
+2025/01/12-20:23:30.812 1568 Generated table #992@0: 4641 keys, 117381 bytes
+2025/01/12-20:23:30.828 1568 Generated table #993@0: 81 keys, 3561 bytes
+2025/01/12-20:23:30.828 1568 Compacted 1@0 + 0@1 files => 120942 bytes
+2025/01/12-20:23:30.829 1568 compacted to: files[ 0 2 29 0 0 0 0 ]
+2025/01/12-20:23:30.829 1568 Delete type=2 #991
+2025/01/12-20:23:30.830 1568 Manual compaction at level-0 from '\x00V\x00\x00\x05' @ 2356653 : 1 .. '\x00W\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/01/12-20:23:34.089 1568 Compacting 1@1 + 10@2 files
+2025/01/12-20:23:34.314 1568 Generated table #994@1: 51809 keys, 2213620 bytes
+2025/01/12-20:23:34.566 1568 Generated table #995@1: 47370 keys, 2218645 bytes
+2025/01/12-20:23:34.657 1568 Generated table #996@1: 5446 keys, 2164448 bytes
+2025/01/12-20:23:34.722 1568 Generated table #997@1: 2104 keys, 2148003 bytes
+2025/01/12-20:23:34.800 1568 Generated table #998@1: 3345 keys, 2155223 bytes
+2025/01/12-20:23:34.875 1568 Generated table #999@1: 3113 keys, 2151663 bytes
+2025/01/12-20:23:35.019 1568 Generated table #1000@1: 14584 keys, 2178286 bytes
+2025/01/12-20:23:35.270 1568 Generated table #1001@1: 27999 keys, 2265127 bytes
+2025/01/12-20:23:35.664 1568 Generated table #1002@1: 30984 keys, 2240829 bytes
+2025/01/12-20:23:35.801 1568 Generated table #1003@1: 14470 keys, 2183624 bytes
+2025/01/12-20:23:35.809 1568 Generated table #1004@1: 293 keys, 38129 bytes
+2025/01/12-20:23:35.809 1568 Compacted 1@1 + 10@2 files => 21957597 bytes
+2025/01/12-20:23:35.811 1568 compacted to: files[ 0 1 30 0 0 0 0 ]
