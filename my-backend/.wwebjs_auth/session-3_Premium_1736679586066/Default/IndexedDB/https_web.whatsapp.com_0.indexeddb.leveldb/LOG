@@ -1,51 +1,49 @@
-2025/01/12-20:27:29.444 e80 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736679586066\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/01/12-20:27:29.445 e80 Recovering log #990
-2025/01/12-20:27:29.520 e80 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736679586066\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000990.log 
-2025/01/12-20:27:29.521 e80 Delete type=2 #975
-2025/01/12-20:27:29.521 e80 Delete type=2 #976
-2025/01/12-20:27:29.521 e80 Delete type=2 #977
-2025/01/12-20:27:29.521 e80 Delete type=2 #978
-2025/01/12-20:27:29.521 e80 Delete type=2 #979
-2025/01/12-20:27:29.521 e80 Delete type=2 #980
-2025/01/12-20:27:29.521 e80 Delete type=2 #981
-2025/01/12-20:27:29.521 e80 Delete type=2 #982
-2025/01/12-20:27:29.521 e80 Delete type=2 #983
-2025/01/12-20:27:29.521 e80 Delete type=2 #984
-2025/01/12-20:27:29.521 e80 Delete type=2 #992
-2025/01/12-20:27:33.817 e80 Level-0 table #1007: started
-2025/01/12-20:27:33.827 e80 Level-0 table #1007: 230167 bytes OK
-2025/01/12-20:27:33.828 e80 Delete type=0 #990
-2025/01/12-20:27:33.836 1b08 Manual compaction at level-0 from '\x00W\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00X\x00\x00\x00' @ 0 : 0; will stop at '\x00W\x00\x00\x05' @ 2365300 : 1
-2025/01/12-20:27:33.836 1b08 Compacting 1@0 + 1@1 files
-2025/01/12-20:27:33.856 1b08 Generated table #1008@0: 4962 keys, 102588 bytes
-2025/01/12-20:27:33.869 1b08 Generated table #1009@0: 90 keys, 3748 bytes
-2025/01/12-20:27:33.869 1b08 Compacted 1@0 + 1@1 files => 106336 bytes
-2025/01/12-20:27:33.870 1b08 compacted to: files[ 0 2 30 0 0 0 0 ]
-2025/01/12-20:27:33.871 1b08 Delete type=2 #1007
-2025/01/12-20:27:33.871 1b08 Manual compaction at level-0 from '\x00W\x00\x00\x05' @ 2365300 : 1 .. '\x00X\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/01/12-20:27:37.650 e80 Compacting 1@1 + 10@2 files
-2025/01/12-20:27:37.819 e80 Generated table #1010@1: 52625 keys, 2213910 bytes
-2025/01/12-20:27:38.096 e80 Generated table #1011@1: 47150 keys, 2218548 bytes
-2025/01/12-20:27:38.199 e80 Generated table #1012@1: 5809 keys, 2167118 bytes
-2025/01/12-20:27:38.291 e80 Generated table #1013@1: 2107 keys, 2148536 bytes
-2025/01/12-20:27:38.368 e80 Generated table #1014@1: 3354 keys, 2153968 bytes
-2025/01/12-20:27:38.441 e80 Generated table #1015@1: 3084 keys, 2152445 bytes
-2025/01/12-20:27:38.567 e80 Generated table #1016@1: 14346 keys, 2179335 bytes
-2025/01/12-20:27:38.801 e80 Generated table #1017@1: 28099 keys, 2265029 bytes
-2025/01/12-20:27:39.007 e80 Generated table #1018@1: 31079 keys, 2241203 bytes
-2025/01/12-20:27:39.129 e80 Generated table #1019@1: 14465 keys, 2184657 bytes
-2025/01/12-20:27:39.133 e80 Generated table #1020@1: 80 keys, 12303 bytes
-2025/01/12-20:27:39.133 e80 Compacted 1@1 + 10@2 files => 21937052 bytes
-2025/01/12-20:27:39.134 e80 compacted to: files[ 0 1 31 0 0 0 0 ]
-2025/01/12-20:27:39.135 e80 Delete type=2 #993
-2025/01/12-20:27:39.135 e80 Delete type=2 #994
-2025/01/12-20:27:39.135 e80 Delete type=2 #995
-2025/01/12-20:27:39.135 e80 Delete type=2 #996
-2025/01/12-20:27:39.135 e80 Delete type=2 #997
-2025/01/12-20:27:39.135 e80 Delete type=2 #998
-2025/01/12-20:27:39.135 e80 Delete type=2 #999
-2025/01/12-20:27:39.135 e80 Delete type=2 #1000
-2025/01/12-20:27:39.135 e80 Delete type=2 #1001
-2025/01/12-20:27:39.135 e80 Delete type=2 #1002
-2025/01/12-20:27:39.135 e80 Delete type=2 #1003
-2025/01/12-20:27:39.135 e80 Delete type=2 #1008
+2025/01/14-03:18:35.166 1c80 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736679586066\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/01/14-03:18:35.167 1c80 Recovering log #1501
+2025/01/14-03:18:35.168 1c80 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736679586066\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/001501.log 
+2025/01/14-03:18:35.168 1c80 Delete type=2 #1488
+2025/01/14-03:18:35.168 1c80 Delete type=2 #1502
+2025/01/14-03:18:38.887 3f28 Compacting 1@1 + 10@2 files
+2025/01/14-03:18:39.174 3f28 Generated table #1506@1: 69159 keys, 2226961 bytes
+2025/01/14-03:18:39.447 3f28 Generated table #1507@1: 37694 keys, 2211915 bytes
+2025/01/14-03:18:39.617 3f28 Level-0 table #1510: started
+2025/01/14-03:18:39.631 3f28 Level-0 table #1510: 19862 bytes OK
+2025/01/14-03:18:39.633 3f28 Delete type=0 #1501
+2025/01/14-03:18:39.733 3f28 Generated table #1508@1: 20625 keys, 2184544 bytes
+2025/01/14-03:18:39.802 3f28 Generated table #1511@1: 2168 keys, 2153365 bytes
+2025/01/14-03:18:39.890 3f28 Generated table #1512@1: 3279 keys, 2153977 bytes
+2025/01/14-03:18:39.950 3f28 Generated table #1513@1: 1996 keys, 2142275 bytes
+2025/01/14-03:18:40.046 3f28 Generated table #1514@1: 4161 keys, 2162974 bytes
+2025/01/14-03:18:40.253 3f28 Generated table #1515@1: 27757 keys, 2229217 bytes
+2025/01/14-03:18:40.484 3f28 Generated table #1516@1: 27632 keys, 2263708 bytes
+2025/01/14-03:18:40.789 3f28 Generated table #1517@1: 28090 keys, 2239784 bytes
+2025/01/14-03:18:40.804 3f28 Generated table #1518@1: 6 keys, 15108 bytes
+2025/01/14-03:18:40.804 3f28 Compacted 1@1 + 10@2 files => 21983828 bytes
+2025/01/14-03:18:40.805 3f28 compacted to: files[ 1 1 21 0 0 0 0 ]
+2025/01/14-03:18:40.806 3f28 Manual compaction at level-0 from '\x00b\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00c\x00\x00\x00' @ 0 : 0; will stop at '\x00b\x00\x00\x05' @ 3268243 : 1
+2025/01/14-03:18:40.806 3f28 Compacting 1@0 + 1@1 files
+2025/01/14-03:18:40.814 3f28 Generated table #1519@0: 477 keys, 9913 bytes
+2025/01/14-03:18:40.818 3f28 Generated table #1520@0: 40 keys, 11782 bytes
+2025/01/14-03:18:40.818 3f28 Compacted 1@0 + 1@1 files => 21695 bytes
+2025/01/14-03:18:40.819 3f28 compacted to: files[ 0 2 21 0 0 0 0 ]
+2025/01/14-03:18:40.819 3f28 Delete type=2 #1510
+2025/01/14-03:18:40.820 3f28 Manual compaction at level-0 from '\x00b\x00\x00\x05' @ 3268243 : 1 .. '\x00c\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/01/14-03:18:45.584 3f28 Compacting 1@1 + 1@2 files
+2025/01/14-03:18:45.819 3f28 Generated table #1521@1: 69250 keys, 2226342 bytes
+2025/01/14-03:18:45.837 3f28 Generated table #1522@1: 9 keys, 2711 bytes
+2025/01/14-03:18:45.837 3f28 Compacted 1@1 + 1@2 files => 2229053 bytes
+2025/01/14-03:18:45.839 3f28 compacted to: files[ 0 1 22 0 0 0 0 ]
+2025/01/14-03:18:45.839 3f28 Delete type=2 #1489
+2025/01/14-03:18:45.839 3f28 Delete type=2 #1490
+2025/01/14-03:18:45.839 3f28 Delete type=2 #1491
+2025/01/14-03:18:45.839 3f28 Delete type=2 #1492
+2025/01/14-03:18:45.839 3f28 Delete type=2 #1493
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1494
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1495
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1496
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1497
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1498
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1503
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1504
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1506
+2025/01/14-03:18:45.840 3f28 Delete type=2 #1519

@@ -15,7 +15,9 @@ import {
   deleteProduct,
   getQrForSession,
   updateGreeting,
-  updateBotStatus
+  updateBotStatus,
+  logoutSession,
+  loginSession
 
 } from '../controllers/sessionController';
 import { authenticateToken } from '../middleware/authMiddleware';
@@ -40,7 +42,8 @@ router.delete('/:sessionId/category/:categoryId', authenticateToken, deleteCateg
 router.get('/:id/qr', authenticateToken, getQrForSession);
 router.put('/:id/greeting', authenticateToken, updateGreeting);
 router.put('/:id/bot', authenticateToken, updateBotStatus)
-
+router.put('/:id/logout', authenticateToken, logoutSession)
+router.put('/:id/login', authenticateToken, loginSession)
 router.put('/:sessionId/product/:productId', authenticateToken, updateProduct);
 router.delete('/:sessionId/product/:productId', authenticateToken, deleteProduct);
 // حذف جلسة

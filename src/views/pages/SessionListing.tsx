@@ -1,4 +1,5 @@
 // src/components/SessionListing.tsx
+
 import { useEffect, useState } from 'react'
 import {
   Box,
@@ -18,7 +19,10 @@ import {
   IconButton,
   MenuItem,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Snackbar,
+  Alert,
+  AlertColor
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { fetchSessions, createSession, updateSession } from 'src/store/apps/sessions/SessionSlice'
@@ -35,7 +39,7 @@ const SessionListing = () => {
   const sessions = useSelector((state) => state.sessionReducer.sessions) as SessionType[]
   const maxSessionsReached = useSelector((state) => state.sessionReducer.maxSessionsReached) as boolean
 
-  // حالة الحقول لإنشاء جلسة جديدة
+  // State for creating new session
   const [sessionData, setSessionData] = useState({
     status: '',
     category: '',
@@ -43,26 +47,26 @@ const SessionListing = () => {
     keywords: ''
   })
 
-  // حالات لعرض الـ QR Code
+  // QR Code dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionType | null>(null)
 
-  // حالات Popups لإضافة بيانات
+  // Popups for adding data
   const [categoryPopupOpen, setCategoryPopupOpen] = useState(false)
   const [productPopupOpen, setProductPopupOpen] = useState(false)
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null)
 
-  // حالات عرض القوائم الحالية
+  // Show existing categories / products
   const [showExistingCategories, setShowExistingCategories] = useState(false)
   const [showExistingProducts, setShowExistingProducts] = useState(false)
   const [selectedSessionForCategory, setSelectedSessionForCategory] = useState<SessionType | null>(null)
   const [selectedSessionForProduct, setSelectedSessionForProduct] = useState<SessionType | null>(null)
 
-  // لائحة الفئات المتاحة عند إضافة منتج
+  // Categories for product form
   const [productCategories, setProductCategories] = useState<{ value: number; label: string }[]>([])
 
-  // =============== [ بداية الإضافات الخاصة بالـ Greeting ] ===============
+  // Greeting dialog
   const [greetingDialogOpen, setGreetingDialogOpen] = useState(false)
   const [selectedSessionGreeting, setSelectedSessionGreeting] = useState<SessionType | null>(null)
   const [greetingData, setGreetingData] = useState({
@@ -70,7 +74,24 @@ const SessionListing = () => {
     greetingActive: false
   })
 
-  // فتح نافذة الحوار الخاصة بالـ Greeting
+  // =============== [ Snackbar State for Alerts ] ===============
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState('')
+  const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success')
+
+  // دالة لإظهار الـ Snackbar
+  const showAlert = (message: string, severity: AlertColor = 'success') => {
+    setSnackbarMessage(message)
+    setSnackbarSeverity(severity)
+    setSnackbarOpen(true)
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false)
+  }
+  // =============================================================
+
+  // Open greeting popup
   const openGreetingPopup = (session: SessionType) => {
     setSelectedSessionGreeting(session)
     setGreetingData({
@@ -80,13 +101,13 @@ const SessionListing = () => {
     setGreetingDialogOpen(true)
   }
 
-  // غلق الديالوج
+  // Close greeting dialog
   const handleCloseGreetingDialog = () => {
     setGreetingDialogOpen(false)
     setSelectedSessionGreeting(null)
   }
 
-  // حفظ التعديلات على رسالة الترحيب
+  // Save greeting
   const handleGreetingUpdate = async () => {
     if (!selectedSessionGreeting) return
     try {
@@ -94,8 +115,6 @@ const SessionListing = () => {
         greetingMessage: greetingData.greetingMessage,
         greetingActive: greetingData.greetingActive
       })
-
-      // تحديث البيانات في الـ store
       dispatch(
         updateSession({
           sessionId: selectedSessionGreeting.id,
@@ -105,17 +124,15 @@ const SessionListing = () => {
           }
         })
       )
-
-      alert('Greeting message updated successfully.')
+      showAlert('Greeting message updated successfully.', 'success')
       setGreetingDialogOpen(false)
     } catch (error) {
       console.error('Error updating greeting:', error)
-      alert('An error occurred while updating the greeting message.')
+      showAlert('An error occurred while updating the greeting message.', 'error')
     }
   }
-  // =============== [ نهاية الإضافات الخاصة بالـ Greeting ] ===============
 
-  // Socket.io للاستماع لتحديثات الـ session
+  // Socket.io to listen for session updates
   useEffect(() => {
     socket.on('sessionUpdate', (data: { sessionId: number; status: string; qrCode?: string }) => {
       dispatch(
@@ -134,27 +151,28 @@ const SessionListing = () => {
     }
   }, [dispatch])
 
-  // جلب الجلسات
+  // fetch sessions on mount
   useEffect(() => {
     dispatch(fetchSessions())
   }, [dispatch])
 
-  // إنشاء جلسة جديدة
+  // create new session
   const handleCreateSession = async () => {
     if (maxSessionsReached) {
-      alert('Maximum sessions limit reached.')
+      showAlert('Maximum sessions limit reached.', 'warning')
       return
     }
     try {
       await dispatch(createSession(sessionData))
       setSessionData({ status: '', category: '', products: '', keywords: '' })
-      dispatch(fetchSessions()) // تحديث الجلسات بعد الإنشاء
+      dispatch(fetchSessions())
+      showAlert('Session created successfully.', 'success')
     } catch (error) {
-      alert('Failed to create session.')
+      showAlert('Failed to create session.', 'error')
     }
   }
 
-  // إظهار الـ QR Code
+  // show QR code
   const handleShowQr = async (session: SessionType) => {
     try {
       const response = await axiosServices.get(`/api/sessions/${session.id}/qr`)
@@ -163,39 +181,69 @@ const SessionListing = () => {
       setQrDialogOpen(true)
     } catch (error) {
       console.error('Error fetching QR code:', error)
-      alert('Failed to fetch QR code.')
+      showAlert('Failed to fetch QR code.', 'error')
     }
   }
 
-  // إغلاق حوار الـ QR
+  // close QR dialog
   const handleCloseQrDialog = () => {
     setQrDialogOpen(false)
     setSelectedSession(null)
   }
 
-  // مجرد مثال لتغيير الحالة أمام المستخدم (غير متصل بالخلفية حالياً)
-  const toggleStatus = (session: SessionType) => {
-    const updatedStatus = session.status === 'Active' ? 'Inactive' : 'Active'
-    session.status = updatedStatus
-    // للتحديث الحقيقي، يجب استدعاء API لتحديث الحالة ثم جلب البيانات من جديد.
+  // Logout session
+  const handleLogoutSession = async (session: SessionType) => {
+    if (!window.confirm(`Are you sure you want to logout from session ID: ${session.id}?`)) {
+      return
+    }
+    try {
+      await axiosServices.put(`/api/sessions/${session.id}/logout`)
+      dispatch(
+        updateSession({
+          sessionId: session.id,
+          changes: {
+            status: 'Terminated',
+            qrCode: undefined
+          }
+        })
+      )
+      showAlert(`Session ${session.id} has been logged out.`, 'info')
+    } catch (error) {
+      console.error('Error logging out session:', error)
+      showAlert('An error occurred while logging out.', 'error')
+    }
   }
 
-  // حذف جلسة
+  // Login session
+  const handleLoginSession = async (session: SessionType) => {
+    if (!window.confirm(`Login session ID: ${session.id} again? You will need to scan QR code again.`)) {
+      return
+    }
+    try {
+      await axiosServices.put(`/api/sessions/${session.id}/login`)
+      showAlert(`Session ${session.id} is re-initializing. Please scan new QR code.`, 'info')
+    } catch (error) {
+      console.error('Error logging in session:', error)
+      showAlert('An error occurred while logging in.', 'error')
+    }
+  }
+
+  // Delete session completely
   const handleDeleteSession = async (sessionId: number) => {
     if (!window.confirm(`Are you sure you want to delete the session with ID: ${sessionId}?`)) {
       return
     }
     try {
       await axiosServices.delete(`/api/sessions/${sessionId}`)
-      alert('Session deleted successfully.')
-      dispatch(fetchSessions()) // تحديث القائمة بعد الحذف
+      showAlert('Session deleted successfully.', 'success')
+      dispatch(fetchSessions())
     } catch (error) {
       console.error('Error deleting session:', error)
-      alert('An error occurred while deleting the session.')
+      showAlert('An error occurred while deleting the session.', 'error')
     }
   }
 
-  // فتح Popups وتعيين الـ sessionId النشط
+  // open popups
   const openCategoryPopup = (sessionId: number) => {
     setActiveSessionId(sessionId)
     setCategoryPopupOpen(true)
@@ -218,10 +266,9 @@ const SessionListing = () => {
     setKeywordPopupOpen(true)
   }
 
-  // ==================== [ زرار الـ Bot ON / OFF ] ====================
+  // toggle bot on/off
   const handleToggleBot = async (session: SessionType) => {
     const newBotActive = !session.botActive
-
     try {
       await axiosServices.put(`/api/sessions/${session.id}/bot`, { botActive: newBotActive })
       dispatch(
@@ -230,47 +277,47 @@ const SessionListing = () => {
           changes: { botActive: newBotActive }
         })
       )
-
-      alert(`Bot is now ${newBotActive ? 'ON' : 'OFF'} for session ${session.id}`)
+      showAlert(`Bot is now ${newBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
     } catch (error) {
       console.error('Error toggling bot:', error)
-      alert('An error occurred while toggling the bot.')
+      showAlert('An error occurred while toggling the bot.', 'error')
     }
   }
-  // ===============================================================
 
-  // دوال تقديم البيانات للـ API
+  // submit category
   const submitCategory = async (data: any) => {
     if (!activeSessionId) return
     try {
       await axiosServices.post(`/api/sessions/${activeSessionId}/category`, data)
-      alert('Category added successfully.')
+      showAlert('Category added successfully.', 'success')
     } catch (error) {
-      alert('Error adding category.')
+      showAlert('Error adding category.', 'error')
     }
   }
 
+  // submit product
   const submitProduct = async (data: any) => {
     if (!activeSessionId) return
     try {
       await axiosServices.post(`/api/sessions/${activeSessionId}/product`, data)
-      alert('Product added successfully.')
+      showAlert('Product added successfully.', 'success')
     } catch (error) {
-      alert('Error adding product.')
+      showAlert('Error adding product.', 'error')
     }
   }
 
+  // submit keyword
   const submitKeyword = async (data: any) => {
     if (!activeSessionId) return
     try {
       await axiosServices.post(`/api/sessions/${activeSessionId}/keyword`, data)
-      alert('Keyword added successfully.')
+      showAlert('Keyword added successfully.', 'success')
     } catch (error) {
-      alert('Error adding keyword.')
+      showAlert('Error adding keyword.', 'error')
     }
   }
 
-  // دوال فتح وإغلاق نوافذ عرض البيانات الحالية
+  // open & close existing categories / products
   const openExistingCategories = () => {
     setSelectedSessionForCategory(null)
     setShowExistingCategories(true)
@@ -301,7 +348,6 @@ const SessionListing = () => {
           <TableHead>
             <TableRow>
               <TableCell>ID</TableCell>
-              {/* عرض عمود Phone Number الجديد */}
               <TableCell>Phone Number</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align='right'>Actions</TableCell>
@@ -311,7 +357,6 @@ const SessionListing = () => {
             {sessions.map(session => (
               <TableRow key={session.id}>
                 <TableCell>{session.id}</TableCell>
-                {/* هنا نعرض قيمة phoneNumber من الـ session */}
                 <TableCell>{session.phoneNumber || 'N/A'}</TableCell>
                 <TableCell>
                   <Chip label={session.status} color='primary' />
@@ -327,14 +372,26 @@ const SessionListing = () => {
                       Show QR Code
                     </Button>
                   )}
-                  <Button
-                    variant='outlined'
-                    size='small'
-                    onClick={() => toggleStatus(session)}
-                    sx={{ mr: 1, mb: 1 }}
-                  >
-                    {session.status === 'Active' ? 'Deactivate' : 'Activate'}
-                  </Button>
+                  {session.status !== 'Terminated' && (
+                    <Button
+                      variant='outlined'
+                      size='small'
+                      onClick={() => handleLogoutSession(session)}
+                      sx={{ mr: 1, mb: 1 }}
+                    >
+                      Logout
+                    </Button>
+                  )}
+                  {session.status === 'Terminated' && (
+                    <Button
+                      variant='outlined'
+                      size='small'
+                      onClick={() => handleLoginSession(session)}
+                      sx={{ mr: 1, mb: 1 }}
+                    >
+                      Login
+                    </Button>
+                  )}
                   <Button
                     variant='outlined'
                     size='small'
@@ -359,8 +416,6 @@ const SessionListing = () => {
                   >
                     Keywords
                   </Button>
-
-                  {/* زر خاص برسالة الترحيب */}
                   <Button
                     variant='outlined'
                     size='small'
@@ -369,8 +424,6 @@ const SessionListing = () => {
                   >
                     Greeting
                   </Button>
-
-                  {/* زر الـ Bot On/Off */}
                   <Button
                     variant='contained'
                     color={session.botActive ? 'success' : 'warning'}
@@ -380,7 +433,6 @@ const SessionListing = () => {
                   >
                     {session.botActive ? 'Bot OFF' : 'Bot ON'}
                   </Button>
-
                   <IconButton
                     aria-label='delete'
                     color='error'
@@ -396,7 +448,6 @@ const SessionListing = () => {
         </Table>
       </TableContainer>
 
-      {/* أزرار لعرض الفئات والمنتجات الحالية */}
       <Button onClick={openExistingCategories} sx={{ mt: 2, mr: 2 }} variant='outlined'>
         Existing Categories
       </Button>
@@ -404,7 +455,7 @@ const SessionListing = () => {
         Existing Products
       </Button>
 
-      {/* Dialog لعرض QR Code */}
+      {/* QR Code Dialog */}
       <Dialog open={qrDialogOpen} onClose={handleCloseQrDialog}>
         <DialogTitle>Scan QR Code</DialogTitle>
         <DialogContent>
@@ -427,7 +478,7 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Popups لإضافة بيانات */}
+      {/* Add Category Popup */}
       <AddDataPopup
         open={categoryPopupOpen}
         onClose={() => setCategoryPopupOpen(false)}
@@ -435,6 +486,7 @@ const SessionListing = () => {
         title='Add Category'
         fields={[{ label: 'Category Name', name: 'category_name' }]}
       />
+      {/* Add Product Popup */}
       <AddDataPopup
         open={productPopupOpen}
         onClose={() => setProductPopupOpen(false)}
@@ -445,6 +497,7 @@ const SessionListing = () => {
           { label: 'Category', name: 'category_id', options: productCategories }
         ]}
       />
+      {/* Add Keyword Popup */}
       <AddDataPopup
         open={keywordPopupOpen}
         onClose={() => setKeywordPopupOpen(false)}
@@ -456,7 +509,7 @@ const SessionListing = () => {
         ]}
       />
 
-      {/* Dialog لعرض الفئات الحالية مع اختيار الجلسة */}
+      {/* Existing Categories Dialog */}
       <Dialog open={showExistingCategories} onClose={closeExistingCategories} fullWidth maxWidth='sm'>
         <DialogTitle>Existing Categories</DialogTitle>
         <DialogContent>
@@ -481,7 +534,7 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog لعرض المنتجات الحالية مع اختيار الجلسة */}
+      {/* Existing Products Dialog */}
       <Dialog open={showExistingProducts} onClose={closeExistingProducts} fullWidth maxWidth='sm'>
         <DialogTitle>Existing Products</DialogTitle>
         <DialogContent>
@@ -506,7 +559,7 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ====================== [ Dialog لرسالة الترحيب ] ====================== */}
+      {/* Greeting Dialog */}
       <Dialog open={greetingDialogOpen} onClose={handleCloseGreetingDialog} fullWidth maxWidth='sm'>
         <DialogTitle>Greeting Message</DialogTitle>
         <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -537,6 +590,18 @@ const SessionListing = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar لعرض الرسائل التنبيهية */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} variant='filled'>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

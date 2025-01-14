@@ -3,6 +3,8 @@ import { Request, Response } from 'express';
 import { getConnection } from '../config/db';
 import { createWhatsAppClientForSession, whatsappClients } from './whatsappClients';
 import * as sql from 'mssql';
+import fs from 'fs-extra'
+
 
 // جلب الجلسات بناءً على المستخدم
 export const fetchSessions = async (req: Request, res: Response) => {
@@ -260,6 +262,107 @@ export const getQrForSession = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error fetching QR.' });
   }
 };
+
+// نعرّف دالتي logoutSession و loginSession
+export const logoutSession = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10)
+  if (!sessionId) {
+    return res.status(400).json({ message: 'Invalid session ID.' })
+  }
+
+  try {
+    // ابحث عن الـ client
+    const client = whatsappClients[sessionId]
+    if (client) {
+      await client.destroy()
+      delete whatsappClients[sessionId]
+    }
+
+    // هنا نحتاج نفس الـ clientId الذي استخدمته في LocalAuth({ clientId })
+    // غالبًا أنت تسميه مثلاً sessionIdentifier.replace(...) في createWhatsAppClientForSession
+    // إذن اجلبه من قاعدة البيانات:
+    const pool = await getConnection()
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query('SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId')
+
+    if (!result.recordset.length) {
+      return res.status(404).json({ message: 'Session not found in DB.' })
+    }
+
+    const { sessionIdentifier } = result.recordset[0]
+    // هو نفسه المستخدم في:
+    //   new LocalAuth({ clientId: sanitizedClientId })
+
+    // الآن احذف المجلد:
+    // عادةً المسار الافتراضي:  ".wwebjs_auth/session-{clientId}" 
+    // ولكن حسب الإصدار قد يكون ".wwebjs_auth/{clientId}"
+    // جرّب أيهما ينطبق على نسختك
+    const folderPath = `.wwebjs_auth/session-${sessionIdentifier.replace(/[^A-Za-z0-9_-]/g, '_')}`
+    // أو:
+    // const folderPath = `.wwebjs_auth/${sessionIdentifier.replace(/[^A-Za-z0-9_-]/g, '_')}`
+
+    // حذف المجلد إن وجد
+    if (fs.existsSync(folderPath)) {
+      await fs.remove(folderPath)
+    }
+
+    // حدث الحالة في DB
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        UPDATE Sessions
+        SET status = 'Terminated',
+            qrCode = NULL,
+            phoneNumber = NULL
+        WHERE id = @sessionId
+      `)
+
+    return res.status(200).json({ message: 'Session logged out successfully (files removed).' })
+  } catch (error) {
+    console.error('Error logging out session:', error)
+    return res.status(500).json({ message: 'Error logging out session.' })
+  }
+}
+
+export const loginSession = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10)
+  if (!sessionId) {
+    return res.status(400).json({ message: 'Invalid session ID.' })
+  }
+
+  try {
+    // 1. اقرأ sessionIdentifier من قاعدة البيانات (أو من body)
+    const pool = await getConnection()
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query('SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId')
+
+    if (!result.recordset.length) {
+      return res.status(404).json({ message: 'Session not found.' })
+    }
+
+    const { sessionIdentifier } = result.recordset[0]
+
+    // 2. شغّل العميل من جديد (سيطلب QR)
+    await createWhatsAppClientForSession(sessionId, sessionIdentifier)
+
+    // 3. حدّث الحالة مؤقتًا (يمكن جعله Waiting for QR Code) أو اتركه كما هو إلى أن يأتي حدث 'qr'
+    // لكن غالبًا بنخليها 'Waiting for QR Code' ليعرف المستخدم أنه سيحتاج المسح
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        UPDATE Sessions
+        SET status = 'Waiting for QR Code', qrCode = NULL
+        WHERE id = @sessionId
+      `)
+
+    return res.status(200).json({ message: 'Session login initiated. Please scan the QR code.' })
+  } catch (error) {
+    console.error('Error logging in session:', error)
+    return res.status(500).json({ message: 'Error logging in session.' })
+  }
+}
 
 
 // بعد بدء الخادم واستضافة المسارات
