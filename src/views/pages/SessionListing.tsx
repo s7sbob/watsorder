@@ -1,6 +1,6 @@
 // src/components/SessionListing.tsx
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, MouseEvent } from 'react'
 import {
   Box,
   Table,
@@ -22,7 +22,8 @@ import {
   Checkbox,
   Snackbar,
   Alert,
-  AlertColor
+  AlertColor,
+  Menu
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { fetchSessions, createSession, updateSession } from 'src/store/apps/sessions/SessionSlice'
@@ -39,34 +40,31 @@ const SessionListing = () => {
   const sessions = useSelector((state) => state.sessionReducer.sessions) as SessionType[]
   const maxSessionsReached = useSelector((state) => state.sessionReducer.maxSessionsReached) as boolean
 
-  // State for creating new session
+  // =============== [ State for creating new session ] ===============
   const [sessionData, setSessionData] = useState({
     status: '',
-    category: '',
-    products: '',
-    keywords: ''
+    greetingMessage: '',
+    greetingActive: false
   })
 
-  // QR Code dialog
+  // =============== [ QR Code Dialog ] ===============
   const [qrDialogOpen, setQrDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionType | null>(null)
 
-  // Popups for adding data
+  // =============== [ Popups for adding data ] ===============
   const [categoryPopupOpen, setCategoryPopupOpen] = useState(false)
   const [productPopupOpen, setProductPopupOpen] = useState(false)
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null)
 
-  // Show existing categories / products
+  // =============== [ Show existing categories/products ] ===============
   const [showExistingCategories, setShowExistingCategories] = useState(false)
   const [showExistingProducts, setShowExistingProducts] = useState(false)
-  const [selectedSessionForCategory, setSelectedSessionForCategory] = useState<SessionType | null>(null)
-  const [selectedSessionForProduct, setSelectedSessionForProduct] = useState<SessionType | null>(null)
 
-  // Categories for product form
+  // تصنيفات متاحة للـ Product form
   const [productCategories, setProductCategories] = useState<{ value: number; label: string }[]>([])
 
-  // Greeting dialog
+  // =============== [ Greeting Dialog ] ===============
   const [greetingDialogOpen, setGreetingDialogOpen] = useState(false)
   const [selectedSessionGreeting, setSelectedSessionGreeting] = useState<SessionType | null>(null)
   const [greetingData, setGreetingData] = useState({
@@ -74,24 +72,34 @@ const SessionListing = () => {
     greetingActive: false
   })
 
-  // =============== [ Snackbar State for Alerts ] ===============
+  // =============== [ Snackbar for Alerts ] ===============
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState('')
   const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success')
 
-  // دالة لإظهار الـ Snackbar
   const showAlert = (message: string, severity: AlertColor = 'success') => {
     setSnackbarMessage(message)
     setSnackbarSeverity(severity)
     setSnackbarOpen(true)
   }
-
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false)
   }
-  // =============================================================
 
-  // Open greeting popup
+  // =============== [ Menu Bot Toggle - Placeholder ] ===============
+  const handleToggleMenuBot = (session: SessionType) => {
+    // هنا مجرد تحديث للواجهة - لا يوجد Endpoint حاليًا
+    const newMenuBotActive = !session.menuBotActive
+    dispatch(
+      updateSession({
+        sessionId: session.id,
+        changes: { menuBotActive: newMenuBotActive }
+      })
+    )
+    showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
+  }
+
+  // =============== [ Greeting Handling ] ===============
   const openGreetingPopup = (session: SessionType) => {
     setSelectedSessionGreeting(session)
     setGreetingData({
@@ -100,14 +108,10 @@ const SessionListing = () => {
     })
     setGreetingDialogOpen(true)
   }
-
-  // Close greeting dialog
   const handleCloseGreetingDialog = () => {
     setGreetingDialogOpen(false)
     setSelectedSessionGreeting(null)
   }
-
-  // Save greeting
   const handleGreetingUpdate = async () => {
     if (!selectedSessionGreeting) return
     try {
@@ -132,7 +136,7 @@ const SessionListing = () => {
     }
   }
 
-  // Socket.io to listen for session updates
+  // =============== [ Socket.io to listen for session updates ] ===============
   useEffect(() => {
     socket.on('sessionUpdate', (data: { sessionId: number; status: string; qrCode?: string }) => {
       dispatch(
@@ -151,12 +155,12 @@ const SessionListing = () => {
     }
   }, [dispatch])
 
-  // fetch sessions on mount
+  // =============== [ fetch Sessions on mount ] ===============
   useEffect(() => {
     dispatch(fetchSessions())
   }, [dispatch])
 
-  // create new session
+  // =============== [ Create Session ] ===============
   const handleCreateSession = async () => {
     if (maxSessionsReached) {
       showAlert('Maximum sessions limit reached.', 'warning')
@@ -164,7 +168,7 @@ const SessionListing = () => {
     }
     try {
       await dispatch(createSession(sessionData))
-      setSessionData({ status: '', category: '', products: '', keywords: '' })
+      setSessionData({ status: '', greetingMessage: '', greetingActive: false })
       dispatch(fetchSessions())
       showAlert('Session created successfully.', 'success')
     } catch (error) {
@@ -172,7 +176,7 @@ const SessionListing = () => {
     }
   }
 
-  // show QR code
+  // =============== [ Show / Close QR Code ] ===============
   const handleShowQr = async (session: SessionType) => {
     try {
       const response = await axiosServices.get(`/api/sessions/${session.id}/qr`)
@@ -184,14 +188,12 @@ const SessionListing = () => {
       showAlert('Failed to fetch QR code.', 'error')
     }
   }
-
-  // close QR dialog
   const handleCloseQrDialog = () => {
     setQrDialogOpen(false)
     setSelectedSession(null)
   }
 
-  // Logout session
+  // =============== [ Logout / Login / Delete Session ] ===============
   const handleLogoutSession = async (session: SessionType) => {
     if (!window.confirm(`Are you sure you want to logout from session ID: ${session.id}?`)) {
       return
@@ -214,7 +216,6 @@ const SessionListing = () => {
     }
   }
 
-  // Login session
   const handleLoginSession = async (session: SessionType) => {
     if (!window.confirm(`Login session ID: ${session.id} again? You will need to scan QR code again.`)) {
       return
@@ -228,7 +229,6 @@ const SessionListing = () => {
     }
   }
 
-  // Delete session completely
   const handleDeleteSession = async (sessionId: number) => {
     if (!window.confirm(`Are you sure you want to delete the session with ID: ${sessionId}?`)) {
       return
@@ -243,16 +243,38 @@ const SessionListing = () => {
     }
   }
 
-  // open popups
-  const openCategoryPopup = (sessionId: number) => {
+  // =============== [ Category's Menu Handling ] ===============
+  const [anchorElCategory, setAnchorElCategory] = useState<null | HTMLElement>(null)
+  const handleOpenCategoryMenu = (event: MouseEvent<HTMLElement>, sessionId: number) => {
     setActiveSessionId(sessionId)
+    setAnchorElCategory(event.currentTarget)
+  }
+  const handleCloseCategoryMenu = () => {
+    setAnchorElCategory(null)
+  }
+  const handleAddCategoryMenu = () => {
+    setAnchorElCategory(null)
     setCategoryPopupOpen(true)
   }
+  const handleExistingCategoryMenu = () => {
+    setAnchorElCategory(null)
+    setShowExistingCategories(true)
+  }
 
-  const openProductPopup = async (sessionId: number) => {
+  // =============== [ Products Menu Handling ] ===============
+  const [anchorElProduct, setAnchorElProduct] = useState<null | HTMLElement>(null)
+  const handleOpenProductMenu = (event: MouseEvent<HTMLElement>, sessionId: number) => {
     setActiveSessionId(sessionId)
+    setAnchorElProduct(event.currentTarget)
+  }
+  const handleCloseProductMenu = () => {
+    setAnchorElProduct(null)
+  }
+  const handleAddProductMenu = async () => {
+    setAnchorElProduct(null)
+    if (!activeSessionId) return
     try {
-      const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`)
+      const response = await axiosServices.get(`/api/sessions/${activeSessionId}/categories`)
       const cats = response.data.map((c: any) => ({ value: c.id, label: c.category_name }))
       setProductCategories(cats)
     } catch (error) {
@@ -260,13 +282,68 @@ const SessionListing = () => {
     }
     setProductPopupOpen(true)
   }
-
-  const openKeywordPopup = (sessionId: number) => {
-    setActiveSessionId(sessionId)
-    setKeywordPopupOpen(true)
+  const handleExistingProductMenu = () => {
+    setAnchorElProduct(null)
+    setShowExistingProducts(true)
   }
 
-  // toggle bot on/off
+  // =============== [ Submit Category / Product ] ===============
+  const submitCategory = async (data: any) => {
+    if (!activeSessionId) return
+    try {
+      await axiosServices.post(`/api/sessions/${activeSessionId}/category`, data)
+      showAlert('Category added successfully.', 'success')
+    } catch (error) {
+      showAlert('Error adding category.', 'error')
+    }
+  }
+
+  const submitProduct = async (data: any) => {
+    if (!activeSessionId) return
+    try {
+      await axiosServices.post(`/api/sessions/${activeSessionId}/product`, data)
+      showAlert('Product added successfully.', 'success')
+    } catch (error) {
+      showAlert('Error adding product.', 'error')
+    }
+  }
+
+  // =============== [ Keywords with multiple input (Autocomplete) ] ===============
+  /**
+   * المكوّن AddDataPopup سيعطينا مصفوفة في formData[keywords] (array of strings)
+   * مع نص الرد في formData[replyText].
+   */
+  const submitKeyword = async (data: any) => {
+    if (!activeSessionId) return
+    const { keywords, replyText } = data
+
+    if (!Array.isArray(keywords) || keywords.length === 0) {
+      showAlert('Please enter at least one keyword.', 'warning')
+      return
+    }
+    if (!replyText) {
+      showAlert('Please enter a reply text.', 'warning')
+      return
+    }
+
+    try {
+      for (const kw of keywords) {
+        await axiosServices.post(`/api/sessions/${activeSessionId}/keyword`, {
+          keyword: kw,
+          replyText
+        })
+      }
+      showAlert('All keywords have been added successfully.', 'success')
+    } catch (error) {
+      showAlert('Error adding keywords.', 'error')
+    }
+  }
+
+  // =============== [ Close Existing Category / Products ] ===============
+  const closeExistingCategories = () => setShowExistingCategories(false)
+  const closeExistingProducts = () => setShowExistingProducts(false)
+
+  // =============== [ Toggle Bot on/off ] ===============
   const handleToggleBot = async (session: SessionType) => {
     const newBotActive = !session.botActive
     try {
@@ -284,54 +361,9 @@ const SessionListing = () => {
     }
   }
 
-  // submit category
-  const submitCategory = async (data: any) => {
-    if (!activeSessionId) return
-    try {
-      await axiosServices.post(`/api/sessions/${activeSessionId}/category`, data)
-      showAlert('Category added successfully.', 'success')
-    } catch (error) {
-      showAlert('Error adding category.', 'error')
-    }
-  }
-
-  // submit product
-  const submitProduct = async (data: any) => {
-    if (!activeSessionId) return
-    try {
-      await axiosServices.post(`/api/sessions/${activeSessionId}/product`, data)
-      showAlert('Product added successfully.', 'success')
-    } catch (error) {
-      showAlert('Error adding product.', 'error')
-    }
-  }
-
-  // submit keyword
-  const submitKeyword = async (data: any) => {
-    if (!activeSessionId) return
-    try {
-      await axiosServices.post(`/api/sessions/${activeSessionId}/keyword`, data)
-      showAlert('Keyword added successfully.', 'success')
-    } catch (error) {
-      showAlert('Error adding keyword.', 'error')
-    }
-  }
-
-  // open & close existing categories / products
-  const openExistingCategories = () => {
-    setSelectedSessionForCategory(null)
-    setShowExistingCategories(true)
-  }
-  const closeExistingCategories = () => setShowExistingCategories(false)
-
-  const openExistingProducts = () => {
-    setSelectedSessionForProduct(null)
-    setShowExistingProducts(true)
-  }
-  const closeExistingProducts = () => setShowExistingProducts(false)
-
   return (
     <Box mt={4}>
+      {/* ------------- Create Session Form ------------- */}
       <TextField
         label='Status'
         value={sessionData.status}
@@ -339,10 +371,27 @@ const SessionListing = () => {
         fullWidth
         sx={{ mb: 2 }}
       />
-      <Button variant='contained' color='primary' onClick={handleCreateSession}>
+      <TextField
+        label='Greeting Message'
+        value={sessionData.greetingMessage}
+        onChange={e => setSessionData({ ...sessionData, greetingMessage: e.target.value })}
+        fullWidth
+        sx={{ mb: 2 }}
+      />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={sessionData.greetingActive}
+            onChange={e => setSessionData({ ...sessionData, greetingActive: e.target.checked })}
+          />
+        }
+        label='Enable Greeting Message'
+      />
+      <Button variant='contained' color='primary' onClick={handleCreateSession} sx={{ mt: 2 }}>
         Create Session
       </Button>
 
+      {/* ------------- Sessions Table ------------- */}
       <TableContainer sx={{ mt: 4 }}>
         <Table>
           <TableHead>
@@ -362,6 +411,7 @@ const SessionListing = () => {
                   <Chip label={session.status} color='primary' />
                 </TableCell>
                 <TableCell align='right'>
+                  {/* Waiting for QR? => Show QR */}
                   {session.status === 'Waiting for QR Code' && (
                     <Button
                       variant='outlined'
@@ -372,6 +422,8 @@ const SessionListing = () => {
                       Show QR Code
                     </Button>
                   )}
+
+                  {/* Not terminated => Logout */}
                   {session.status !== 'Terminated' && (
                     <Button
                       variant='outlined'
@@ -382,6 +434,8 @@ const SessionListing = () => {
                       Logout
                     </Button>
                   )}
+
+                  {/* Terminated => Login */}
                   {session.status === 'Terminated' && (
                     <Button
                       variant='outlined'
@@ -392,30 +446,57 @@ const SessionListing = () => {
                       Login
                     </Button>
                   )}
+
+                  {/* Category's Menu */}
                   <Button
                     variant='outlined'
                     size='small'
-                    onClick={() => openCategoryPopup(session.id)}
+                    onClick={(e) => handleOpenCategoryMenu(e, session.id)}
                     sx={{ mr: 1, mb: 1 }}
                   >
-                    Add Category
+                    Category's
                   </Button>
+                  <Menu
+                    anchorEl={anchorElCategory}
+                    open={Boolean(anchorElCategory) && activeSessionId === session.id}
+                    onClose={handleCloseCategoryMenu}
+                  >
+                    <MenuItem onClick={handleAddCategoryMenu}>Add Category</MenuItem>
+                    <MenuItem onClick={handleExistingCategoryMenu}>Existing Category's</MenuItem>
+                  </Menu>
+
+                  {/* Products Menu */}
                   <Button
                     variant='outlined'
                     size='small'
-                    onClick={() => openProductPopup(session.id)}
+                    onClick={(e) => handleOpenProductMenu(e, session.id)}
                     sx={{ mr: 1, mb: 1 }}
                   >
-                    Add Product
+                    Products
                   </Button>
+                  <Menu
+                    anchorEl={anchorElProduct}
+                    open={Boolean(anchorElProduct) && activeSessionId === session.id}
+                    onClose={handleCloseProductMenu}
+                  >
+                    <MenuItem onClick={handleAddProductMenu}>Add Product</MenuItem>
+                    <MenuItem onClick={handleExistingProductMenu}>Existing Products</MenuItem>
+                  </Menu>
+
+                  {/* Keywords Button */}
                   <Button
                     variant='outlined'
                     size='small'
-                    onClick={() => openKeywordPopup(session.id)}
+                    onClick={() => {
+                      setActiveSessionId(session.id)
+                      setKeywordPopupOpen(true)
+                    }}
                     sx={{ mr: 1, mb: 1 }}
                   >
                     Keywords
                   </Button>
+
+                  {/* Greeting */}
                   <Button
                     variant='outlined'
                     size='small'
@@ -424,6 +505,8 @@ const SessionListing = () => {
                   >
                     Greeting
                   </Button>
+
+                  {/* Bot ON/OFF */}
                   <Button
                     variant='contained'
                     color={session.botActive ? 'success' : 'warning'}
@@ -433,6 +516,19 @@ const SessionListing = () => {
                   >
                     {session.botActive ? 'Bot OFF' : 'Bot ON'}
                   </Button>
+
+                  {/* Menu Bot ON/OFF */}
+                  <Button
+                    variant='contained'
+                    color={session.menuBotActive ? 'success' : 'warning'}
+                    size='small'
+                    onClick={() => handleToggleMenuBot(session)}
+                    sx={{ mr: 1, mb: 1 }}
+                  >
+                    {session.menuBotActive ? 'Menu Bot OFF' : 'Menu Bot ON'}
+                  </Button>
+
+                  {/* Delete Session */}
                   <IconButton
                     aria-label='delete'
                     color='error'
@@ -448,14 +544,7 @@ const SessionListing = () => {
         </Table>
       </TableContainer>
 
-      <Button onClick={openExistingCategories} sx={{ mt: 2, mr: 2 }} variant='outlined'>
-        Existing Categories
-      </Button>
-      <Button onClick={openExistingProducts} sx={{ mt: 2 }} variant='outlined'>
-        Existing Products
-      </Button>
-
-      {/* QR Code Dialog */}
+      {/* ------------- QR Code Dialog ------------- */}
       <Dialog open={qrDialogOpen} onClose={handleCloseQrDialog}>
         <DialogTitle>Scan QR Code</DialogTitle>
         <DialogContent>
@@ -478,15 +567,18 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Add Category Popup */}
+      {/* ------------- Add Category Popup ------------- */}
       <AddDataPopup
         open={categoryPopupOpen}
         onClose={() => setCategoryPopupOpen(false)}
         onSubmit={submitCategory}
         title='Add Category'
-        fields={[{ label: 'Category Name', name: 'category_name' }]}
+        fields={[
+          { label: 'Category Name', name: 'category_name' }
+        ]}
       />
-      {/* Add Product Popup */}
+
+      {/* ------------- Add Product Popup ------------- */}
       <AddDataPopup
         open={productPopupOpen}
         onClose={() => setProductPopupOpen(false)}
@@ -494,72 +586,75 @@ const SessionListing = () => {
         title='Add Product'
         fields={[
           { label: 'Product Name', name: 'product_name' },
-          { label: 'Category', name: 'category_id', options: productCategories }
+          { label: 'Category', name: 'category_id', options: productCategories },
+          { label: 'Price', name: 'price' }
         ]}
       />
-      {/* Add Keyword Popup */}
+
+      {/*
+        ------------- Add Keyword Popup (Multiple Keywords) -------------
+        isMultipleKeywords: true => Autocomplete multiple
+        حقل آخر للـ Reply Text
+      */}
       <AddDataPopup
         open={keywordPopupOpen}
         onClose={() => setKeywordPopupOpen(false)}
         onSubmit={submitKeyword}
-        title='Add Keyword'
+        title='Add Keywords'
         fields={[
-          { label: 'Keyword', name: 'keyword' },
-          { label: 'Reply', name: 'reply' }
+          {
+            label: 'Keywords',
+            name: 'keywords',
+            isMultipleKeywords: true  // <==== هنا التفعيل
+          },
+          {
+            label: 'Reply Text',
+            name: 'replyText'
+          }
         ]}
       />
 
-      {/* Existing Categories Dialog */}
-      <Dialog open={showExistingCategories} onClose={closeExistingCategories} fullWidth maxWidth='sm'>
-        <DialogTitle>Existing Categories</DialogTitle>
+      {/* ------------- Existing Categories Dialog ------------- */}
+      <Dialog
+        open={showExistingCategories}
+        onClose={() => setShowExistingCategories(false)}
+        fullWidth
+        maxWidth='sm'
+      >
+        <DialogTitle>Existing Category's</DialogTitle>
         <DialogContent>
-          {!selectedSessionForCategory ? (
-            <Box display='flex' flexDirection='column' gap={1}>
-              {sessions.map(session => (
-                <Button
-                  key={session.id}
-                  variant='outlined'
-                  onClick={() => setSelectedSessionForCategory(session)}
-                >
-                  Session {session.id}
-                </Button>
-              ))}
-            </Box>
+          {activeSessionId ? (
+            <CategoryList sessionId={activeSessionId} />
           ) : (
-            <CategoryList sessionId={selectedSessionForCategory.id} />
+            <div>No session selected</div>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeExistingCategories}>Close</Button>
+          <Button onClick={() => setShowExistingCategories(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Existing Products Dialog */}
-      <Dialog open={showExistingProducts} onClose={closeExistingProducts} fullWidth maxWidth='sm'>
+      {/* ------------- Existing Products Dialog ------------- */}
+      <Dialog
+        open={showExistingProducts}
+        onClose={() => setShowExistingProducts(false)}
+        fullWidth
+        maxWidth='sm'
+      >
         <DialogTitle>Existing Products</DialogTitle>
         <DialogContent>
-          {!selectedSessionForProduct ? (
-            <Box display='flex' flexDirection='column' gap={1}>
-              {sessions.map(session => (
-                <Button
-                  key={session.id}
-                  variant='outlined'
-                  onClick={() => setSelectedSessionForProduct(session)}
-                >
-                  Session {session.id}
-                </Button>
-              ))}
-            </Box>
+          {activeSessionId ? (
+            <ProductList sessionId={activeSessionId} />
           ) : (
-            <ProductList sessionId={selectedSessionForProduct.id} />
+            <div>No session selected</div>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeExistingProducts}>Close</Button>
+          <Button onClick={() => setShowExistingProducts(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Greeting Dialog */}
+      {/* ------------- Greeting Dialog ------------- */}
       <Dialog open={greetingDialogOpen} onClose={handleCloseGreetingDialog} fullWidth maxWidth='sm'>
         <DialogTitle>Greeting Message</DialogTitle>
         <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -591,7 +686,7 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar لعرض الرسائل التنبيهية */}
+      {/* ------------- Snackbar ------------- */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}

@@ -1,5 +1,6 @@
 // src/types/apps/session.ts
 export interface SessionType {
+  menuBotActive: any;
   id: number; // المعرف الفريد للجلسة
   sessionIdentifier: string; // معرّف الجلسة الفريد (مثل username.subscriptionType.sessionId)
   phoneNumber: string; // رقم الهاتف المرتبط بالجلسة

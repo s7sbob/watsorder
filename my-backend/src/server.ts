@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { initializeExistingSessions } from './controllers/sessionController' // أو أي ملف فيه الدالة
 
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user'; // استيراد مسارات المستخدمين
@@ -43,6 +44,7 @@ io.on('connection', (socket) => {
     console.log('Client disconnected:', socket.id);
   });
 });
+initializeExistingSessions().catch(console.error)
 
 // بدء الخادم باستخدام httpServer
 httpServer.listen(PORT, () => {

@@ -1,0 +1,19 @@
+2025/01/16-02:23:37.914 4050 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736968843647\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/01/16-02:23:37.915 4050 Recovering log #249
+2025/01/16-02:23:37.989 4050 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-3_Premium_1736968843647\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000249.log 
+2025/01/16-02:23:40.094 1548 Level-0 table #258: started
+2025/01/16-02:23:40.102 1548 Level-0 table #258: 133680 bytes OK
+2025/01/16-02:23:40.104 1548 Delete type=0 #249
+2025/01/16-02:23:40.109 1548 Manual compaction at level-0 from '\x00J\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00K\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/01/16-02:23:43.213 2e64 Compacting 1@1 + 4@2 files
+2025/01/16-02:23:43.431 2e64 Generated table #259@1: 42926 keys, 2202993 bytes
+2025/01/16-02:23:43.549 2e64 Generated table #260@1: 10649 keys, 2189612 bytes
+2025/01/16-02:23:43.801 2e64 Generated table #261@1: 58464 keys, 2222914 bytes
+2025/01/16-02:23:43.840 2e64 Generated table #262@1: 12533 keys, 289143 bytes
+2025/01/16-02:23:43.841 2e64 Compacted 1@1 + 4@2 files => 6904662 bytes
+2025/01/16-02:23:43.842 2e64 compacted to: files[ 0 0 4 0 0 0 0 ]
+2025/01/16-02:23:43.842 2e64 Delete type=2 #252
+2025/01/16-02:23:43.842 2e64 Delete type=2 #253
+2025/01/16-02:23:43.842 2e64 Delete type=2 #254
+2025/01/16-02:23:43.842 2e64 Delete type=2 #255
+2025/01/16-02:23:43.842 2e64 Delete type=2 #258

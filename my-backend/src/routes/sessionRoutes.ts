@@ -1,5 +1,5 @@
-// src\routes\sessionRoutes.ts
-import { Router } from 'express';
+// src/routes/sessionRoutes.ts
+import { Router } from 'express'
 import {
   fetchSessions,
   createSession,
@@ -18,35 +18,50 @@ import {
   updateBotStatus,
   logoutSession,
   loginSession
+} from '../controllers/sessionController'
+import { authenticateToken } from '../middleware/authMiddleware'
 
-} from '../controllers/sessionController';
-import { authenticateToken } from '../middleware/authMiddleware';
-
-const router = Router();
+const router = Router()
 
 // جلب الجلسات
-router.get('/', authenticateToken, fetchSessions);
+router.get('/', authenticateToken, fetchSessions)
 
 // إنشاء جلسة جديدة
-router.post('/', authenticateToken, createSession);
+router.post('/', authenticateToken, createSession)
 
-// مسارات لإضافة بيانات
-router.post('/:sessionId/category', authenticateToken, addCategory);
-router.post('/:sessionId/product', authenticateToken, addProduct);
-router.post('/:sessionId/keyword', authenticateToken, addKeyword);
-router.get('/:sessionId/categories', authenticateToken, getCategoriesForSession);
-router.get('/:sessionId/products', authenticateToken, getProductsForSession);
+// إضافة فئة
+router.post('/:sessionId/category', authenticateToken, addCategory)
+// جلب الفئات
+router.get('/:sessionId/categories', authenticateToken, getCategoriesForSession)
+// تحديث فئة
+router.put('/:sessionId/category/:categoryId', authenticateToken, updateCategory)
+// حذف فئة
+router.delete('/:sessionId/category/:categoryId', authenticateToken, deleteCategory)
 
-router.put('/:sessionId/category/:categoryId', authenticateToken, updateCategory);
-router.delete('/:sessionId/category/:categoryId', authenticateToken, deleteCategory);
-router.get('/:id/qr', authenticateToken, getQrForSession);
-router.put('/:id/greeting', authenticateToken, updateGreeting);
+// إضافة منتج
+router.post('/:sessionId/product', authenticateToken, addProduct)
+// جلب المنتجات
+router.get('/:sessionId/products', authenticateToken, getProductsForSession)
+// تحديث منتج
+router.put('/:sessionId/product/:productId', authenticateToken, updateProduct)
+// حذف منتج
+router.delete('/:sessionId/product/:productId', authenticateToken, deleteProduct)
+
+// إضافة Keyword
+router.post('/:sessionId/keyword', authenticateToken, addKeyword)
+
+// جلب QR
+router.get('/:id/qr', authenticateToken, getQrForSession)
+// تحديث Greeting
+router.put('/:id/greeting', authenticateToken, updateGreeting)
+// تحديث حالة البوت
 router.put('/:id/bot', authenticateToken, updateBotStatus)
+// تسجيل الخروج من جلسة
 router.put('/:id/logout', authenticateToken, logoutSession)
+// تسجيل الدخول مجددًا
 router.put('/:id/login', authenticateToken, loginSession)
-router.put('/:sessionId/product/:productId', authenticateToken, updateProduct);
-router.delete('/:sessionId/product/:productId', authenticateToken, deleteProduct);
-// حذف جلسة
-router.delete('/:id', authenticateToken, deleteSession);
 
-export default router;
+// حذف جلسة
+router.delete('/:id', authenticateToken, deleteSession)
+
+export default router
