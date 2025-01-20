@@ -12,9 +12,10 @@ import ContactsReducer from './apps/contacts/ContactSlice';
 import UserProfileReducer from './apps/userProfile/UserProfileSlice';
 import BlogReducer from './apps/blog/BlogSlice';
 import authReducer from './auth/AuthSlice';
-
-// استيراد sessionReducer
 import sessionReducer from './apps/sessions/SessionSlice';
+
+// استيراد orderReducer
+import orderReducer from './apps/orders/OrderSlice';
 
 export const store = configureStore({
   reducer: {
@@ -28,7 +29,8 @@ export const store = configureStore({
     userpostsReducer: UserProfileReducer,
     blogReducer: BlogReducer,
     auth: authReducer,
-    sessionReducer,  // إضافة sessionReducer
+    sessionReducer,
+    order: orderReducer, // إضافة orderReducer
   },
 });
 
@@ -43,7 +45,8 @@ const rootReducer = combineReducers({
   userpostsReducer: UserProfileReducer,
   blogReducer: BlogReducer,
   auth: authReducer,
-  sessionReducer,  // إضافة sessionReducer في الـ rootReducer
+  sessionReducer,
+  order: orderReducer, // إضافة orderReducer هنا أيضاً
 });
 
 export type AppState = ReturnType<typeof rootReducer>;

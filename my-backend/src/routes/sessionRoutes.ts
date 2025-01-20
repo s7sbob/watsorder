@@ -17,7 +17,8 @@ import {
   updateGreeting,
   updateBotStatus,
   logoutSession,
-  loginSession
+  loginSession,
+  updateMenuBotStatus 
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
 
@@ -63,5 +64,9 @@ router.put('/:id/login', authenticateToken, loginSession)
 
 // حذف جلسة
 router.delete('/:id', authenticateToken, deleteSession)
+
+
+router.put('/:id/menu-bot', authenticateToken, updateMenuBotStatus)
+
 
 export default router

@@ -87,16 +87,29 @@ const SessionListing = () => {
   }
 
   // =============== [ Menu Bot Toggle - Placeholder ] ===============
-  const handleToggleMenuBot = (session: SessionType) => {
-    // هنا مجرد تحديث للواجهة - لا يوجد Endpoint حاليًا
+  const handleToggleMenuBot = async (session: SessionType) => {
     const newMenuBotActive = !session.menuBotActive
-    dispatch(
-      updateSession({
-        sessionId: session.id,
-        changes: { menuBotActive: newMenuBotActive }
+    try {
+      // 1) أرسل طلب PUT إلى السيرفر
+      await axiosServices.put(`/api/sessions/${session.id}/menu-bot`, {
+        menuBotActive: newMenuBotActive
       })
-    )
-    showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
+  
+      // 2) إذا نجحت العملية، عدِّل الحالة في الواجهة
+      dispatch(
+        updateSession({
+          sessionId: session.id,
+          changes: { menuBotActive: newMenuBotActive }
+        })
+      )
+  
+      // 3) أعرض تنبيه للمستخدم
+      showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
+  
+    } catch (error) {
+      console.error('Error toggling menu bot:', error)
+      showAlert('An error occurred while toggling the Menu Bot.', 'error')
+    }
   }
 
   // =============== [ Greeting Handling ] ===============

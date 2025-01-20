@@ -2,15 +2,11 @@ import { IconButton, Box, AppBar, useMediaQuery, Toolbar, styled, Stack } from '
 
 import { useSelector, useDispatch } from 'src/store/Store';
 import {
-  toggleSidebar,
-  toggleMobileSidebar,
   setDarkMode,
 } from 'src/store/customizer/CustomizerSlice';
 import { IconMenu2, IconMoon, IconSun } from '@tabler/icons-react';
 import Notifications from './Notification';
 import Profile from './Profile';
-import Cart from './Cart';
-import Search from './Search';
 import Language from './Language';
 import { AppState } from 'src/store/Store';
 import Navigation from './Navigation';
@@ -44,18 +40,11 @@ const Header = () => {
         {/* ------------------------------------------- */}
         {/* Toggle Button Sidebar */}
         {/* ------------------------------------------- */}
-        <IconButton
-          color="inherit"
-          aria-label="menu"
-          onClick={lgUp ? () => dispatch(toggleSidebar()) : () => dispatch(toggleMobileSidebar())}
-        >
-          <IconMenu2 size="20" />
-        </IconButton>
+
 
         {/* ------------------------------------------- */}
         {/* Search Dropdown */}
         {/* ------------------------------------------- */}
-        <Search />
         {lgUp ? (
           <>
             <Navigation />
@@ -68,7 +57,6 @@ const Header = () => {
           {/* ------------------------------------------- */}
           {/* Ecommerce Dropdown */}
           {/* ------------------------------------------- */}
-          <Cart />
           {/* ------------------------------------------- */}
           {/* End Ecommerce Dropdown */}
           {/* ------------------------------------------- */}

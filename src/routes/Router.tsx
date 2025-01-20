@@ -23,7 +23,7 @@ const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
 /* ****Apps***** */
 const UserList = Loadable(lazy(() => import('../views/admin/UserListing')))
 const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')))
-
+const ConfirmedOrdersPage = Loadable(lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')))
 
 /* --- UI Components, Form Elements, Forms, Pages, Charts, Tables, React Tables, Widgets --- */
 // تم حذف استيرادات هذه الأقسام من أجل الاختصار، لكن يجب تضمينها في ملفك كما هي في النسخة السابقة.
@@ -48,6 +48,8 @@ const Router = [
       { path: '/dashboards/modern', exact: true, element: <ModernDash /> },
       { path: '/UserList', element: <UserList /> },
       { path: '/apps/sessions', element: <Sessions /> },
+      { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
+
 
       // ... باقي المسارات المحمية
       { path: '*', element: <Navigate to="/auth/404" /> },

@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { initializeExistingSessions } from './controllers/sessionController' // أو أي ملف فيه الدالة
+import orderRoutes from './routes/orderRoutes';
 
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user'; // استيراد مسارات المستخدمين
@@ -29,6 +30,7 @@ app.use('/api/sessions', sessionRoutes);
 app.get('/', (req, res) => {
   res.send('Server is running');
 });
+app.use('/api/orders', orderRoutes);
 
 // إنشاء خادم HTTP وSocket.IO
 const httpServer = createServer(app);
@@ -44,6 +46,7 @@ io.on('connection', (socket) => {
     console.log('Client disconnected:', socket.id);
   });
 });
+
 initializeExistingSessions().catch(console.error)
 
 // بدء الخادم باستخدام httpServer

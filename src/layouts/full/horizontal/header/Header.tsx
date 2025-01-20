@@ -13,12 +13,10 @@ import {
 } from '@mui/material';
 
 import { useSelector, useDispatch } from 'src/store/Store';
-import { toggleMobileSidebar, setDarkMode } from 'src/store/customizer/CustomizerSlice';
+import {  setDarkMode } from 'src/store/customizer/CustomizerSlice';
 import { IconMenu2, IconMoon, IconSun } from '@tabler/icons-react';
 import Notifications from 'src/layouts/full/vertical/header/Notification';
-import Cart from 'src/layouts/full/vertical/header/Cart';
 import Profile from 'src/layouts/full/vertical/header/Profile';
-import Search from 'src/layouts/full/vertical/header/Search';
 import Language from 'src/layouts/full/vertical/header/Language';
 import Navigation from 'src/layouts/full/vertical/header/Navigation';
 import Logo from 'src/layouts/full/shared/logo/Logo';
@@ -58,23 +56,8 @@ const Header = () => {
           <Logo />
         </Box>
         {/* ------------------------------------------- */}
-        {/* Toggle Button Sidebar */}
+
         {/* ------------------------------------------- */}
-        {lgDown ? (
-          <IconButton
-            color="inherit"
-            aria-label="menu"
-            onClick={() => dispatch(toggleMobileSidebar())}
-          >
-            <IconMenu2 />
-          </IconButton>
-        ) : (
-          ''
-        )}
-        {/* ------------------------------------------- */}
-        {/* Search Dropdown */}
-        {/* ------------------------------------------- */}
-        <Search />
         {lgUp ? (
           <>
             <Navigation />
@@ -86,7 +69,6 @@ const Header = () => {
           {/* ------------------------------------------- */}
           {/* Ecommerce Dropdown */}
           {/* ------------------------------------------- */}
-          <Cart />
           {/* ------------------------------------------- */}
           {/* End Ecommerce Dropdown */}
           {/* ------------------------------------------- */}

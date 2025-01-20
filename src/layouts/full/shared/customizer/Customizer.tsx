@@ -211,22 +211,7 @@ const Customizer: FC = () => {
             {/* ------------------------------------------- */}
             {/* ------------ Layout Horizontal / Vertical ------------- */}
             {/* ------------------------------------------- */}
-            <Typography variant="h6" gutterBottom>
-              Layout Type
-            </Typography>
-            <Stack direction={'row'} gap={2} my={2}>
-              <StyledBox onClick={() => dispatch(toggleHorizontal(false))} display="flex" gap={1}>
-                <ViewComfyTwoTone
-                  color={customizer.isHorizontal === false ? 'primary' : 'inherit'}
-                />
-                Vertical
-              </StyledBox>
-              <StyledBox onClick={() => dispatch(toggleHorizontal(true))} display="flex" gap={1}>
-                <PaddingTwoTone color={customizer.isHorizontal === true ? 'primary' : 'inherit'} />
-                Horizontal
-              </StyledBox>
-            </Stack>
-            <Box pt={4} />
+
             {/* ------------------------------------------- */}
             {/* ------------ Layout Boxed / Full ------------- */}
             {/* ------------------------------------------- */}

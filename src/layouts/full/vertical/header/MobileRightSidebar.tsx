@@ -62,7 +62,7 @@ const MobileRightSidebar = () => {
             </ListItemIcon>
             <ListItemText>
               <Typography variant="subtitle2" fontWeight={600}>
-                Calendar
+                Confirmed Orders
               </Typography>
             </ListItemText>
           </ListItemButton>
