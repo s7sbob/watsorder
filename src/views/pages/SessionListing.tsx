@@ -162,6 +162,39 @@ const SessionListing = () => {
     }
   }
 
+  const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim()
+  
+    // إذا وجدنا علامة '-' فهذا يعني أن المستخدم أدخل Interval
+    if (value.includes('-')) {
+      const [startStr, endStr] = value.split('-').map(part => part.trim())
+      const start = parseInt(startStr, 10)
+      const end = parseInt(endStr, 10)
+  
+      // تحقق من الأرقام (start, end)
+      if (!isNaN(start) && !isNaN(end) && end >= start) {
+        // أنشئ المصفوفة من start إلى end
+        const numbersArray: number[] = []
+        for (let i = start; i <= end; i++) {
+          numbersArray.push(i)
+        }
+        setBroadcastData(prev => ({ ...prev, randomNumbers: numbersArray }))
+      } else {
+        // لو كان الإدخال خاطئاً، يمكنك تصفير الحقل أو عرض خطأ إلخ
+        setBroadcastData(prev => ({ ...prev, randomNumbers: [] }))
+      }
+    } else {
+      // الصيغة القديمة (comma separated)
+      const numbers = value
+        .split(',')
+        .map(v => parseInt(v.trim(), 10))
+        .filter(num => !isNaN(num))
+  
+      setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
+    }
+  }
+  
+
   // =============== [ Greeting Handling ] ===============
   const openGreetingPopup = (session: SessionType) => {
     setSelectedSessionGreeting(session)
@@ -639,48 +672,42 @@ const SessionListing = () => {
 
       {/* ------------- Broadcast Dialog (يظهر عند الضغط على Broadcast في كل جلسة) ------------- */}
       <Dialog open={broadcastDialogOpen} onClose={handleCloseBroadcastDialog} fullWidth maxWidth='sm'>
-        <DialogTitle>Broadcast Message</DialogTitle>
-        <DialogContent>
-          <TextField
-            label='Phone Numbers (comma separated)'
-            fullWidth
-            margin='normal'
-            value={broadcastData.phoneNumbers.join(',')}
-            onChange={e =>
-              setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
-            }
-          />
-          <TextField
-            label='Message'
-            fullWidth
-            margin='normal'
-            multiline
-            rows={4}
-            value={broadcastData.message}
-            onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
-          />
-          <TextField
-            label='Delays (comma separated seconds)'
-            fullWidth
-            margin='normal'
-            value={broadcastData.randomNumbers.join(',')}
-            onChange={e =>
-              setBroadcastData({
-                ...broadcastData,
-                randomNumbers: e.target.value.split(',').map(Number)
-              })
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseBroadcastDialog} color='secondary'>
-            Cancel
-          </Button>
-          <Button onClick={handleBroadcastSubmit} color='primary'>
-            Send Broadcast
-          </Button>
-        </DialogActions>
-      </Dialog>
+  <DialogTitle>Broadcast Message</DialogTitle>
+  <DialogContent>
+    <TextField
+      label='Phone Numbers (comma separated)'
+      fullWidth
+      margin='normal'
+      value={broadcastData.phoneNumbers.join(',')}
+      onChange={e =>
+        setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
+      }
+    />
+    <TextField
+      label='Message'
+      fullWidth
+      margin='normal'
+      multiline
+      rows={4}
+      value={broadcastData.message}
+      onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
+    />
+    <TextField
+      label='Delay (e.g. "5-10" or "5,10,15")'
+      fullWidth
+      margin='normal'
+      onChange={handleDelayChange}
+    />
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleCloseBroadcastDialog} color='secondary'>
+      Cancel
+    </Button>
+    <Button onClick={handleBroadcastSubmit} color='primary'>
+      Send Broadcast
+    </Button>
+  </DialogActions>
+</Dialog>
 
       {/* ------------- Add Category Popup ------------- */}
       <AddDataPopup
