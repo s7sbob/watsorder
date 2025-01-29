@@ -1,6 +1,6 @@
 // src/controllers/whatsappClients.ts
 
-import { Client, LocalAuth, Message } from 'whatsapp-web.js'
+import { Client, LocalAuth, Message, MessageMedia } from 'whatsapp-web.js'
 import { getConnection } from '../config/db'
 import * as sql from 'mssql'
 import { io } from '../server'
@@ -583,33 +583,19 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 }
 
 
-const sendMessageWithDelay = async (client: Client, phoneNumber: string, message: string, delay: number) => {
-  return new Promise(resolve => {
-    setTimeout(async () => {
-      try {
-        await client.sendMessage(`${phoneNumber}@c.us`, message)
-        console.log(`Broadcast sent to ${phoneNumber}`)
-        resolve(true)
-      } catch (error) {
-        console.error(`Broadcast failed for ${phoneNumber}:`, error)
-        resolve(false)
-      }
-    }, delay * 1000)
-  })
-}
 
 /**
  * دالة البث الأساسية التي تأخذ الـ sessionId بشكل صريح.
  */
 export const broadcastMessage = async (req: Request, res: Response, sessionId: number) => {
-  const { phoneNumbers, message, randomNumbers } = req.body
+  const { phoneNumbers, message, randomNumbers, media } = req.body
 
-  if (!phoneNumbers?.length || !message || !randomNumbers?.length) {
+  // التحقق من صحة المدخلات
+  if (!phoneNumbers?.length || !randomNumbers?.length) {
     return res.status(400).json({ message: 'Invalid input data' })
   }
 
   try {
-    // تأكد أن الجلسة موجودة وحالتها Connected (إن أردت)
     const pool = await getConnection()
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -618,6 +604,7 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
         FROM Sessions
         WHERE id = @sessionId
       `)
+
     if (!sessionResult.recordset.length) {
       return res.status(404).json({ message: 'No session found with the provided ID' })
     }
@@ -625,16 +612,34 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
       return res.status(400).json({ message: 'Session is not in Connected status.' })
     }
 
-    // جلب الـ client من الذاكرة
     const client = whatsappClients[sessionId]
     if (!client) {
       return res.status(404).json({ message: 'WhatsApp client not found for this session.' })
     }
 
-    // تنفيذ البث
+    // ابدأ البث
     for (const phoneNumber of phoneNumbers) {
+      // اختَر delay عشوائي
       const randomDelay = randomNumbers[Math.floor(Math.random() * randomNumbers.length)]
-      await sendMessageWithDelay(client, phoneNumber, message, randomDelay)
+
+      // هل لدينا مصفوفة ميديا؟
+      if (media && Array.isArray(media) && media.length > 0) {
+        // (1) إرسال الصور أولاً (بدون أي caption)
+        for (const singleMedia of media) {
+          const mediaMsg = new MessageMedia(singleMedia.mimetype, singleMedia.base64, singleMedia.filename)
+          // نمرر النص = '' كي لا يظهر كـ caption
+          await sendMessageWithDelay(client, phoneNumber, '', randomDelay, mediaMsg)
+        }
+
+        // (2) بعد إرسال الصور، إن كان هناك نص مكتوب في `message`
+        if (message && message.trim()) {
+          // أرسل الرسالة النصية مرة واحدة
+          await sendMessageWithDelay(client, phoneNumber, message, randomDelay)
+        }
+      } else {
+        // لا توجد ميديا => أرسل نص فقط
+        await sendMessageWithDelay(client, phoneNumber, message, randomDelay)
+      }
     }
 
     res.status(200).json({ message: 'Broadcast started successfully' })
@@ -642,4 +647,34 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
     console.error('Broadcast error:', error)
     res.status(500).json({ message: 'Internal server error' })
   }
+}
+
+// =========== [sendMessageWithDelay] ===========
+// دالة مساعدة لإرسال رسالة (نصية/ميديا) بعد تأخير معيّن
+const sendMessageWithDelay = async (
+  client: Client,
+  phoneNumber: string,
+  textMessage: string,
+  delay: number,
+  media?: MessageMedia
+) => {
+  return new Promise<void>(resolve => {
+    setTimeout(async () => {
+      try {
+        const chatId = `${phoneNumber}@c.us`
+        if (media) {
+          // إرسال ميديا مع كابتشن = textMessage
+          await client.sendMessage(chatId, media, { caption: textMessage || '' })
+        } else {
+          // إرسال نص فقط
+          await client.sendMessage(chatId, textMessage)
+        }
+        console.log(`Broadcast sent to ${phoneNumber}`)
+        resolve()
+      } catch (error) {
+        console.error(`Broadcast failed for ${phoneNumber}:`, error)
+        resolve()
+      }
+    }, delay * 1000)
+  })
 }

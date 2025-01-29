@@ -37,8 +37,8 @@ import socket from 'src/socket'
 
 const SessionListing = () => {
   const dispatch = useDispatch()
-  const sessions = useSelector((state) => state.sessionReducer.sessions) as SessionType[]
-  const maxSessionsReached = useSelector((state) => state.sessionReducer.maxSessionsReached) as boolean
+  const sessions = useSelector(state => state.sessionReducer.sessions) as SessionType[]
+  const maxSessionsReached = useSelector(state => state.sessionReducer.maxSessionsReached) as boolean
 
   // =============== [ State for creating new session ] ===============
   const [sessionData, setSessionData] = useState({
@@ -67,10 +67,24 @@ const SessionListing = () => {
   // =============== [ Broadcast Dialog مرتبط بكل جلسة ] ===============
   const [broadcastDialogOpen, setBroadcastDialogOpen] = useState(false)
   const [broadcastSessionId, setBroadcastSessionId] = useState<number | null>(null)
-  const [broadcastData, setBroadcastData] = useState({
-    phoneNumbers: [] as string[],
+
+  // معرفة البيانات الخاصة بالميديا
+  interface MediaFile {
+    base64: string
+    mimetype: string
+    filename: string
+  }
+
+  const [broadcastData, setBroadcastData] = useState<{
+    phoneNumbers: string[]
+    message: string
+    randomNumbers: number[]
+    media: MediaFile[] // مصفوفة من الملفات
+  }>({
+    phoneNumbers: [],
     message: '',
-    randomNumbers: [] as number[]
+    randomNumbers: [],
+    media: [] // نبدأ بمصفوفة فارغة
   })
 
   // =============== [ Greeting Dialog ] ===============
@@ -120,38 +134,47 @@ const SessionListing = () => {
   // =============== [ Broadcast Handling لكل جلسة ] ===============
   const openBroadcastDialog = (sessionId: number) => {
     setBroadcastSessionId(sessionId)
+    // إعادة التهيئة
     setBroadcastData({
       phoneNumbers: [],
       message: '',
-      randomNumbers: []
+      randomNumbers: [],
+      media: []
     })
     setBroadcastDialogOpen(true)
   }
 
   const handleCloseBroadcastDialog = () => {
     setBroadcastDialogOpen(false)
-    setBroadcastData({ phoneNumbers: [], message: '', randomNumbers: [] })
+    // إعادة تهيئة
+    setBroadcastData({
+      phoneNumbers: [],
+      message: '',
+      randomNumbers: [],
+      media: []
+    })
     setBroadcastSessionId(null)
   }
 
   const handleBroadcastSubmit = async () => {
-    const { phoneNumbers, message, randomNumbers } = broadcastData
+    const { phoneNumbers, message, randomNumbers, media } = broadcastData
+
     if (!broadcastSessionId) {
       showAlert('No session selected for broadcast.', 'error')
       return
     }
-
-    // Validation
-    if (phoneNumbers.length === 0 || message.trim() === '' || randomNumbers.length === 0) {
+    if (!phoneNumbers.length || !randomNumbers.length) {
       showAlert('Please fill all required fields', 'error')
       return
     }
 
     try {
+      // إرسال الطلب
       await axiosServices.post(`/api/sessions/${broadcastSessionId}/broadcast`, {
         phoneNumbers,
         message,
-        randomNumbers
+        randomNumbers,
+        media // مصفوفة من الصور
       })
 
       showAlert('Broadcast messages sent successfully', 'success')
@@ -162,38 +185,61 @@ const SessionListing = () => {
     }
   }
 
+  // دالة التعامل مع الـ Delay (interval / comma separated)
   const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim()
-  
-    // إذا وجدنا علامة '-' فهذا يعني أن المستخدم أدخل Interval
     if (value.includes('-')) {
+      // Interval
       const [startStr, endStr] = value.split('-').map(part => part.trim())
       const start = parseInt(startStr, 10)
       const end = parseInt(endStr, 10)
-  
-      // تحقق من الأرقام (start, end)
       if (!isNaN(start) && !isNaN(end) && end >= start) {
-        // أنشئ المصفوفة من start إلى end
-        const numbersArray: number[] = []
+        const numbers: number[] = []
         for (let i = start; i <= end; i++) {
-          numbersArray.push(i)
+          numbers.push(i)
         }
-        setBroadcastData(prev => ({ ...prev, randomNumbers: numbersArray }))
+        setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
       } else {
-        // لو كان الإدخال خاطئاً، يمكنك تصفير الحقل أو عرض خطأ إلخ
         setBroadcastData(prev => ({ ...prev, randomNumbers: [] }))
       }
     } else {
-      // الصيغة القديمة (comma separated)
+      // comma separated
       const numbers = value
         .split(',')
         .map(v => parseInt(v.trim(), 10))
         .filter(num => !isNaN(num))
-  
       setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
     }
   }
-  
+
+  // دالة رفع الصور (multiple)
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return
+
+    const files = Array.from(event.target.files) // حوّل FileList إلى مصفوفة
+    files.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = e => {
+        if (e.target?.result) {
+          const base64String = e.target.result.toString()
+          const base64Only = base64String.split(',')[1] // نفصل الجزء بعد "base64,"
+
+          setBroadcastData(prev => ({
+            ...prev,
+            media: [
+              ...prev.media,
+              {
+                base64: base64Only,
+                mimetype: file.type,
+                filename: file.name
+              }
+            ]
+          }))
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
 
   // =============== [ Greeting Handling ] ===============
   const openGreetingPopup = (session: SessionType) => {
@@ -672,42 +718,63 @@ const SessionListing = () => {
 
       {/* ------------- Broadcast Dialog (يظهر عند الضغط على Broadcast في كل جلسة) ------------- */}
       <Dialog open={broadcastDialogOpen} onClose={handleCloseBroadcastDialog} fullWidth maxWidth='sm'>
-  <DialogTitle>Broadcast Message</DialogTitle>
-  <DialogContent>
-    <TextField
-      label='Phone Numbers (comma separated)'
-      fullWidth
-      margin='normal'
-      value={broadcastData.phoneNumbers.join(',')}
-      onChange={e =>
-        setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
-      }
-    />
-    <TextField
-      label='Message'
-      fullWidth
-      margin='normal'
-      multiline
-      rows={4}
-      value={broadcastData.message}
-      onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
-    />
-    <TextField
-      label='Delay (e.g. "5-10" or "5,10,15")'
-      fullWidth
-      margin='normal'
-      onChange={handleDelayChange}
-    />
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={handleCloseBroadcastDialog} color='secondary'>
-      Cancel
-    </Button>
-    <Button onClick={handleBroadcastSubmit} color='primary'>
-      Send Broadcast
-    </Button>
-  </DialogActions>
-</Dialog>
+        <DialogTitle>Broadcast Message</DialogTitle>
+        <DialogContent>
+          <TextField
+            label='Phone Numbers (comma separated)'
+            fullWidth
+            margin='normal'
+            value={broadcastData.phoneNumbers.join(',')}
+            onChange={e =>
+              setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
+            }
+          />
+          <TextField
+            label='Message'
+            fullWidth
+            margin='normal'
+            multiline
+            rows={4}
+            value={broadcastData.message}
+            onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
+          />
+          <TextField
+            label='Delays (comma separated or interval e.g. 5-7)'
+            fullWidth
+            margin='normal'
+            onChange={handleDelayChange}
+          />
+
+          {/* زر رفع الصورة */}
+          <Button variant='contained' component='label' sx={{ mt: 2 }}>
+            Upload Image(s)
+            <input
+              type='file'
+              multiple
+              hidden
+              accept='image/*'
+              onChange={handleImageChange}
+            />
+          </Button>
+
+          {/* عرض قائمة الملفات المختارة */}
+          {broadcastData.media.length > 0 && (
+            <ul>
+              {broadcastData.media.map((file, idx) => (
+                <li key={idx}>{file.filename}</li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBroadcastDialog} color='secondary'>
+            Cancel
+          </Button>
+          <Button onClick={handleBroadcastSubmit} color='primary'>
+            Send Broadcast
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ------------- Add Category Popup ------------- */}
       <AddDataPopup
