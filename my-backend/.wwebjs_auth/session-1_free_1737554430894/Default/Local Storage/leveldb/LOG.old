@@ -1,6 +1,3 @@
-2025/01/28-00:04:08.459 1f68 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/MANIFEST-000001
-2025/01/28-00:04:08.460 1f68 Recovering log #18
-2025/01/28-00:04:08.460 1f68 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/000018.log 
-2025/01/28-02:14:24.854 57c4 Level-0 table #23: started
-2025/01/28-02:14:24.863 57c4 Level-0 table #23: 14463 bytes OK
-2025/01/28-02:14:24.865 57c4 Delete type=0 #18
+2025/01/29-21:37:45.682 1e18 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/MANIFEST-000001
+2025/01/29-21:37:45.682 1e18 Recovering log #28
+2025/01/29-21:37:45.683 1e18 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/000028.log 

@@ -18,7 +18,8 @@ import {
   updateBotStatus,
   logoutSession,
   loginSession,
-  updateMenuBotStatus 
+  updateMenuBotStatus, 
+  broadcastMessageAPI
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
 
@@ -61,6 +62,9 @@ router.put('/:id/bot', authenticateToken, updateBotStatus)
 router.put('/:id/logout', authenticateToken, logoutSession)
 // تسجيل الدخول مجددًا
 router.put('/:id/login', authenticateToken, loginSession)
+
+router.post('/:id/broadcast', authenticateToken, broadcastMessageAPI)
+
 
 // حذف جلسة
 router.delete('/:id', authenticateToken, deleteSession)

@@ -1,7 +1,8 @@
 // src/controllers/sessionController.ts
 import { Request, Response } from 'express'
 import { getConnection } from '../config/db'
-import { createWhatsAppClientForSession, whatsappClients } from './whatsappClients'
+import { broadcastMessage, createWhatsAppClientForSession, whatsappClients } from './whatsappClients'
+
 import * as sql from 'mssql'
 import fs from 'fs-extra'
 
@@ -616,3 +617,16 @@ export const updateMenuBotStatus = async (req: Request, res: Response) => {
   }
 }
 
+
+
+// إضافة الـ route الجديد للبث
+export const broadcastMessageAPI = async (req: Request, res: Response) => {
+  // 1) قراءة sessionId من الـ params
+  const sessionId = parseInt(req.params.id, 10)
+  if (!sessionId) {
+    return res.status(400).json({ message: 'Invalid session ID.' })
+  }
+
+  // 2) استدعاء دالة البث وتمرير sessionId
+  await broadcastMessage(req, res, sessionId)
+}

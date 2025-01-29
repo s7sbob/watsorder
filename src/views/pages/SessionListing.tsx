@@ -64,6 +64,15 @@ const SessionListing = () => {
   // تصنيفات متاحة للـ Product form
   const [productCategories, setProductCategories] = useState<{ value: number; label: string }[]>([])
 
+  // =============== [ Broadcast Dialog مرتبط بكل جلسة ] ===============
+  const [broadcastDialogOpen, setBroadcastDialogOpen] = useState(false)
+  const [broadcastSessionId, setBroadcastSessionId] = useState<number | null>(null)
+  const [broadcastData, setBroadcastData] = useState({
+    phoneNumbers: [] as string[],
+    message: '',
+    randomNumbers: [] as number[]
+  })
+
   // =============== [ Greeting Dialog ] ===============
   const [greetingDialogOpen, setGreetingDialogOpen] = useState(false)
   const [selectedSessionGreeting, setSelectedSessionGreeting] = useState<SessionType | null>(null)
@@ -86,29 +95,70 @@ const SessionListing = () => {
     setSnackbarOpen(false)
   }
 
-  // =============== [ Menu Bot Toggle - Placeholder ] ===============
+  // =============== [ Menu Bot Toggle ] ===============
   const handleToggleMenuBot = async (session: SessionType) => {
     const newMenuBotActive = !session.menuBotActive
     try {
-      // 1) أرسل طلب PUT إلى السيرفر
       await axiosServices.put(`/api/sessions/${session.id}/menu-bot`, {
         menuBotActive: newMenuBotActive
       })
-  
-      // 2) إذا نجحت العملية، عدِّل الحالة في الواجهة
+
       dispatch(
         updateSession({
           sessionId: session.id,
           changes: { menuBotActive: newMenuBotActive }
         })
       )
-  
-      // 3) أعرض تنبيه للمستخدم
+
       showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
-  
     } catch (error) {
       console.error('Error toggling menu bot:', error)
       showAlert('An error occurred while toggling the Menu Bot.', 'error')
+    }
+  }
+
+  // =============== [ Broadcast Handling لكل جلسة ] ===============
+  const openBroadcastDialog = (sessionId: number) => {
+    setBroadcastSessionId(sessionId)
+    setBroadcastData({
+      phoneNumbers: [],
+      message: '',
+      randomNumbers: []
+    })
+    setBroadcastDialogOpen(true)
+  }
+
+  const handleCloseBroadcastDialog = () => {
+    setBroadcastDialogOpen(false)
+    setBroadcastData({ phoneNumbers: [], message: '', randomNumbers: [] })
+    setBroadcastSessionId(null)
+  }
+
+  const handleBroadcastSubmit = async () => {
+    const { phoneNumbers, message, randomNumbers } = broadcastData
+    if (!broadcastSessionId) {
+      showAlert('No session selected for broadcast.', 'error')
+      return
+    }
+
+    // Validation
+    if (phoneNumbers.length === 0 || message.trim() === '' || randomNumbers.length === 0) {
+      showAlert('Please fill all required fields', 'error')
+      return
+    }
+
+    try {
+      await axiosServices.post(`/api/sessions/${broadcastSessionId}/broadcast`, {
+        phoneNumbers,
+        message,
+        randomNumbers
+      })
+
+      showAlert('Broadcast messages sent successfully', 'success')
+      handleCloseBroadcastDialog()
+    } catch (error) {
+      console.error('Error sending broadcast:', error)
+      showAlert('Failed to send broadcast messages', 'error')
     }
   }
 
@@ -322,10 +372,6 @@ const SessionListing = () => {
   }
 
   // =============== [ Keywords with multiple input (Autocomplete) ] ===============
-  /**
-   * المكوّن AddDataPopup سيعطينا مصفوفة في formData[keywords] (array of strings)
-   * مع نص الرد في formData[replyText].
-   */
   const submitKeyword = async (data: any) => {
     if (!activeSessionId) return
     const { keywords, replyText } = data
@@ -509,6 +555,17 @@ const SessionListing = () => {
                     Keywords
                   </Button>
 
+                  {/* Broadcast Button */}
+                  <Button
+                    variant='outlined'
+                    size='small'
+                    color='secondary'
+                    onClick={() => openBroadcastDialog(session.id)}
+                    sx={{ mr: 1, mb: 1 }}
+                  >
+                    Broadcast
+                  </Button>
+
                   {/* Greeting */}
                   <Button
                     variant='outlined'
@@ -580,6 +637,51 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
+      {/* ------------- Broadcast Dialog (يظهر عند الضغط على Broadcast في كل جلسة) ------------- */}
+      <Dialog open={broadcastDialogOpen} onClose={handleCloseBroadcastDialog} fullWidth maxWidth='sm'>
+        <DialogTitle>Broadcast Message</DialogTitle>
+        <DialogContent>
+          <TextField
+            label='Phone Numbers (comma separated)'
+            fullWidth
+            margin='normal'
+            value={broadcastData.phoneNumbers.join(',')}
+            onChange={e =>
+              setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
+            }
+          />
+          <TextField
+            label='Message'
+            fullWidth
+            margin='normal'
+            multiline
+            rows={4}
+            value={broadcastData.message}
+            onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
+          />
+          <TextField
+            label='Delays (comma separated seconds)'
+            fullWidth
+            margin='normal'
+            value={broadcastData.randomNumbers.join(',')}
+            onChange={e =>
+              setBroadcastData({
+                ...broadcastData,
+                randomNumbers: e.target.value.split(',').map(Number)
+              })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBroadcastDialog} color='secondary'>
+            Cancel
+          </Button>
+          <Button onClick={handleBroadcastSubmit} color='primary'>
+            Send Broadcast
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* ------------- Add Category Popup ------------- */}
       <AddDataPopup
         open={categoryPopupOpen}
@@ -604,11 +706,7 @@ const SessionListing = () => {
         ]}
       />
 
-      {/*
-        ------------- Add Keyword Popup (Multiple Keywords) -------------
-        isMultipleKeywords: true => Autocomplete multiple
-        حقل آخر للـ Reply Text
-      */}
+      {/* ------------- Add Keyword Popup (Multiple) ------------- */}
       <AddDataPopup
         open={keywordPopupOpen}
         onClose={() => setKeywordPopupOpen(false)}
@@ -618,7 +716,7 @@ const SessionListing = () => {
           {
             label: 'Keywords',
             name: 'keywords',
-            isMultipleKeywords: true  // <==== هنا التفعيل
+            isMultipleKeywords: true
           },
           {
             label: 'Reply Text',
@@ -630,7 +728,7 @@ const SessionListing = () => {
       {/* ------------- Existing Categories Dialog ------------- */}
       <Dialog
         open={showExistingCategories}
-        onClose={() => setShowExistingCategories(false)}
+        onClose={closeExistingCategories}
         fullWidth
         maxWidth='sm'
       >
@@ -643,14 +741,14 @@ const SessionListing = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowExistingCategories(false)}>Close</Button>
+          <Button onClick={closeExistingCategories}>Close</Button>
         </DialogActions>
       </Dialog>
 
       {/* ------------- Existing Products Dialog ------------- */}
       <Dialog
         open={showExistingProducts}
-        onClose={() => setShowExistingProducts(false)}
+        onClose={closeExistingProducts}
         fullWidth
         maxWidth='sm'
       >
@@ -663,7 +761,7 @@ const SessionListing = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowExistingProducts(false)}>Close</Button>
+          <Button onClick={closeExistingProducts}>Close</Button>
         </DialogActions>
       </Dialog>
 

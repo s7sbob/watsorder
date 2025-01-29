@@ -4,6 +4,8 @@ import { Client, LocalAuth, Message } from 'whatsapp-web.js'
 import { getConnection } from '../config/db'
 import * as sql from 'mssql'
 import { io } from '../server'
+import { Request, Response } from 'express'
+
 
 // خريطة للاحتفاظ بالعملاء المفتوحين
 interface WhatsAppClientMap {
@@ -574,7 +576,70 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
     }
   })
 
+  
   // Initialize client
   client.initialize()
   whatsappClients[sessionId] = client
+}
+
+
+const sendMessageWithDelay = async (client: Client, phoneNumber: string, message: string, delay: number) => {
+  return new Promise(resolve => {
+    setTimeout(async () => {
+      try {
+        await client.sendMessage(`${phoneNumber}@c.us`, message)
+        console.log(`Broadcast sent to ${phoneNumber}`)
+        resolve(true)
+      } catch (error) {
+        console.error(`Broadcast failed for ${phoneNumber}:`, error)
+        resolve(false)
+      }
+    }, delay * 1000)
+  })
+}
+
+/**
+ * دالة البث الأساسية التي تأخذ الـ sessionId بشكل صريح.
+ */
+export const broadcastMessage = async (req: Request, res: Response, sessionId: number) => {
+  const { phoneNumbers, message, randomNumbers } = req.body
+
+  if (!phoneNumbers?.length || !message || !randomNumbers?.length) {
+    return res.status(400).json({ message: 'Invalid input data' })
+  }
+
+  try {
+    // تأكد أن الجلسة موجودة وحالتها Connected (إن أردت)
+    const pool = await getConnection()
+    const sessionResult = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT id, status
+        FROM Sessions
+        WHERE id = @sessionId
+      `)
+    if (!sessionResult.recordset.length) {
+      return res.status(404).json({ message: 'No session found with the provided ID' })
+    }
+    if (sessionResult.recordset[0].status !== 'Connected') {
+      return res.status(400).json({ message: 'Session is not in Connected status.' })
+    }
+
+    // جلب الـ client من الذاكرة
+    const client = whatsappClients[sessionId]
+    if (!client) {
+      return res.status(404).json({ message: 'WhatsApp client not found for this session.' })
+    }
+
+    // تنفيذ البث
+    for (const phoneNumber of phoneNumbers) {
+      const randomDelay = randomNumbers[Math.floor(Math.random() * randomNumbers.length)]
+      await sendMessageWithDelay(client, phoneNumber, message, randomDelay)
+    }
+
+    res.status(200).json({ message: 'Broadcast started successfully' })
+  } catch (error) {
+    console.error('Broadcast error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
 }

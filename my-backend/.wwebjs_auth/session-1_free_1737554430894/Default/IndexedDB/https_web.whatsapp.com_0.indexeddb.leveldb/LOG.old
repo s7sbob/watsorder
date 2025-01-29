@@ -1,38 +1,23 @@
-2025/01/28-00:04:09.020 3a28 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/01/28-00:04:09.020 3a28 Recovering log #404
-2025/01/28-00:04:09.038 3a28 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000404.log 
-2025/01/28-00:04:13.614 2e14 Level-0 table #413: started
-2025/01/28-00:04:13.619 2e14 Level-0 table #413: 149182 bytes OK
-2025/01/28-00:04:13.621 2e14 Delete type=0 #404
-2025/01/28-00:04:13.625 2e14 Manual compaction at level-0 from '\x006\x00\x00\x00' @ 72057594037927935 : 1 .. '\x007\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/01/28-00:04:16.045 3a28 Compacting 1@1 + 5@2 files
-2025/01/28-00:04:16.209 3a28 Generated table #414@1: 75132 keys, 2249377 bytes
-2025/01/28-00:04:16.294 3a28 Generated table #415@1: 27954 keys, 2187843 bytes
-2025/01/28-00:04:16.359 3a28 Generated table #416@1: 10317 keys, 2182283 bytes
-2025/01/28-00:04:16.434 3a28 Generated table #417@1: 21912 keys, 2198547 bytes
-2025/01/28-00:04:16.564 3a28 Generated table #418@1: 76635 keys, 2004082 bytes
-2025/01/28-00:04:16.564 3a28 Compacted 1@1 + 5@2 files => 10822132 bytes
-2025/01/28-00:04:16.565 3a28 compacted to: files[ 0 0 5 0 0 0 0 ]
-2025/01/28-00:04:16.565 3a28 Delete type=2 #406
-2025/01/28-00:04:16.565 3a28 Delete type=2 #407
-2025/01/28-00:04:16.565 3a28 Delete type=2 #408
-2025/01/28-00:04:16.565 3a28 Delete type=2 #409
-2025/01/28-00:04:16.565 3a28 Delete type=2 #410
-2025/01/28-00:04:16.565 3a28 Delete type=2 #413
-2025/01/28-08:21:22.872 57c4 Level-0 table #420: started
-2025/01/28-08:21:22.905 57c4 Level-0 table #420: 1325437 bytes OK
-2025/01/28-08:21:22.907 57c4 Delete type=0 #412
-2025/01/28-08:21:29.975 2d80 Compacting 1@1 + 5@2 files
-2025/01/28-08:21:30.133 2d80 Generated table #421@1: 78642 keys, 2255721 bytes
-2025/01/28-08:21:30.206 2d80 Generated table #422@1: 28227 keys, 2187793 bytes
-2025/01/28-08:21:30.248 2d80 Generated table #423@1: 9225 keys, 2175857 bytes
-2025/01/28-08:21:30.323 2d80 Generated table #424@1: 22731 keys, 2202334 bytes
-2025/01/28-08:21:30.436 2d80 Generated table #425@1: 77229 keys, 2155053 bytes
-2025/01/28-08:21:30.436 2d80 Compacted 1@1 + 5@2 files => 10976758 bytes
-2025/01/28-08:21:30.437 2d80 compacted to: files[ 0 0 5 0 0 0 0 ]
-2025/01/28-08:21:30.437 2d80 Delete type=2 #414
-2025/01/28-08:21:30.437 2d80 Delete type=2 #415
-2025/01/28-08:21:30.437 2d80 Delete type=2 #416
-2025/01/28-08:21:30.437 2d80 Delete type=2 #417
-2025/01/28-08:21:30.437 2d80 Delete type=2 #418
-2025/01/28-08:21:30.437 2d80 Delete type=2 #420
+2025/01/29-21:37:46.241 2c90 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/01/29-21:37:46.241 2c90 Recovering log #585
+2025/01/29-21:37:46.264 2c90 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000585.log 
+2025/01/29-21:37:48.804 2c90 Level-0 table #595: started
+2025/01/29-21:37:48.816 2c90 Level-0 table #595: 151316 bytes OK
+2025/01/29-21:37:48.817 2c90 Delete type=0 #585
+2025/01/29-21:37:48.822 2c90 Manual compaction at level-0 from '\x00G\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00H\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/01/29-21:37:52.256 2c90 Compacting 1@1 + 6@2 files
+2025/01/29-21:37:52.468 2c90 Generated table #596@1: 88024 keys, 2238038 bytes
+2025/01/29-21:37:52.638 2c90 Generated table #597@1: 40355 keys, 2224913 bytes
+2025/01/29-21:37:52.776 2c90 Generated table #598@1: 3209 keys, 2158520 bytes
+2025/01/29-21:37:53.106 2c90 Generated table #599@1: 28279 keys, 2234479 bytes
+2025/01/29-21:37:53.339 2c90 Generated table #600@1: 50700 keys, 2185722 bytes
+2025/01/29-21:37:53.423 2c90 Generated table #601@1: 29611 keys, 687681 bytes
+2025/01/29-21:37:53.423 2c90 Compacted 1@1 + 6@2 files => 11729353 bytes
+2025/01/29-21:37:53.425 2c90 compacted to: files[ 0 0 6 0 0 0 0 ]
+2025/01/29-21:37:53.428 2c90 Delete type=2 #587
+2025/01/29-21:37:53.428 2c90 Delete type=2 #588
+2025/01/29-21:37:53.428 2c90 Delete type=2 #589
+2025/01/29-21:37:53.429 2c90 Delete type=2 #590
+2025/01/29-21:37:53.429 2c90 Delete type=2 #591
+2025/01/29-21:37:53.429 2c90 Delete type=2 #592
+2025/01/29-21:37:53.429 2c90 Delete type=2 #595
