@@ -108,6 +108,11 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         console.log('Session not found in DB for message handling.')
         return
       }
+        // 1) تأكد إن كانت الرسالة من جروب:
+  if (msg.from.endsWith('@g.us')) {
+    // إذا من جروب => تجاهلها
+    return
+  }
 
       const { botActive, menuBotActive, phoneNumber,
         greetingActive,
