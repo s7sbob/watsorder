@@ -233,6 +233,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             `)
           const newOrderId = insertOrder.recordset[0].id
 
+
           // اعرض الأصناف
           const categories = await pool.request()
             .input('sessionId', sql.Int, sessionId)
@@ -571,6 +572,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               `)
 
             await client.sendMessage(msg.from, '*تم إرسال الطلب بنجاح!*')
+            
+                        // ...........................
+  // هنا (بعد إنشاء الطلب) أطلق حدث Socket
+  io.emit('newOrder', { orderId: orderId })
             return
           }
         }
