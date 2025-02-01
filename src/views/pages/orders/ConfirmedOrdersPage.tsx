@@ -20,7 +20,7 @@ import {
   Grid,
   Paper
 } from '@mui/material'
-import { IconEye, IconCheck, IconSearch, IconReceipt } from '@tabler/icons-react'
+import { IconEye, IconCheck, IconSearch, IconReceipt, IconPlus, IconMinus } from '@tabler/icons-react' // استدعِ أيقونات الزيادة/النقصان
 import axiosServices from 'src/utils/axios'
 import { OrderType, OrderItemType } from 'src/types/apps/order'
 
@@ -31,8 +31,8 @@ function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [prepTime, setPrepTime] = useState<number>(30)
   const [deliveryFee, setDeliveryFee] = useState<number>(0)
-  const [serviceFee, setServiceFee] = useState<number>(0)
   const [taxValue, setTaxValue] = useState<number>(0)
+
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
 
   const [orderDetails, setOrderDetails] = useState<OrderType | null>(null)
@@ -49,14 +49,11 @@ function OrdersPage() {
     const newSocket = io('http://localhost:5000')
     setSocket(newSocket)
 
-    // عند وصول حدث newOrder من السيرفر
     newSocket.on('newOrder', data => {
       console.log('New order event received:', data)
-      // أعد جلب الطلبات
       dispatch(fetchConfirmedOrders())
     })
 
-    // إذا أردت تحديث Column Accepted عند التأكيد أو غيره:
     newSocket.on('orderConfirmed', (data: { orderId: number }) => {
       console.log('Order Confirmed event received:', data)
       dispatch(fetchConfirmedOrders())
@@ -68,7 +65,6 @@ function OrdersPage() {
   }, [dispatch])
 
   useEffect(() => {
-    // جلب الطلبات لأول مرة عند تحميل الصفحة
     dispatch(fetchConfirmedOrders())
   }, [dispatch])
 
@@ -81,7 +77,6 @@ function OrdersPage() {
     return phoneMatch || addressMatch
   })
 
-  // نقسم الطلبات لعمودين:
   const newOrders = filteredOrders.filter(o => !o.finalConfirmed)
   const acceptedOrders = filteredOrders.filter(o => o.finalConfirmed)
 
@@ -118,7 +113,7 @@ function OrdersPage() {
         orderId: selectedOrderId,
         prepTime,
         deliveryFee,
-        serviceFee,
+        // لم نعد نرسل serviceFee
         taxValue
       })
     )
@@ -153,7 +148,7 @@ function OrdersPage() {
       </Box>
 
       <Grid container spacing={3}>
-        {/* ---------- Accepted Column ---------- */}
+        {/* Accepted Column */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
             <Typography variant='h6' sx={{ mb: 2 }}>
@@ -175,8 +170,10 @@ function OrdersPage() {
                   }}
                 >
                   <Typography variant='subtitle1'>Order #{order.id}</Typography>
-                  <Typography variant='body2'>Phone: {order.customerPhone}</Typography>
-                  <Typography variant='body2'>Address: {order.deliveryAddress}</Typography>
+                  <Typography variant='body2'>
+  <strong>Customer Name:</strong> {order.customerName || 'N/A'}
+</Typography>
+<Typography variant='body2'>Phone: {order.customerPhone}</Typography>                  <Typography variant='body2'>Address: {order.deliveryAddress}</Typography>
                   <Typography variant='body2'>Total: {order.totalPrice}</Typography>
                   <Typography variant='body2'>
                     Status: {order.finalConfirmed ? 'Confirmed' : 'Pending'}
@@ -210,7 +207,7 @@ function OrdersPage() {
           </Paper>
         </Grid>
 
-        {/* ---------- New Column ---------- */}
+        {/* New Column */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
             <Typography variant='h6' sx={{ mb: 2 }}>
@@ -268,7 +265,7 @@ function OrdersPage() {
         </Grid>
       </Grid>
 
-      {/* ====== Order Details Dialog ====== */}
+      {/* Order Details Dialog */}
       <Dialog
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
@@ -279,9 +276,12 @@ function OrdersPage() {
         <DialogContent>
           {orderDetails && (
             <Box>
-              <Typography>
-                <strong>Customer Phone:</strong> {orderDetails.customerPhoneNumber}
-              </Typography>
+    <Typography>
+      <strong>Customer Name:</strong> {orderDetails.customerName}
+    </Typography>
+    <Typography>
+      <strong>Customer Phone:</strong> {orderDetails.customerPhoneNumber}
+    </Typography>
               <Typography>
                 <strong>Delivery Address:</strong> {orderDetails.deliveryAddress}
               </Typography>
@@ -296,15 +296,9 @@ function OrdersPage() {
                 <strong>Created At:</strong> {orderDetails.createdAt}
               </Typography>
 
-              {/* Optional fields */}
               {orderDetails.deliveryFee !== null && (
                 <Typography>
                   <strong>Delivery Fee:</strong> {orderDetails.deliveryFee}
-                </Typography>
-              )}
-              {orderDetails.serviceFee !== null && (
-                <Typography>
-                  <strong>Service Fee:</strong> {orderDetails.serviceFee}
                 </Typography>
               )}
               {orderDetails.taxValue !== null && (
@@ -317,6 +311,7 @@ function OrdersPage() {
                   <strong>Preparation Time:</strong> {orderDetails.prepTime} minutes
                 </Typography>
               )}
+
               <Typography variant='h6' mt={2}>
                 Items:
               </Typography>
@@ -333,7 +328,7 @@ function OrdersPage() {
         </DialogActions>
       </Dialog>
 
-      {/* ====== Invoice Dialog ====== */}
+      {/* Invoice Dialog */}
       <Dialog
         open={invoiceDialogOpen}
         onClose={() => setInvoiceDialogOpen(false)}
@@ -366,11 +361,6 @@ function OrdersPage() {
                   <strong>Delivery Fee:</strong> {invoiceDetails.deliveryFee}
                 </Typography>
               )}
-              {invoiceDetails.serviceFee !== null && (
-                <Typography>
-                  <strong>Service Fee:</strong> {invoiceDetails.serviceFee}
-                </Typography>
-              )}
               {invoiceDetails.taxValue !== null && (
                 <Typography>
                   <strong>Tax Value:</strong> {invoiceDetails.taxValue}
@@ -397,7 +387,7 @@ function OrdersPage() {
         </DialogActions>
       </Dialog>
 
-      {/* ====== Confirm Order Dialog ====== */}
+      {/* Confirm Order Dialog */}
       {selectedOrderId && (
         <Dialog open={selectedOrderId !== null} onClose={() => setSelectedOrderId(null)}>
           <DialogTitle>Confirm Order #{selectedOrderId}</DialogTitle>
@@ -410,22 +400,30 @@ function OrdersPage() {
               onChange={e => setPrepTime(Number(e.target.value))}
               margin='normal'
             />
-            <TextField
-              fullWidth
-              label='Delivery Fee'
-              type='number'
-              value={deliveryFee}
-              onChange={e => setDeliveryFee(Number(e.target.value))}
-              margin='normal'
-            />
-            <TextField
-              fullWidth
-              label='Service Fee'
-              type='number'
-              value={serviceFee}
-              onChange={e => setServiceFee(Number(e.target.value))}
-              margin='normal'
-            />
+
+            {/* حقل التوصيل مع أزرار الزيادة/النقصان */}
+            <Box display='flex' alignItems='center' marginY={2}>
+              <TextField
+                label='Delivery Fee'
+                type='number'
+                value={deliveryFee}
+                onChange={e => setDeliveryFee(Number(e.target.value))}
+                sx={{ flex: 1 }}
+              />
+              <IconButton
+                color='primary'
+                onClick={() => setDeliveryFee(prev => prev + 5)}
+              >
+                <IconPlus size={22} />
+              </IconButton>
+              <IconButton
+                color='secondary'
+                onClick={() => setDeliveryFee(prev => (prev >= 5 ? prev - 5 : 0))}
+              >
+                <IconMinus size={22} />
+              </IconButton>
+            </Box>
+
             <TextField
               fullWidth
               label='Tax Value'

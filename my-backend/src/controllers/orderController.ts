@@ -68,6 +68,7 @@ const ordersQuery = `
         id: ord.id,
         sessionId: ord.sessionId,
         customerPhone: ord.customerPhoneNumber,
+        customerName: ord.customerName,   // <==== new line
         deliveryAddress: ord.deliveryAddress,
         totalPrice: ord.totalPrice,
         prepTime: ord.prepTime,
@@ -98,7 +99,8 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid order ID.' })
     }
 
-    const { prepTime, deliveryFee, serviceFee, taxValue } = req.body
+    // نحذف serviceFee من Destructure
+    const { prepTime, deliveryFee, taxValue } = req.body
 
     const pool = await getConnection()
 
@@ -106,10 +108,10 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     const orderRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
-        SELECT o.*, s.phoneNumber AS sessionPhone
-        FROM Orders o
-        JOIN Sessions s ON s.id = o.sessionId
-        WHERE o.id = @orderId
+SELECT o.*, s.phoneNumber AS sessionPhone
+FROM Orders o
+JOIN Sessions s ON s.id = o.sessionId
+WHERE o.id = @orderId
       `)
 
     if (!orderRes.recordset.length) {
@@ -117,18 +119,16 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     }
     const orderRow = orderRes.recordset[0]
 
-    // تحديث معلومات الطلب
+    // تحديث معلومات الطلب (حذف serviceFee)
     await pool.request()
       .input('orderId', sql.Int, orderId)
       .input('prepTime', sql.Int, prepTime || null)
       .input('deliveryFee', sql.Decimal(18,2), deliveryFee || 0)
-      .input('serviceFee', sql.Decimal(18,2), serviceFee || 0)
       .input('taxValue', sql.Decimal(18,2), taxValue || 0)
       .query(`
         UPDATE Orders
         SET prepTime = @prepTime,
             deliveryFee = @deliveryFee,
-            serviceFee = @serviceFee,
             taxValue = @taxValue,
             finalConfirmed = 1
         WHERE id = @orderId
@@ -151,24 +151,34 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
       total += linePrice
       itemsMessage += `(${it.quantity}) ${it.product_name}   = ${linePrice}\n`
     }
-    const finalTotal = total + (deliveryFee || 0) + (serviceFee || 0) + (taxValue || 0)
+
+    // احذف أي إشارة لـ serviceFee من حساب الإجمالي
+    const finalTotal = total + (deliveryFee || 0) + (taxValue || 0)
 
     const invoiceNumber = orderRow.id
     const now = new Date().toLocaleString('ar-EG')
+
+    // أضف سطرًا لقيمة التوصيل
     const msgText = `
-تم إستلام الطلب وهو الأن فى مرحلة التجهيز
+تم إستلام الطلب من: ${orderRow.customerName || 'عميل'}
+وهو الآن فى مرحلة التجهيز
 الوقت المتوقع للإنتهاء: ${prepTime || 30} دقيقة
 رقم الفاتورة : ${invoiceNumber}
 التاريخ : ${now}
 =======================
 ${itemsMessage}
 =======================
+قيمة التوصيل: ${deliveryFee || 0}
+=======================
 الإجمالى : ${finalTotal}
 `
 
+    // إرسال الرسالة عبر واتساب
     const client = whatsappClients[orderRow.sessionId]
     if (!client) {
-      return res.status(200).json({ message: 'Order confirmed, but WhatsApp client not found to send message.' })
+      return res.status(200).json({
+        message: 'Order confirmed, but WhatsApp client not found to send message.'
+      })
     }
 
     const finalRecipient = orderRow.customerPhoneNumber + '@c.us'
@@ -180,6 +190,7 @@ ${itemsMessage}
     return res.status(500).json({ message: 'Error confirming order by restaurant.' })
   }
 }
+
 
 export const getOrderDetails = async (req: Request, res: Response) => {
   const orderId = parseInt(req.params.orderId, 10)

@@ -14,6 +14,7 @@ export interface OrderItemType {
     id: number;
     sessionId: number;
     customerPhone: string;
+    customerName?: string; // أضف هذا الحقل
     deliveryAddress: string | null;
     totalPrice: number | null;
     prepTime?: number | null;
