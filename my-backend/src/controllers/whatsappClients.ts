@@ -638,10 +638,10 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
         }
         if (message && message.trim()) {
           // إذا احتجت روابط، ضَعها بسطر منفصل بلا نجوم
-          await sendMessageWithDelay(client, phoneNumber, `*${message}*`, randomDelay)
+          await sendMessageWithDelay(client, phoneNumber, `${message}`, randomDelay)
         }
       } else {
-        await sendMessageWithDelay(client, phoneNumber, `*${message}*`, randomDelay)
+        await sendMessageWithDelay(client, phoneNumber, `${message}`, randomDelay)
       }
     }
 
