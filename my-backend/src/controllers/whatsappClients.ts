@@ -87,7 +87,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
     // بث تحديث إن لزم الأمر
   })
 
-  // =========== [ Handling Messages: Bot + Menu Bot ] ===========
+  // =========== [ Handling Messages: Bot + Menu Bot + Greeting ] ===========
 
   // دالة بسيطة لعمل Bold للنص
   const bold = (text: string) => `*${text}*`
@@ -123,72 +123,53 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         greetingMessage
       } = sessionRow.recordset[0]
 
-      // إذا لا يوجد أي بوت مفعّل => لا تفعل شيئاً
-      if (!botActive && !menuBotActive) return
-
       const text = msg.body.trim()
       const upperText = text.toUpperCase()
       const customerPhone = msg.from.split('@')[0]
 
-      // =========== [Greeting Message Logic] ===========
-      if (greetingActive && greetingMessage) {
-        const isCommand =
-          [
-            'NEWORDER',
-            'SHOWCATEGORIES',
-            'VIEWCART',
-            'CARTCONFIRM'
-          ].some(cmd => upperText === cmd) ||
-          upperText.startsWith('CATEGORY_') ||
-          upperText.startsWith('PRODUCT_') ||
-          upperText.startsWith('REMOVEPRODUCT_')
-
-        if (!isCommand) {
-          const existingOrder = await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .query(`
-              SELECT TOP 1 id 
-              FROM Orders 
-              WHERE sessionId = @sessionId 
-                AND customerPhoneNumber = @custPhone
-                AND status IN (
-                  'IN_CART',
-                  'AWAITING_ADDRESS',
-                  'AWAITING_LOCATION',
-                  'AWAITING_QUANTITY',
-                  'AWAITING_NAME'
-                )
-            `)
-
-          if (existingOrder.recordset.length === 0) {
-            // رسالة ترحيب بالـ Bold
-            await client.sendMessage(msg.from, bold(greetingMessage))
-            return
-          }
-        }
-      }
-
-      // =========== (1) البوت العادي (Keywords) ===========
+      // ======================================================
+      // 1) البوت العادي (Keywords) إن كان مفعلًا
+      // ======================================================
       if (botActive) {
         const keywordsRes = await pool.request()
           .input('sessionId', sql.Int, sessionId)
           .query(`
-            SELECT k.keyword, r.replyText
+            SELECT 
+              k.keyword, 
+              r.replyText,
+              r.replyMediaBase64,
+              r.replyMediaMimeType,
+              r.replyMediaFilename
             FROM Keywords k
             JOIN Replays r ON k.replay_id = r.id
             WHERE k.sessionId = @sessionId
           `)
-        const foundKeyword = keywordsRes.recordset.find((row: any) =>
+
+        const foundKeywordRow = keywordsRes.recordset.find((row: any) =>
           row.keyword?.toLowerCase() === text.toLowerCase()
         )
-        if (foundKeyword) {
-          await client.sendMessage(msg.from, bold(foundKeyword.replyText))
+
+        if (foundKeywordRow) {
+          // لو هناك ميديا محفوظة:
+          if (foundKeywordRow.replyMediaBase64) {
+            const mediaMsg = new MessageMedia(
+              foundKeywordRow.replyMediaMimeType,
+              foundKeywordRow.replyMediaBase64,
+              foundKeywordRow.replyMediaFilename
+            )
+            // إرسال الميديا + الكابشن
+            await client.sendMessage(msg.from, mediaMsg, { caption: bold(foundKeywordRow.replyText) })
+          } else {
+            // إرسال نص فقط
+            await client.sendMessage(msg.from, bold(foundKeywordRow.replyText))
+          }
           return
         }
       }
 
-      // =========== (2) المنيو بوت (Menu Bot) ===========
+      // ======================================================
+      // 2) المنيو بوت (Menu Bot) إن كان مفعلًا
+      // ======================================================
       if (menuBotActive) {
         // ========== [NEWORDER] ==========
         if (upperText === 'NEWORDER') {
@@ -238,8 +219,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
 
-          // Example: عنوان بالـ Bold، والفاصل خارج النجوم
-          // وأسم كل صنف بالـ Bold، والرابط بسطر منفصل.
           let catMsg = bold('أقسامنا المتاحة:') + '\n'
           catMsg += '===========================\n'
           for (const cat of categories.recordset) {
@@ -419,11 +398,11 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             cartMsg += bold(`${row.quantity} x ${row.product_name} => ${linePrice} ج`) + '\n'
             cartMsg += `للحذف: wa.me/${phoneNumber}?text=REMOVEPRODUCT_${row.productId}\n\n`
           }
-          cartMsg += bold(`الإجمالي: ${total} ج`) +'\n'
+          cartMsg += bold(`الإجمالي: ${total} ج`) + '\n'
           cartMsg += '===========================\n'
           cartMsg += bold('لتنفيذ الطلب:')+'\n'
           cartMsg += `wa.me/${phoneNumber}?text=CARTCONFIRM\n`
-          // حدِّث totalPrice
+
           await pool.request()
             .input('orderId', sql.Int, orderId)
             .input('totalPrice', sql.Decimal(18,2), total)
@@ -454,7 +433,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           }
           const orderId = orderRow.recordset[0].id
 
-          // الوضع الجديد => AWAITING_NAME
           await pool.request()
             .input('orderId', sql.Int, orderId)
             .input('status', sql.NVarChar, 'AWAITING_NAME')
@@ -485,105 +463,150 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               ORDER BY id DESC
             `)
           if (!orderRes.recordset.length) {
-            return
-          }
-          const { id: orderId, status, tempProductId } = orderRes.recordset[0]
+            // إذا لم نجد طلب، ننتقل للفحص التالي
+          } else {
+            const { id: orderId, status, tempProductId } = orderRes.recordset[0]
 
-          // ----- [AWAITING_QUANTITY] -----
-          if (status === 'AWAITING_QUANTITY' && tempProductId) {
-            const quantityNum = parseInt(upperText)
-            if (isNaN(quantityNum) || quantityNum <= 0) {
-              await client.sendMessage(msg.from, bold('من فضلك أدخل رقم صحيح للكمية.'))
+            // ----- [AWAITING_QUANTITY] -----
+            if (status === 'AWAITING_QUANTITY' && tempProductId) {
+              const quantityNum = parseInt(upperText)
+              if (isNaN(quantityNum) || quantityNum <= 0) {
+                await client.sendMessage(msg.from, bold('من فضلك أدخل رقم صحيح للكمية.'))
+                return
+              }
+
+              await pool.request()
+                .input('orderId', sql.Int, orderId)
+                .input('productId', sql.Int, tempProductId)
+                .input('qty', sql.Int, quantityNum)
+                .query(`
+                  INSERT INTO OrderItems (orderId, productId, quantity)
+                  VALUES (@orderId, @productId, @qty)
+                `)
+
+              await pool.request()
+                .input('orderId', sql.Int, orderId)
+                .input('status', sql.NVarChar, 'IN_CART')
+                .query(`
+                  UPDATE Orders
+                  SET status = @status, tempProductId = NULL
+                  WHERE id = @orderId
+                `)
+
+              let addedMsg = bold('تم إضافة المنتج للسلة.') + '\n'
+              addedMsg += '===========================\n'
+              addedMsg += bold('عرض السلة:')+'\n'
+              addedMsg += `wa.me/${phoneNumber}?text=VIEWCART\n\n`
+              addedMsg += bold('لإضافة منتج آخر:') + '\n'
+              addedMsg += `wa.me/${phoneNumber}?text=SHOWCATEGORIES` + '\n'
+              await client.sendMessage(msg.from, addedMsg)
               return
             }
 
-            await pool.request()
-              .input('orderId', sql.Int, orderId)
-              .input('productId', sql.Int, tempProductId)
-              .input('qty', sql.Int, quantityNum)
-              .query(`
-                INSERT INTO OrderItems (orderId, productId, quantity)
-                VALUES (@orderId, @productId, @qty)
-              `)
+            // ----- [AWAITING_NAME] -----
+            if (status === 'AWAITING_NAME') {
+              const customerName = msg.body.trim()
+              await pool.request()
+                .input('orderId', sql.Int, orderId)
+                .input('customerName', sql.NVarChar, customerName)
+                .input('status', sql.NVarChar, 'AWAITING_ADDRESS')
+                .query(`
+                  UPDATE Orders
+                  SET customerName = @customerName,
+                      status = @status
+                  WHERE id = @orderId
+                `)
 
-            await pool.request()
-              .input('orderId', sql.Int, orderId)
-              .input('status', sql.NVarChar, 'IN_CART')
-              .query(`
-                UPDATE Orders
-                SET status = @status, tempProductId = NULL
-                WHERE id = @orderId
-              `)
+              await client.sendMessage(msg.from, bold('برجاء إدخال العنوان.'))
+              return
+            }
 
-            let addedMsg = bold('تم إضافة المنتج للسلة.') + '\n'
-            addedMsg += '===========================\n'
-            addedMsg += bold('عرض السلة:')+'\n'
-            addedMsg += `wa.me/${phoneNumber}?text=VIEWCART\n\n`
-            addedMsg += bold('لإضافة منتج آخر:') + '\n'
-            addedMsg += `wa.me/${phoneNumber}?text=SHOWCATEGORIES` + '\n'
-            await client.sendMessage(msg.from, addedMsg)
-            return
+            // ----- [AWAITING_ADDRESS] -----
+            if (status === 'AWAITING_ADDRESS') {
+              const address = msg.body.trim()
+              await pool.request()
+                .input('orderId', sql.Int, orderId)
+                .input('address', sql.NVarChar, address)
+                .input('status', sql.NVarChar, 'AWAITING_LOCATION')
+                .query(`
+                  UPDATE Orders
+                  SET deliveryAddress = @address,
+                      status = @status
+                  WHERE id = @orderId
+                `)
+
+              await client.sendMessage(msg.from, bold('برجاء إرسال الموقع (Location).'))
+              return
+            }
+
+            // ----- [AWAITING_LOCATION] -----
+            if (status === 'AWAITING_LOCATION' && msg.type === 'location' && msg.location) {
+              const { latitude, longitude } = msg.location
+              await pool.request()
+                .input('orderId', sql.Int, orderId)
+                .input('lat', sql.Decimal(9,6), latitude)
+                .input('lng', sql.Decimal(9,6), longitude)
+                .input('status', sql.NVarChar, 'CONFIRMED')
+                .query(`
+                  UPDATE Orders
+                  SET deliveryLat = @lat,
+                      deliveryLng = @lng,
+                      status = @status
+                  WHERE id = @orderId
+                `)
+
+              await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
+              io.emit('newOrder', { orderId: orderId })
+              return
+            }
           }
+        }
+      }
 
-          // ----- [AWAITING_NAME] -----
-          if (status === 'AWAITING_NAME') {
-            const customerName = msg.body.trim()
-            await pool.request()
-              .input('orderId', sql.Int, orderId)
-              .input('customerName', sql.NVarChar, customerName)
-              .input('status', sql.NVarChar, 'AWAITING_ADDRESS')
-              .query(`
-                UPDATE Orders
-                SET customerName = @customerName,
-                    status = @status
-                WHERE id = @orderId
-              `)
+      // ======================================================
+      // 3) منطق الـ Greeting (لو لم تكن الرسالة Keyword ولا MenuBot)
+      // ======================================================
+      if (greetingActive && greetingMessage) {
+        // تأكّد أن الرسالة ليست من أوامر menuBot
+        const isCommand =
+          [
+            'NEWORDER',
+            'SHOWCATEGORIES',
+            'VIEWCART',
+            'CARTCONFIRM'
+          ].some(cmd => upperText === cmd) ||
+          upperText.startsWith('CATEGORY_') ||
+          upperText.startsWith('PRODUCT_') ||
+          upperText.startsWith('REMOVEPRODUCT_')
 
-            await client.sendMessage(msg.from, bold('برجاء إدخال العنوان.'))
-            return
-          }
+        if (!isCommand) {
+          // تأكد أنه لا يوجد طلب مفتوح في حالة الـ greeting
+          const existingOrder = await pool.request()
+            .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
+            .query(`
+              SELECT TOP 1 id 
+              FROM Orders 
+              WHERE sessionId = @sessionId 
+                AND customerPhoneNumber = @custPhone
+                AND status IN (
+                  'IN_CART',
+                  'AWAITING_ADDRESS',
+                  'AWAITING_LOCATION',
+                  'AWAITING_QUANTITY',
+                  'AWAITING_NAME'
+                )
+            `)
 
-          // ----- [AWAITING_ADDRESS] -----
-          if (status === 'AWAITING_ADDRESS') {
-            const address = msg.body.trim()
-            await pool.request()
-              .input('orderId', sql.Int, orderId)
-              .input('address', sql.NVarChar, address)
-              .input('status', sql.NVarChar, 'AWAITING_LOCATION')
-              .query(`
-                UPDATE Orders
-                SET deliveryAddress = @address,
-                    status = @status
-                WHERE id = @orderId
-              `)
-
-            await client.sendMessage(msg.from, bold('برجاء إرسال الموقع (Location).'))
-            return
-          }
-
-          // ----- [AWAITING_LOCATION] -----
-          if (status === 'AWAITING_LOCATION' && msg.type === 'location' && msg.location) {
-            const { latitude, longitude } = msg.location
-            await pool.request()
-              .input('orderId', sql.Int, orderId)
-              .input('lat', sql.Decimal(9,6), latitude)
-              .input('lng', sql.Decimal(9,6), longitude)
-              .input('status', sql.NVarChar, 'CONFIRMED')
-              .query(`
-                UPDATE Orders
-                SET deliveryLat = @lat,
-                    deliveryLng = @lng,
-                    status = @status
-                WHERE id = @orderId
-              `)
-
-            await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
-
-            io.emit('newOrder', { orderId: orderId })
+          if (existingOrder.recordset.length === 0) {
+            // أرسل الـ Greeting
+            await client.sendMessage(msg.from, bold(greetingMessage))
             return
           }
         }
       }
+
+      // في حال لم ينطبق أي من الشروط السابقة، لا نفعل شيئًا
     } catch (error) {
       console.error('Error handling menuBot message:', error)
     }
@@ -633,11 +656,10 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
       if (media && Array.isArray(media) && media.length > 0) {
         for (const singleMedia of media) {
           const mediaMsg = new MessageMedia(singleMedia.mimetype, singleMedia.base64, singleMedia.filename)
-          // نجعل caption = "** **" فارغ بالـ Bold إن شئت؛ أو اتركه فراغ بدون bold
+          // يمكنك تعديل الكابشن كما تريد
           await sendMessageWithDelay(client, phoneNumber, '* *', randomDelay, mediaMsg)
         }
         if (message && message.trim()) {
-          // إذا احتجت روابط، ضَعها بسطر منفصل بلا نجوم
           await sendMessageWithDelay(client, phoneNumber, `${message}`, randomDelay)
         }
       } else {
@@ -678,6 +700,3 @@ const sendMessageWithDelay = async (
     }, delay * 1000)
   })
 }
-
-
-

@@ -19,7 +19,10 @@ import {
   logoutSession,
   loginSession,
   updateMenuBotStatus, 
-  broadcastMessageAPI
+  broadcastMessageAPI,
+  getKeywordsForSession,
+  updateKeyword,
+  deleteKeyword
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
 
@@ -49,8 +52,11 @@ router.put('/:sessionId/product/:productId', authenticateToken, updateProduct)
 // حذف منتج
 router.delete('/:sessionId/product/:productId', authenticateToken, deleteProduct)
 
-// إضافة Keyword
+// routes for Keywords
 router.post('/:sessionId/keyword', authenticateToken, addKeyword)
+router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession)
+router.put('/:sessionId/keyword/:keywordId', authenticateToken, updateKeyword)
+router.delete('/:sessionId/keyword/:keywordId', authenticateToken, deleteKeyword)
 
 // جلب QR
 router.get('/:id/qr', authenticateToken, getQrForSession)

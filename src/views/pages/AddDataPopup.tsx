@@ -1,4 +1,5 @@
 // src/components/AddDataPopup.tsx
+
 import React, { useState } from 'react'
 import {
   Dialog,
@@ -7,19 +8,25 @@ import {
   DialogActions,
   TextField,
   Button,
-  MenuItem
+  MenuItem,
+  Box
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 
-// تعريف واجهة الحقل الواحد
+/**
+ * تعريف واجهة الحقل الواحد
+ */
 interface PopupField {
   label: string
   name: string
   options?: { value: any; label: string }[]     // لو كان الحقل من نوع select
   isMultipleKeywords?: boolean                  // لو أردنا استخدام Autocomplete متعدد
+  isFile?: boolean                              // لو كان الحقل رفع ملف (صورة/ميديا)
 }
 
-// واجهة الخصائص المقبولة في المكوّن
+/**
+ * واجهة الخصائص المقبولة في المكوّن
+ */
 interface AddDataPopupProps {
   open: boolean
   onClose: () => void
@@ -36,6 +43,8 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
   fields
 }) => {
   // formData سيحمل القيم المُدخلة من المستخدم لكل حقل
+  // بالنسبة للحقول العادية => formData[field.name] = "القيمة"
+  // بالنسبة لحقل الملف => formData[field.name] = { base64: string, mimetype: string, filename: string }
   const [formData, setFormData] = useState<any>({})
 
   // عند تغيير القيمة في الحقول العادية
@@ -46,8 +55,68 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
   // عند النقر على زر "Submit"
   const handleSubmit = () => {
     onSubmit(formData)
+    // تفريغ الـ formData
     setFormData({})
     onClose()
+  }
+
+  // دالة رفع الملف (صورة/ميديا) وتحويله إلى Base64
+  const handleFileChange = (fieldName: string, file?: File) => {
+    if (!file) {
+      // لو المستخدم ألغى الاختيار
+      setFormData((prev: any) => ({
+        ...prev,
+        [fieldName]: undefined
+      }))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = e => {
+      if (e.target?.result) {
+        const base64String = e.target.result.toString()
+        const justBase64 = base64String.split(',')[1] // الجزء بعد "base64,"
+        setFormData((prev: any) => ({
+          ...prev,
+          [fieldName]: {
+            base64: justBase64,
+            mimetype: file.type,
+            filename: file.name
+          }
+        }))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // دالة لإزالة الملف
+  const handleRemoveFile = (fieldName: string) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      [fieldName]: undefined
+    }))
+  }
+
+  // عرض Preview للصورة/الميديا (لو كانت صورة)
+  const renderFilePreview = (fieldName: string) => {
+    const fileData = formData[fieldName]
+    if (!fileData) return null
+
+    // إذا كانت mimetype صورة => نعرضها
+    if (fileData.mimetype?.startsWith('image/')) {
+      return (
+        <Box mt={2}>
+          <img
+            src={`data:${fileData.mimetype};base64,${fileData.base64}`}
+            alt={fileData.filename}
+            style={{ maxWidth: '200px', maxHeight: '200px' }}
+          />
+        </Box>
+      )
+    }
+
+    // أو لو أردت عرض اسم الملف فقط:
+    return <Box mt={2}>{fileData.filename}</Box>
   }
 
   return (
@@ -55,20 +124,17 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         {fields.map(field => {
-          // (1) إذا كان لدينا حقل يريد Autocomplete متعدد:
+          // ============= (1) Autocomplete متعدد =============
           if (field.isMultipleKeywords) {
-            // نتوقّع أن formData[field.name] يكون مصفوفة من السلاسل النصية
             const currentValue: string[] = formData[field.name] || []
-
             return (
               <Autocomplete
                 key={field.name}
                 multiple
                 freeSolo
-                options={[]} // يمكن وضع قائمة افتراضية للاقتراحات هنا إن وجدت
+                options={[]} // يمكن وضع قائمة افتراضية للاقتراحات هنا
                 value={currentValue}
                 onChange={(event, newValue) => {
-                  // newValue مصفوفة من السلاسل النصية
                   setFormData({ ...formData, [field.name]: newValue })
                 }}
                 renderInput={(params) => (
@@ -84,7 +150,8 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
               />
             )
           }
-          // (2) إذا كان الحقل من نوع select (أي لديه options)
+
+          // ============= (2) حقل select =============
           else if (field.options) {
             return (
               <TextField
@@ -106,7 +173,43 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
               </TextField>
             )
           }
-          // (3) الحقول النصية العادية
+
+          // ============= (3) حقل ملف (isFile) =============
+          else if (field.isFile) {
+            const fileData = formData[field.name]
+            return (
+              <Box key={field.name} mt={2}>
+                <Button variant='contained' component='label'>
+                  {field.label}
+                  <input
+                    type='file'
+                    hidden
+                    onChange={e =>
+                      handleFileChange(
+                        field.name,
+                        e.target.files?.[0]
+                      )
+                    }
+                  />
+                </Button>
+                {/* زر إزالة الملف (لو وجد ملف بالفعل) */}
+                {fileData && (
+                  <Button
+                    variant='outlined'
+                    color='error'
+                    onClick={() => handleRemoveFile(field.name)}
+                    sx={{ ml: 2 }}
+                  >
+                    Remove
+                  </Button>
+                )}
+                {/* عرض المعاينة إن وجد */}
+                {renderFilePreview(field.name)}
+              </Box>
+            )
+          }
+
+          // ============= (4) حقول نصية عادية =============
           else {
             return (
               <TextField

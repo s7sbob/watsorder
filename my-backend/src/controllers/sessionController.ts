@@ -1,4 +1,5 @@
 // src/controllers/sessionController.ts
+
 import { Request, Response } from 'express'
 import { getConnection } from '../config/db'
 import { broadcastMessage, createWhatsAppClientForSession, whatsappClients } from './whatsappClients'
@@ -480,10 +481,17 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
 // -------------------- [ الدوال الخاصة بجدول Keywords + Replays ] --------------------
 
-// إضافة Keyword (Many) مع Replay (واحد)
+// (دالتك الأصلية) إضافة Keyword (Many) مع Replay (واحد)
+// محدثة لتستقبل ميديا (إن وجدت)
 export const addKeyword = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10)
-  const { keyword, replyText } = req.body
+  const {
+    keyword,
+    replyText,
+    replyMediaBase64,
+    replyMediaMimeType,
+    replyMediaFilename
+  } = req.body
 
   if (!keyword || !replyText) {
     return res.status(400).json({ message: 'keyword and replyText are required.' })
@@ -492,7 +500,7 @@ export const addKeyword = async (req: Request, res: Response) => {
   try {
     const pool = await getConnection()
 
-    // ابحث عن الـ Replay إن كان موجوداً
+    // ابحث عن Replay لو موجود بنفس النص (وقد نقوم بتحديثه)
     let replayId: number
     const replaySearch = await pool.request()
       .input('replyText', sql.NVarChar, replyText)
@@ -502,14 +510,45 @@ export const addKeyword = async (req: Request, res: Response) => {
       `)
 
     if (replaySearch.recordset.length > 0) {
+      // يوجد Replay بنفس الرد؛ نقوم بتحديث الميديا لو احتجنا
       replayId = replaySearch.recordset[0].id
+
+      await pool.request()
+        .input('replayId', sql.Int, replayId)
+        .input('replyText', sql.NVarChar, replyText)
+        .input('replyMediaBase64', sql.NVarChar(sql.MAX), replyMediaBase64 || null)
+        .input('replyMediaMimeType', sql.NVarChar(200), replyMediaMimeType || null)
+        .input('replyMediaFilename', sql.NVarChar(200), replyMediaFilename || null)
+        .query(`
+          UPDATE [dbo].[Replays]
+          SET 
+            replyText = @replyText,
+            replyMediaBase64 = @replyMediaBase64,
+            replyMediaMimeType = @replyMediaMimeType,
+            replyMediaFilename = @replyMediaFilename
+          WHERE id = @replayId
+        `)
     } else {
+      // لا يوجد Replay بهذا الرد؛ أنشئ جديد
       const replayInsert = await pool.request()
         .input('replyText', sql.NVarChar, replyText)
+        .input('replyMediaBase64', sql.NVarChar(sql.MAX), replyMediaBase64 || null)
+        .input('replyMediaMimeType', sql.NVarChar(200), replyMediaMimeType || null)
+        .input('replyMediaFilename', sql.NVarChar(200), replyMediaFilename || null)
         .query(`
-          INSERT INTO [dbo].[Replays] (replyText)
+          INSERT INTO [dbo].[Replays] (
+            replyText,
+            replyMediaBase64,
+            replyMediaMimeType,
+            replyMediaFilename
+          )
           OUTPUT INSERTED.id
-          VALUES (@replyText)
+          VALUES (
+            @replyText,
+            @replyMediaBase64,
+            @replyMediaMimeType,
+            @replyMediaFilename
+          )
         `)
       replayId = replayInsert.recordset[0].id
     }
@@ -531,50 +570,178 @@ export const addKeyword = async (req: Request, res: Response) => {
   }
 }
 
-// ------------------------------------------------------------------
-// مقتطف من كود الواتساب (whatsappClients.ts) للتوضيح فقط (لو احتجته)
-// ------------------------------------------------------------------
+/** 
+ * جلب جميع الـ Keywords الخاصة بـ sessionId
+ * مع بيانات الـ Replay (النص + الميديا)
+ */
+export const getKeywordsForSession = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.sessionId, 10)
+  try {
+    const pool = await getConnection()
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT 
+          k.id AS keywordId,
+          k.keyword,
+          r.id AS replayId,
+          r.replyText,
+          r.replyMediaBase64,
+          r.replyMediaMimeType,
+          r.replyMediaFilename
+        FROM Keywords k
+        JOIN Replays r ON k.replay_id = r.id
+        WHERE k.sessionId = @sessionId
+      `)
+    return res.status(200).json(result.recordset)
+  } catch (error) {
+    console.error('Error fetching keywords:', error)
+    return res.status(500).json({ message: 'Error fetching keywords.' })
+  }
+}
 
-/*
-  client.on('message', async msg => {
-    try {
-      const pool = await getConnection()
-      const sessionResult = await pool.request()
-        .input('sessionId', sql.Int, sessionId)
-        .query(`
-          SELECT botActive
-          FROM Sessions
-          WHERE id = @sessionId
-        `)
-      if (!sessionResult.recordset.length) return
+/**
+ * تحديث Keyword
+ * يمكن أن يشمل تحديث "keyword" نفسه + "replyText" + الميديا
+ */
+export const updateKeyword = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.sessionId, 10)
+  const keywordId = parseInt(req.params.keywordId, 10)
 
-      const { botActive } = sessionResult.recordset[0]
-      if (!botActive) return
+  const {
+    newKeyword,
+    newReplyText,
+    newReplyMediaBase64,
+    newReplyMediaMimeType,
+    newReplyMediaFilename
+  } = req.body
 
-      // جلب الكلمات المفتاحية + الردود من الجداول الثابتة
-      const keywordsResult = await pool.request()
-        .input('sessionId', sql.Int, sessionId)
-        .query(`
-          SELECT k.keyword, r.replyText
-          FROM Keywords k
-          JOIN Replays r ON k.replay_id = r.id
-          WHERE k.sessionId = @sessionId
-        `)
+  if (!newKeyword || !newReplyText) {
+    return res.status(400).json({ message: 'newKeyword and newReplyText are required.' })
+  }
 
-      const receivedText = msg.body.toLowerCase().trim()
-      const foundKeywordRow = keywordsResult.recordset.find((row: any) => {
-        return row.keyword.toLowerCase() === receivedText
-      })
+  try {
+    const pool = await getConnection()
 
-      if (foundKeywordRow) {
-        await client.sendMessage(msg.from, foundKeywordRow.replyText)
-      }
-    } catch (error) {
-      console.error('Error handling incoming message:', error)
+    // ابحث عن السجل (الكلمة المفتاحية + replayId)
+    const keywordRow = await pool.request()
+      .input('keywordId', sql.Int, keywordId)
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT replay_id
+        FROM Keywords
+        WHERE id = @keywordId 
+          AND sessionId = @sessionId
+      `)
+
+    if (!keywordRow.recordset.length) {
+      return res.status(404).json({ message: 'Keyword not found.' })
     }
-  })
-*/
 
+    const replayId = keywordRow.recordset[0].replay_id
+
+    // حدّث الـ keyword في جدول Keywords
+    await pool.request()
+      .input('keywordId', sql.Int, keywordId)
+      .input('sessionId', sql.Int, sessionId)
+      .input('newKeyword', sql.NVarChar, newKeyword)
+      .query(`
+        UPDATE Keywords
+        SET keyword = @newKeyword
+        WHERE id = @keywordId
+          AND sessionId = @sessionId
+      `)
+
+    // حدّث الـ Replay في جدول Replays
+    await pool.request()
+      .input('replayId', sql.Int, replayId)
+      .input('newReplyText', sql.NVarChar, newReplyText)
+      .input('newReplyMediaBase64', sql.NVarChar(sql.MAX), newReplyMediaBase64 || null)
+      .input('newReplyMediaMimeType', sql.NVarChar(200), newReplyMediaMimeType || null)
+      .input('newReplyMediaFilename', sql.NVarChar(200), newReplyMediaFilename || null)
+      .query(`
+        UPDATE Replays
+        SET
+          replyText = @newReplyText,
+          replyMediaBase64 = @newReplyMediaBase64,
+          replyMediaMimeType = @newReplyMediaMimeType,
+          replyMediaFilename = @newReplyMediaFilename
+        WHERE id = @replayId
+      `)
+
+    return res.status(200).json({ message: 'Keyword updated successfully.' })
+  } catch (error) {
+    console.error('Error updating keyword:', error)
+    return res.status(500).json({ message: 'Error updating keyword.' })
+  }
+}
+
+/**
+ * حذف Keyword
+ */
+export const deleteKeyword = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.sessionId, 10)
+  const keywordId = parseInt(req.params.keywordId, 10)
+
+  try {
+    const pool = await getConnection()
+
+    // نحتاج أولًا لجلب replay_id للتأكد إن كنا سنحذف Replay أم لا
+    // مبدئيًا، إن حذفت الكلمة المفتاحية، قد تكون هناك كلمات أخرى تشارك نفس replay_id
+    // إذا لم توجد Keywords أخرى بنفس replay_id => نحذف replay أيضاً.
+    const keywordRow = await pool.request()
+      .input('keywordId', sql.Int, keywordId)
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT replay_id
+        FROM Keywords
+        WHERE id = @keywordId
+          AND sessionId = @sessionId
+      `)
+
+    if (!keywordRow.recordset.length) {
+      return res.status(404).json({ message: 'Keyword not found.' })
+    }
+    const replayId = keywordRow.recordset[0].replay_id
+
+    // حذف الـ Keyword
+    await pool.request()
+      .input('keywordId', sql.Int, keywordId)
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        DELETE FROM Keywords
+        WHERE id = @keywordId
+          AND sessionId = @sessionId
+      `)
+
+    // نفحص هل هذا replayId مستخدم في Keywords أخرى؟
+    const checkReplay = await pool.request()
+      .input('replayId', sql.Int, replayId)
+      .query(`
+        SELECT COUNT(*) as cnt
+        FROM Keywords
+        WHERE replay_id = @replayId
+      `)
+
+    if (checkReplay.recordset[0].cnt === 0) {
+      // لم يعد هناك أي Keyword تشير إلى هذا Replay => نحذفه نهائيًا
+      await pool.request()
+        .input('replayId', sql.Int, replayId)
+        .query(`
+          DELETE FROM Replays
+          WHERE id = @replayId
+        `)
+    }
+
+    return res.status(200).json({ message: 'Keyword deleted successfully.' })
+  } catch (error) {
+    console.error('Error deleting keyword:', error)
+    return res.status(500).json({ message: 'Error deleting keyword.' })
+  }
+}
+
+
+// دالة تُستدعى عند تشغيل السيرفر لاسترجاع الجلسات الفعّالة
 export const initializeExistingSessions = async () => {
   const pool = await getConnection()
   // هنا نسترجع الـ sessions ذات الحالة التي تستحق الاستعادة
@@ -591,6 +758,7 @@ export const initializeExistingSessions = async () => {
   }
 }
 
+// تفعيل أو إيقاف الـ Menu Bot
 export const updateMenuBotStatus = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)
   const { menuBotActive } = req.body
@@ -616,10 +784,6 @@ export const updateMenuBotStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error updating menu bot status.' })
   }
 }
-
-
-
-
 
 // إضافة الـ route الجديد للبث
 export const broadcastMessageAPI = async (req: Request, res: Response) => {

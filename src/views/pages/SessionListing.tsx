@@ -8,7 +8,6 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  TextField,
   Button,
   TableContainer,
   Chip,
@@ -23,7 +22,8 @@ import {
   Snackbar,
   Alert,
   AlertColor,
-  Menu
+  Menu,
+  TextField
 } from '@mui/material'
 import * as XLSX from 'xlsx'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -34,6 +34,8 @@ import AddDataPopup from './AddDataPopup'
 import axiosServices from 'src/utils/axios'
 import CategoryList from './CategoryList'
 import ProductList from './ProductList'
+import KeywordList from './KeywordList' // ملف عرض الـ Keywords (نستعين به)
+
 import socket from 'src/socket'
 
 const SessionListing = () => {
@@ -58,9 +60,10 @@ const SessionListing = () => {
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null)
 
-  // =============== [ Show existing categories/products ] ===============
+  // =============== [ Show existing categories/products/keywords ] ===============
   const [showExistingCategories, setShowExistingCategories] = useState(false)
   const [showExistingProducts, setShowExistingProducts] = useState(false)
+  const [showExistingKeywords, setShowExistingKeywords] = useState(false)
 
   // تصنيفات متاحة للـ Product form
   const [productCategories, setProductCategories] = useState<{ value: number; label: string }[]>([])
@@ -69,7 +72,6 @@ const SessionListing = () => {
   const [broadcastDialogOpen, setBroadcastDialogOpen] = useState(false)
   const [broadcastSessionId, setBroadcastSessionId] = useState<number | null>(null)
 
-  // معرفة البيانات الخاصة بالميديا
   interface MediaFile {
     base64: string
     mimetype: string
@@ -80,51 +82,13 @@ const SessionListing = () => {
     phoneNumbers: string[]
     message: string
     randomNumbers: number[]
-    media: MediaFile[] // مصفوفة من الملفات
+    media: MediaFile[]
   }>({
     phoneNumbers: [],
     message: '',
     randomNumbers: [],
-    media: [] // نبدأ بمصفوفة فارغة
+    media: []
   })
-
-  const handleExcelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-  
-    const reader = new FileReader()
-  
-    reader.onload = e => {
-      const data = e.target?.result
-      if (!data) return
-  
-      // قراءة الملف بواسطة XLSX
-      const workbook = XLSX.read(data, { type: 'binary' })
-      // نفترض أن الـ sheet الأول هو المطلوب
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-  
-      // نحولها إلى مصفوفة من الصفوف (كل صف عبارة عن مصفوفة من الخانات)
-      const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 })
-  
-      // نفترض أن أرقام الهواتف في العمود الأول (index=0)
-      // مع فلترة أي قيم فارغة أو undefined
-      const phoneNumbersFromExcel = rows
-        .map(row => row[0]) // 0 => أول عمود
-        .filter(Boolean)     // إزالة السجلات الفارغة/غير المعرّفة
-  
-      // هنا بإمكانك دمج الأرقام المرفوعة مع الأرقام المكتوبة يدويًّا،
-      // أو الاكتفاء باستبدال phoneNumbers.
-      // مثال: نستبدل كل phoneNumbers بالتي تم جلبها
-      setBroadcastData(prev => ({
-        ...prev,
-        phoneNumbers: phoneNumbersFromExcel as string[]
-      }))
-    }
-  
-    // يجب قراءة الملف كنص ثنائي binary
-    reader.readAsBinaryString(file)
-  }
 
   // =============== [ Greeting Dialog ] ===============
   const [greetingDialogOpen, setGreetingDialogOpen] = useState(false)
@@ -146,199 +110,6 @@ const SessionListing = () => {
   }
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false)
-  }
-
-
-  
-
-  // =============== [ Menu Bot Toggle ] ===============
-  const handleToggleMenuBot = async (session: SessionType) => {
-    const newMenuBotActive = !session.menuBotActive
-    try {
-      await axiosServices.put(`/api/sessions/${session.id}/menu-bot`, {
-        menuBotActive: newMenuBotActive
-      })
-
-      dispatch(
-        updateSession({
-          sessionId: session.id,
-          changes: { menuBotActive: newMenuBotActive }
-        })
-      )
-
-      showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
-    } catch (error) {
-      console.error('Error toggling menu bot:', error)
-      showAlert('An error occurred while toggling the Menu Bot.', 'error')
-    }
-  }
-
-  // =============== [ Broadcast Handling لكل جلسة ] ===============
-  const openBroadcastDialog = (sessionId: number) => {
-    setBroadcastSessionId(sessionId)
-    // إعادة التهيئة
-    setBroadcastData({
-      phoneNumbers: [],
-      message: '',
-      randomNumbers: [],
-      media: []
-    })
-    setBroadcastDialogOpen(true)
-  }
-
-  const handleCloseBroadcastDialog = () => {
-    setBroadcastDialogOpen(false)
-    // إعادة تهيئة
-    setBroadcastData({
-      phoneNumbers: [],
-      message: '',
-      randomNumbers: [],
-      media: []
-    })
-    setBroadcastSessionId(null)
-  }
-
-  const handleBroadcastSubmit = async () => {
-    const { phoneNumbers, message, randomNumbers, media } = broadcastData;
-  
-    if (!broadcastSessionId) {
-      showAlert('No session selected for broadcast.', 'error');
-      return;
-    }
-    if (!phoneNumbers.length || !randomNumbers.length) {
-      showAlert('Please fill all required fields', 'error');
-      return;
-    }
-  
-    try {
-      // استبدال متغير الرقم برقم الهاتف الفعلي
-      const finalMessage = phoneNumbers.map(phoneNumber => {
-        return message.replace('${recipientPhone}', phoneNumber) // استبدال الرقم الفعلي
-                       .replace('${currentDateTime}', getCurrentDateTime());
-      });
-  
-      // إرسال الطلب مع الرسالة المعدلة لكل رقم هاتف
-      await axiosServices.post(`/api/sessions/${broadcastSessionId}/broadcast`, {
-        phoneNumbers,
-        message: finalMessage.join(' '),  // دمج الرسائل مع الفواصل
-        randomNumbers,
-        media,
-      });
-  
-      showAlert('Broadcast messages sent successfully', 'success');
-      handleCloseBroadcastDialog();
-    } catch (error) {
-      console.error('Error sending broadcast:', error);
-      showAlert('Failed to send broadcast messages', 'error');
-    }
-  };
-  
-  
-  // دالة التعامل مع الـ Delay (interval / comma separated)
-  const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.trim()
-    if (value.includes('-')) {
-      // Interval
-      const [startStr, endStr] = value.split('-').map(part => part.trim())
-      const start = parseInt(startStr, 10)
-      const end = parseInt(endStr, 10)
-      if (!isNaN(start) && !isNaN(end) && end >= start) {
-        const numbers: number[] = []
-        for (let i = start; i <= end; i++) {
-          numbers.push(i)
-        }
-        setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
-      } else {
-        setBroadcastData(prev => ({ ...prev, randomNumbers: [] }))
-      }
-    } else {
-      // comma separated
-      const numbers = value
-        .split(',')
-        .map(v => parseInt(v.trim(), 10))
-        .filter(num => !isNaN(num))
-      setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
-    }
-  }
-
-  // دالة رفع الصور (multiple)
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files?.length) return
-
-    const files = Array.from(event.target.files) // حوّل FileList إلى مصفوفة
-    files.forEach(file => {
-      const reader = new FileReader()
-      reader.onload = e => {
-        if (e.target?.result) {
-          const base64String = e.target.result.toString()
-          const base64Only = base64String.split(',')[1] // نفصل الجزء بعد "base64,"
-
-          setBroadcastData(prev => ({
-            ...prev,
-            media: [
-              ...prev.media,
-              {
-                base64: base64Only,
-                mimetype: file.type,
-                filename: file.name
-              }
-            ]
-          }))
-        }
-      }
-      reader.readAsDataURL(file)
-    })
-  }
-
-  // في الـ Component
-const handleInsertPlaceholder = (placeholder: string) => {
-  setBroadcastData(prev => ({
-    ...prev,
-    message: `${prev.message} ${placeholder}`  // إضافة المتغير إلى الرسالة الحالية
-  }));
-};
-
-// دالة لإدراج التاريخ والوقت
-const getCurrentDateTime = () => {
-  const now = new Date();
-  return `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-};
-
-  // =============== [ Greeting Handling ] ===============
-  const openGreetingPopup = (session: SessionType) => {
-    setSelectedSessionGreeting(session)
-    setGreetingData({
-      greetingMessage: session.greetingMessage || '',
-      greetingActive: Boolean(session.greetingActive)
-    })
-    setGreetingDialogOpen(true)
-  }
-  const handleCloseGreetingDialog = () => {
-    setGreetingDialogOpen(false)
-    setSelectedSessionGreeting(null)
-  }
-  const handleGreetingUpdate = async () => {
-    if (!selectedSessionGreeting) return
-    try {
-      await axiosServices.put(`/api/sessions/${selectedSessionGreeting.id}/greeting`, {
-        greetingMessage: greetingData.greetingMessage,
-        greetingActive: greetingData.greetingActive
-      })
-      dispatch(
-        updateSession({
-          sessionId: selectedSessionGreeting.id,
-          changes: {
-            greetingMessage: greetingData.greetingMessage,
-            greetingActive: greetingData.greetingActive
-          }
-        })
-      )
-      showAlert('Greeting message updated successfully.', 'success')
-      setGreetingDialogOpen(false)
-    } catch (error) {
-      console.error('Error updating greeting:', error)
-      showAlert('An error occurred while updating the greeting message.', 'error')
-    }
   }
 
   // =============== [ Socket.io to listen for session updates ] ===============
@@ -513,36 +284,46 @@ const getCurrentDateTime = () => {
     }
   }
 
-  // =============== [ Keywords with multiple input (Autocomplete) ] ===============
-  const submitKeyword = async (data: any) => {
+  // =============== [ Keywords Popup + Submission ] ===============
+  // في هذا المثال: سنجعل AddDataPopup يستقبل 3 حقول:
+  // 1) keyword
+  // 2) replyText
+  // 3) replyMedia (isFile)
+  const submitKeywordWithMedia = async (formData: any) => {
     if (!activeSessionId) return
-    const { keywords, replyText } = data
 
-    if (!Array.isArray(keywords) || keywords.length === 0) {
-      showAlert('Please enter at least one keyword.', 'warning')
+    const { keyword, replyText, replyMedia } = formData
+
+    if (!keyword || !replyText) {
+      showAlert('Please fill the keyword and replyText fields.', 'warning')
       return
     }
-    if (!replyText) {
-      showAlert('Please enter a reply text.', 'warning')
-      return
+
+    // لاحظ أننا في AddDataPopup نخزّن الحقل الملف كشيء فيه {base64, mimetype, filename}
+    // قد يكون replyMedia = undefined لو لم يرفع المستخدم أي ملف
+    let replyMediaBase64 = null
+    let replyMediaMimeType = null
+    let replyMediaFilename = null
+
+    if (replyMedia) {
+      replyMediaBase64 = replyMedia.base64 || null
+      replyMediaMimeType = replyMedia.mimetype || null
+      replyMediaFilename = replyMedia.filename || null
     }
 
     try {
-      for (const kw of keywords) {
-        await axiosServices.post(`/api/sessions/${activeSessionId}/keyword`, {
-          keyword: kw,
-          replyText
-        })
-      }
-      showAlert('All keywords have been added successfully.', 'success')
+      await axiosServices.post(`/api/sessions/${activeSessionId}/keyword`, {
+        keyword,
+        replyText,
+        replyMediaBase64,
+        replyMediaMimeType,
+        replyMediaFilename
+      })
+      showAlert('Keyword added successfully.', 'success')
     } catch (error) {
-      showAlert('Error adding keywords.', 'error')
+      showAlert('Error adding keyword.', 'error')
     }
   }
-
-  // =============== [ Close Existing Category / Products ] ===============
-  const closeExistingCategories = () => setShowExistingCategories(false)
-  const closeExistingProducts = () => setShowExistingProducts(false)
 
   // =============== [ Toggle Bot on/off ] ===============
   const handleToggleBot = async (session: SessionType) => {
@@ -562,10 +343,219 @@ const getCurrentDateTime = () => {
     }
   }
 
+  // =============== [ Toggle Menu Bot on/off ] ===============
+  const handleToggleMenuBot = async (session: SessionType) => {
+    const newMenuBotActive = !session.menuBotActive
+    try {
+      await axiosServices.put(`/api/sessions/${session.id}/menu-bot`, {
+        menuBotActive: newMenuBotActive
+      })
+
+      dispatch(
+        updateSession({
+          sessionId: session.id,
+          changes: { menuBotActive: newMenuBotActive }
+        })
+      )
+
+      showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
+    } catch (error) {
+      console.error('Error toggling menu bot:', error)
+      showAlert('An error occurred while toggling the Menu Bot.', 'error')
+    }
+  }
+
+  // =============== [ Broadcast Handling لكل جلسة ] ===============
+  const openBroadcastDialog = (sessionId: number) => {
+    setBroadcastSessionId(sessionId)
+    // إعادة التهيئة
+    setBroadcastData({
+      phoneNumbers: [],
+      message: '',
+      randomNumbers: [],
+      media: []
+    })
+    setBroadcastDialogOpen(true)
+  }
+
+  const handleCloseBroadcastDialog = () => {
+    setBroadcastDialogOpen(false)
+    // إعادة تهيئة
+    setBroadcastData({
+      phoneNumbers: [],
+      message: '',
+      randomNumbers: [],
+      media: []
+    })
+    setBroadcastSessionId(null)
+  }
+
+  const handleExcelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = e => {
+      const data = e.target?.result
+      if (!data) return
+
+      // قراءة الملف بواسطة XLSX
+      const workbook = XLSX.read(data, { type: 'binary' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+
+      const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 })
+      const phoneNumbersFromExcel = rows
+        .map(row => row[0])
+        .filter(Boolean)
+
+      setBroadcastData(prev => ({
+        ...prev,
+        phoneNumbers: phoneNumbersFromExcel as string[]
+      }))
+    }
+
+    reader.readAsBinaryString(file)
+  }
+
+  const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim()
+    if (value.includes('-')) {
+      const [startStr, endStr] = value.split('-').map(part => part.trim())
+      const start = parseInt(startStr, 10)
+      const end = parseInt(endStr, 10)
+      if (!isNaN(start) && !isNaN(end) && end >= start) {
+        const numbers: number[] = []
+        for (let i = start; i <= end; i++) {
+          numbers.push(i)
+        }
+        setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
+      } else {
+        setBroadcastData(prev => ({ ...prev, randomNumbers: [] }))
+      }
+    } else {
+      const numbers = value
+        .split(',')
+        .map(v => parseInt(v.trim(), 10))
+        .filter(num => !isNaN(num))
+      setBroadcastData(prev => ({ ...prev, randomNumbers: numbers }))
+    }
+  }
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return
+
+    const files = Array.from(event.target.files)
+    files.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = e => {
+        if (e.target?.result) {
+          const base64String = e.target.result.toString()
+          const base64Only = base64String.split(',')[1]
+          setBroadcastData(prev => ({
+            ...prev,
+            media: [
+              ...prev.media,
+              {
+                base64: base64Only,
+                mimetype: file.type,
+                filename: file.name
+              }
+            ]
+          }))
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleInsertPlaceholder = (placeholder: string) => {
+    setBroadcastData(prev => ({
+      ...prev,
+      message: `${prev.message} ${placeholder}`
+    }))
+  }
+
+  const getCurrentDateTime = () => {
+    const now = new Date()
+    return `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`
+  }
+
+  const handleBroadcastSubmit = async () => {
+    if (!broadcastSessionId) {
+      showAlert('No session selected for broadcast.', 'error')
+      return
+    }
+    const { phoneNumbers, message, randomNumbers, media } = broadcastData
+    if (!phoneNumbers.length || !randomNumbers.length) {
+      showAlert('Please fill all required fields', 'error')
+      return
+    }
+
+    try {
+      // فقط مثال بسيط: استبدال ${recipientPhone} و${currentDateTime} للجميع
+      // لو أردت إرسال رسالة مختلفة لكل رقم، تحتاج منطق مختلف
+      const finalMessage = phoneNumbers.map(phoneNumber =>
+        message
+          .replace('${recipientPhone}', phoneNumber)
+          .replace('${currentDateTime}', getCurrentDateTime())
+      )
+      await axiosServices.post(`/api/sessions/${broadcastSessionId}/broadcast`, {
+        phoneNumbers,
+        message: finalMessage.join(' '), // دمجهم في رسالة واحدة؛ لو أردت رسالة لكل رقم على حدة، غيّر المنطق
+        randomNumbers,
+        media
+      })
+
+      showAlert('Broadcast messages sent successfully', 'success')
+      handleCloseBroadcastDialog()
+    } catch (error) {
+      console.error('Error sending broadcast:', error)
+      showAlert('Failed to send broadcast messages', 'error')
+    }
+  }
+
+  // =============== [ Greeting Handling ] ===============
+  const openGreetingPopup = (session: SessionType) => {
+    setSelectedSessionGreeting(session)
+    setGreetingData({
+      greetingMessage: session.greetingMessage || '',
+      greetingActive: Boolean(session.greetingActive)
+    })
+    setGreetingDialogOpen(true)
+  }
+  const handleCloseGreetingDialog = () => {
+    setGreetingDialogOpen(false)
+    setSelectedSessionGreeting(null)
+  }
+  const handleGreetingUpdate = async () => {
+    if (!selectedSessionGreeting) return
+    try {
+      await axiosServices.put(`/api/sessions/${selectedSessionGreeting.id}/greeting`, {
+        greetingMessage: greetingData.greetingMessage,
+        greetingActive: greetingData.greetingActive
+      })
+      dispatch(
+        updateSession({
+          sessionId: selectedSessionGreeting.id,
+          changes: {
+            greetingMessage: greetingData.greetingMessage,
+            greetingActive: greetingData.greetingActive
+          }
+        })
+      )
+      showAlert('Greeting message updated successfully.', 'success')
+      setGreetingDialogOpen(false)
+    } catch (error) {
+      console.error('Error updating greeting:', error)
+      showAlert('An error occurred while updating the greeting message.', 'error')
+    }
+  }
+
   return (
     <Box mt={4}>
       {/* ------------- Create Session Form ------------- */}
-
       <Button variant='contained' color='primary' onClick={handleCreateSession} sx={{ mt: 2 }}>
         Create Session
       </Button>
@@ -662,17 +652,29 @@ const getCurrentDateTime = () => {
                     <MenuItem onClick={handleExistingProductMenu}>Existing Products</MenuItem>
                   </Menu>
 
-                  {/* Keywords Button */}
+                  {/* Keywords Menu: Add or Existing */}
                   <Button
                     variant='outlined'
                     size='small'
                     onClick={() => {
                       setActiveSessionId(session.id)
-                      setKeywordPopupOpen(true)
+                      setKeywordPopupOpen(true) // لفتح AddDataPopup
                     }}
                     sx={{ mr: 1, mb: 1 }}
                   >
-                    Keywords
+                    Add Keyword
+                  </Button>
+
+                  <Button
+                    variant='outlined'
+                    size='small'
+                    onClick={() => {
+                      setActiveSessionId(session.id)
+                      setShowExistingKeywords(true)
+                    }}
+                    sx={{ mr: 1, mb: 1 }}
+                  >
+                    Existing Keywords
                   </Button>
 
                   {/* Broadcast Button */}
@@ -727,6 +729,7 @@ const getCurrentDateTime = () => {
                   >
                     <DeleteIcon />
                   </IconButton>
+
                 </TableCell>
               </TableRow>
             ))}
@@ -757,90 +760,86 @@ const getCurrentDateTime = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ------------- Broadcast Dialog (يظهر عند الضغط على Broadcast في كل جلسة) ------------- */}
+      {/* ------------- Broadcast Dialog ------------- */}
       <Dialog open={broadcastDialogOpen} onClose={handleCloseBroadcastDialog} fullWidth maxWidth='sm'>
-    <DialogTitle>Broadcast Message</DialogTitle>
-    <DialogContent>
-      {/* إدخال يدوي (اختياري) */}
-      <TextField
-        label='Phone Numbers (comma separated)'
-        fullWidth
-        margin='normal'
-        value={broadcastData.phoneNumbers.join(',')}
-        onChange={e =>
-          setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
-        }
-      />
+        <DialogTitle>Broadcast Message</DialogTitle>
+        <DialogContent>
+          <TextField
+            label='Phone Numbers (comma separated)'
+            fullWidth
+            margin='normal'
+            value={broadcastData.phoneNumbers.join(',')}
+            onChange={e =>
+              setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
+            }
+          />
 
-      {/* زر رفع ملف Excel */}
-      <Button variant='contained' component='label' sx={{ mt: 2 }}>
-        Upload Excel
-        <input type='file' hidden onChange={handleExcelChange} accept='.xlsx, .xls' />
-      </Button>
+          <Button variant='contained' component='label' sx={{ mt: 2 }}>
+            Upload Excel
+            <input type='file' hidden onChange={handleExcelChange} accept='.xlsx, .xls' />
+          </Button>
 
-      {/* عرض سريع للأرقام المستوردة */}
-      {broadcastData.phoneNumbers.length > 0 && (
-        <ul>
-          {broadcastData.phoneNumbers.map((phone, idx) => (
-            <li key={idx}>{phone}</li>
-          ))}
-        </ul>
-      )}
+          {broadcastData.phoneNumbers.length > 0 && (
+            <ul>
+              {broadcastData.phoneNumbers.map((phone, idx) => (
+                <li key={idx}>{phone}</li>
+              ))}
+            </ul>
+          )}
 
-      {/* الحقول الأخرى: الرسالة، التأخيرات، رفع صور... */}
-      <TextField
-        label='Message'
-        fullWidth
-        margin='normal'
-        multiline
-        rows={4}
-        value={broadcastData.message}
-        onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
-      />
-      {/* أزرار إدراج المتغيرات */}
-      <Button
-        variant='outlined'
-        onClick={() => handleInsertPlaceholder('${recipientPhone}')}
-        sx={{ mt: 2, mr: 1 }}
-      >
-        Insert Recipient Phone
-      </Button>
-      <Button
-        variant='outlined'
-        onClick={() => handleInsertPlaceholder('${currentDateTime}')}
-        sx={{ mt: 2 }}
-      >
-        Insert Date/Time
-      </Button>
-      <TextField
-        label='Delays (comma separated or interval e.g. 5-7)'
-        fullWidth
-        margin='normal'
-        onChange={handleDelayChange}
-      />
+          <TextField
+            label='Message'
+            fullWidth
+            margin='normal'
+            multiline
+            rows={4}
+            value={broadcastData.message}
+            onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
+          />
+          <Button
+            variant='outlined'
+            onClick={() => handleInsertPlaceholder('${recipientPhone}')}
+            sx={{ mt: 2, mr: 1 }}
+          >
+            Insert Recipient Phone
+          </Button>
+          <Button
+            variant='outlined'
+            onClick={() => handleInsertPlaceholder('${currentDateTime}')}
+            sx={{ mt: 2 }}
+          >
+            Insert Date/Time
+          </Button>
 
-      <Button variant='contained' component='label' sx={{ mt: 2 }}>
-        Upload Image(s)
-        <input type='file' multiple hidden accept='image/*' onChange={handleImageChange} />
-      </Button>
+          <TextField
+            label='Delays (comma separated or interval e.g. 5-7)'
+            fullWidth
+            margin='normal'
+            onChange={handleDelayChange}
+          />
 
-      {broadcastData.media.length > 0 && (
-        <ul>
-          {broadcastData.media.map((file, idx) => (
-            <li key={idx}>{file.filename}</li>
-          ))}
-        </ul>
-      )}
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={handleCloseBroadcastDialog} color='secondary'>
-        Cancel
-      </Button>
-      <Button onClick={handleBroadcastSubmit} color='primary'>
-        Send Broadcast
-      </Button>
-    </DialogActions>
-  </Dialog>
+          <Button variant='contained' component='label' sx={{ mt: 2 }}>
+            Upload Image(s)
+            <input type='file' multiple hidden accept='image/*' onChange={handleImageChange} />
+          </Button>
+
+          {broadcastData.media.length > 0 && (
+            <ul>
+              {broadcastData.media.map((file, idx) => (
+                <li key={idx}>{file.filename}</li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBroadcastDialog} color='secondary'>
+            Cancel
+          </Button>
+          <Button onClick={handleBroadcastSubmit} color='primary'>
+            Send Broadcast
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ------------- Add Category Popup ------------- */}
       <AddDataPopup
@@ -866,29 +865,23 @@ const getCurrentDateTime = () => {
         ]}
       />
 
-      {/* ------------- Add Keyword Popup (Multiple) ------------- */}
+      {/* ------------- Add Keyword Popup (يستخدم AddDataPopup) ------------- */}
       <AddDataPopup
         open={keywordPopupOpen}
         onClose={() => setKeywordPopupOpen(false)}
-        onSubmit={submitKeyword}
-        title='Add Keywords'
+        onSubmit={submitKeywordWithMedia}
+        title='Add Keyword or  Multiple Keywords'
         fields={[
-          {
-            label: 'Keywords',
-            name: 'keywords',
-            isMultipleKeywords: true
-          },
-          {
-            label: 'Reply Text',
-            name: 'replyText'
-          }
+          { label: 'Keywords', name: 'keywords', isMultipleKeywords: true },
+          { label: 'Reply Text', name: 'replyText' },
+          { label: 'Reply Media', name: 'replyMedia', isFile: true }
         ]}
       />
 
       {/* ------------- Existing Categories Dialog ------------- */}
       <Dialog
         open={showExistingCategories}
-        onClose={closeExistingCategories}
+        onClose={() => setShowExistingCategories(false)}
         fullWidth
         maxWidth='sm'
       >
@@ -901,14 +894,14 @@ const getCurrentDateTime = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeExistingCategories}>Close</Button>
+          <Button onClick={() => setShowExistingCategories(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
       {/* ------------- Existing Products Dialog ------------- */}
       <Dialog
         open={showExistingProducts}
-        onClose={closeExistingProducts}
+        onClose={() => setShowExistingProducts(false)}
         fullWidth
         maxWidth='sm'
       >
@@ -921,7 +914,27 @@ const getCurrentDateTime = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeExistingProducts}>Close</Button>
+          <Button onClick={() => setShowExistingProducts(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ------------- Existing Keywords Dialog ------------- */}
+      <Dialog
+        open={showExistingKeywords}
+        onClose={() => setShowExistingKeywords(false)}
+        fullWidth
+        maxWidth='md'
+      >
+        <DialogTitle>Existing Keywords</DialogTitle>
+        <DialogContent>
+          {activeSessionId ? (
+            <KeywordList sessionId={activeSessionId} />
+          ) : (
+            <div>No session selected</div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowExistingKeywords(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
