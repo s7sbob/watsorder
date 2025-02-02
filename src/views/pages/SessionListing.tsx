@@ -25,6 +25,7 @@ import {
   AlertColor,
   Menu
 } from '@mui/material'
+import * as XLSX from 'xlsx'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { fetchSessions, createSession, updateSession } from 'src/store/apps/sessions/SessionSlice'
 import { SessionType } from 'src/types/apps/session'
@@ -87,6 +88,44 @@ const SessionListing = () => {
     media: [] // نبدأ بمصفوفة فارغة
   })
 
+  const handleExcelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+  
+    const reader = new FileReader()
+  
+    reader.onload = e => {
+      const data = e.target?.result
+      if (!data) return
+  
+      // قراءة الملف بواسطة XLSX
+      const workbook = XLSX.read(data, { type: 'binary' })
+      // نفترض أن الـ sheet الأول هو المطلوب
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+  
+      // نحولها إلى مصفوفة من الصفوف (كل صف عبارة عن مصفوفة من الخانات)
+      const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 })
+  
+      // نفترض أن أرقام الهواتف في العمود الأول (index=0)
+      // مع فلترة أي قيم فارغة أو undefined
+      const phoneNumbersFromExcel = rows
+        .map(row => row[0]) // 0 => أول عمود
+        .filter(Boolean)     // إزالة السجلات الفارغة/غير المعرّفة
+  
+      // هنا بإمكانك دمج الأرقام المرفوعة مع الأرقام المكتوبة يدويًّا،
+      // أو الاكتفاء باستبدال phoneNumbers.
+      // مثال: نستبدل كل phoneNumbers بالتي تم جلبها
+      setBroadcastData(prev => ({
+        ...prev,
+        phoneNumbers: phoneNumbersFromExcel as string[]
+      }))
+    }
+  
+    // يجب قراءة الملف كنص ثنائي binary
+    reader.readAsBinaryString(file)
+  }
+
   // =============== [ Greeting Dialog ] ===============
   const [greetingDialogOpen, setGreetingDialogOpen] = useState(false)
   const [selectedSessionGreeting, setSelectedSessionGreeting] = useState<SessionType | null>(null)
@@ -108,6 +147,9 @@ const SessionListing = () => {
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false)
   }
+
+
+  
 
   // =============== [ Menu Bot Toggle ] ===============
   const handleToggleMenuBot = async (session: SessionType) => {
@@ -157,34 +199,41 @@ const SessionListing = () => {
   }
 
   const handleBroadcastSubmit = async () => {
-    const { phoneNumbers, message, randomNumbers, media } = broadcastData
-
+    const { phoneNumbers, message, randomNumbers, media } = broadcastData;
+  
     if (!broadcastSessionId) {
-      showAlert('No session selected for broadcast.', 'error')
-      return
+      showAlert('No session selected for broadcast.', 'error');
+      return;
     }
     if (!phoneNumbers.length || !randomNumbers.length) {
-      showAlert('Please fill all required fields', 'error')
-      return
+      showAlert('Please fill all required fields', 'error');
+      return;
     }
-
+  
     try {
-      // إرسال الطلب
+      // استبدال متغير الرقم برقم الهاتف الفعلي
+      const finalMessage = phoneNumbers.map(phoneNumber => {
+        return message.replace('${recipientPhone}', phoneNumber) // استبدال الرقم الفعلي
+                       .replace('${currentDateTime}', getCurrentDateTime());
+      });
+  
+      // إرسال الطلب مع الرسالة المعدلة لكل رقم هاتف
       await axiosServices.post(`/api/sessions/${broadcastSessionId}/broadcast`, {
         phoneNumbers,
-        message,
+        message: finalMessage.join(' '),  // دمج الرسائل مع الفواصل
         randomNumbers,
-        media // مصفوفة من الصور
-      })
-
-      showAlert('Broadcast messages sent successfully', 'success')
-      handleCloseBroadcastDialog()
+        media,
+      });
+  
+      showAlert('Broadcast messages sent successfully', 'success');
+      handleCloseBroadcastDialog();
     } catch (error) {
-      console.error('Error sending broadcast:', error)
-      showAlert('Failed to send broadcast messages', 'error')
+      console.error('Error sending broadcast:', error);
+      showAlert('Failed to send broadcast messages', 'error');
     }
-  }
-
+  };
+  
+  
   // دالة التعامل مع الـ Delay (interval / comma separated)
   const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim()
@@ -240,6 +289,20 @@ const SessionListing = () => {
       reader.readAsDataURL(file)
     })
   }
+
+  // في الـ Component
+const handleInsertPlaceholder = (placeholder: string) => {
+  setBroadcastData(prev => ({
+    ...prev,
+    message: `${prev.message} ${placeholder}`  // إضافة المتغير إلى الرسالة الحالية
+  }));
+};
+
+// دالة لإدراج التاريخ والوقت
+const getCurrentDateTime = () => {
+  const now = new Date();
+  return `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+};
 
   // =============== [ Greeting Handling ] ===============
   const openGreetingPopup = (session: SessionType) => {
@@ -502,29 +565,7 @@ const SessionListing = () => {
   return (
     <Box mt={4}>
       {/* ------------- Create Session Form ------------- */}
-      <TextField
-        label='Status'
-        value={sessionData.status}
-        onChange={e => setSessionData({ ...sessionData, status: e.target.value })}
-        fullWidth
-        sx={{ mb: 2 }}
-      />
-      <TextField
-        label='Greeting Message'
-        value={sessionData.greetingMessage}
-        onChange={e => setSessionData({ ...sessionData, greetingMessage: e.target.value })}
-        fullWidth
-        sx={{ mb: 2 }}
-      />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={sessionData.greetingActive}
-            onChange={e => setSessionData({ ...sessionData, greetingActive: e.target.checked })}
-          />
-        }
-        label='Enable Greeting Message'
-      />
+
       <Button variant='contained' color='primary' onClick={handleCreateSession} sx={{ mt: 2 }}>
         Create Session
       </Button>
@@ -718,63 +759,88 @@ const SessionListing = () => {
 
       {/* ------------- Broadcast Dialog (يظهر عند الضغط على Broadcast في كل جلسة) ------------- */}
       <Dialog open={broadcastDialogOpen} onClose={handleCloseBroadcastDialog} fullWidth maxWidth='sm'>
-        <DialogTitle>Broadcast Message</DialogTitle>
-        <DialogContent>
-          <TextField
-            label='Phone Numbers (comma separated)'
-            fullWidth
-            margin='normal'
-            value={broadcastData.phoneNumbers.join(',')}
-            onChange={e =>
-              setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
-            }
-          />
-          <TextField
-            label='Message'
-            fullWidth
-            margin='normal'
-            multiline
-            rows={4}
-            value={broadcastData.message}
-            onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
-          />
-          <TextField
-            label='Delays (comma separated or interval e.g. 5-7)'
-            fullWidth
-            margin='normal'
-            onChange={handleDelayChange}
-          />
+    <DialogTitle>Broadcast Message</DialogTitle>
+    <DialogContent>
+      {/* إدخال يدوي (اختياري) */}
+      <TextField
+        label='Phone Numbers (comma separated)'
+        fullWidth
+        margin='normal'
+        value={broadcastData.phoneNumbers.join(',')}
+        onChange={e =>
+          setBroadcastData({ ...broadcastData, phoneNumbers: e.target.value.split(',') })
+        }
+      />
 
-          {/* زر رفع الصورة */}
-          <Button variant='contained' component='label' sx={{ mt: 2 }}>
-            Upload Image(s)
-            <input
-              type='file'
-              multiple
-              hidden
-              accept='image/*'
-              onChange={handleImageChange}
-            />
-          </Button>
+      {/* زر رفع ملف Excel */}
+      <Button variant='contained' component='label' sx={{ mt: 2 }}>
+        Upload Excel
+        <input type='file' hidden onChange={handleExcelChange} accept='.xlsx, .xls' />
+      </Button>
 
-          {/* عرض قائمة الملفات المختارة */}
-          {broadcastData.media.length > 0 && (
-            <ul>
-              {broadcastData.media.map((file, idx) => (
-                <li key={idx}>{file.filename}</li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseBroadcastDialog} color='secondary'>
-            Cancel
-          </Button>
-          <Button onClick={handleBroadcastSubmit} color='primary'>
-            Send Broadcast
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* عرض سريع للأرقام المستوردة */}
+      {broadcastData.phoneNumbers.length > 0 && (
+        <ul>
+          {broadcastData.phoneNumbers.map((phone, idx) => (
+            <li key={idx}>{phone}</li>
+          ))}
+        </ul>
+      )}
+
+      {/* الحقول الأخرى: الرسالة، التأخيرات، رفع صور... */}
+      <TextField
+        label='Message'
+        fullWidth
+        margin='normal'
+        multiline
+        rows={4}
+        value={broadcastData.message}
+        onChange={e => setBroadcastData({ ...broadcastData, message: e.target.value })}
+      />
+      {/* أزرار إدراج المتغيرات */}
+      <Button
+        variant='outlined'
+        onClick={() => handleInsertPlaceholder('${recipientPhone}')}
+        sx={{ mt: 2, mr: 1 }}
+      >
+        Insert Recipient Phone
+      </Button>
+      <Button
+        variant='outlined'
+        onClick={() => handleInsertPlaceholder('${currentDateTime}')}
+        sx={{ mt: 2 }}
+      >
+        Insert Date/Time
+      </Button>
+      <TextField
+        label='Delays (comma separated or interval e.g. 5-7)'
+        fullWidth
+        margin='normal'
+        onChange={handleDelayChange}
+      />
+
+      <Button variant='contained' component='label' sx={{ mt: 2 }}>
+        Upload Image(s)
+        <input type='file' multiple hidden accept='image/*' onChange={handleImageChange} />
+      </Button>
+
+      {broadcastData.media.length > 0 && (
+        <ul>
+          {broadcastData.media.map((file, idx) => (
+            <li key={idx}>{file.filename}</li>
+          ))}
+        </ul>
+      )}
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={handleCloseBroadcastDialog} color='secondary'>
+        Cancel
+      </Button>
+      <Button onClick={handleBroadcastSubmit} color='primary'>
+        Send Broadcast
+      </Button>
+    </DialogActions>
+  </Dialog>
 
       {/* ------------- Add Category Popup ------------- */}
       <AddDataPopup

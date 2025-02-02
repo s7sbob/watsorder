@@ -1,14 +1,3 @@
-2025/02/01-22:08:33.257 498 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/MANIFEST-000001
-2025/02/01-22:08:33.258 498 Recovering log #41
-2025/02/01-22:08:33.258 498 Level-0 table #44: started
-2025/02/01-22:08:33.263 498 Level-0 table #44: 16962 bytes OK
-2025/02/01-22:08:33.266 498 Delete type=0 #41
-2025/02/01-22:08:33.267 10ac Compacting 4@0 + 1@1 files
-2025/02/01-22:08:33.293 10ac Generated table #46@0: 327 keys, 8647 bytes
-2025/02/01-22:08:33.293 10ac Compacted 4@0 + 1@1 files => 8647 bytes
-2025/02/01-22:08:33.295 10ac compacted to: files[ 0 1 1 0 0 0 0 ]
-2025/02/01-22:08:33.295 10ac Delete type=2 #33
-2025/02/01-22:08:33.295 10ac Delete type=2 #36
-2025/02/01-22:08:33.295 10ac Delete type=2 #38
-2025/02/01-22:08:33.296 10ac Delete type=2 #42
-2025/02/01-22:08:33.296 10ac Delete type=2 #44
+2025/02/02-12:44:25.324 4660 Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/MANIFEST-000001
+2025/02/02-12:44:25.324 4660 Recovering log #45
+2025/02/02-12:44:25.324 4660 Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\Local Storage\leveldb/000045.log 
