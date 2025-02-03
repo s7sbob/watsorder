@@ -1,33 +1,25 @@
-2025/02/03-12:44:05.409 2d2c Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/02/03-12:44:05.410 2d2c Recovering log #1137
-2025/02/03-12:44:05.517 2d2c Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/001137.log 
-2025/02/03-12:44:05.518 2d2c Delete type=2 #1129
-2025/02/03-12:44:05.518 2d2c Delete type=2 #1130
-2025/02/03-12:44:05.518 2d2c Delete type=2 #1131
-2025/02/03-12:44:05.518 2d2c Delete type=2 #1132
-2025/02/03-12:44:05.518 2d2c Delete type=2 #1133
-2025/02/03-12:44:05.520 2d2c Delete type=2 #1134
-2025/02/03-12:44:05.520 2d2c Delete type=2 #1135
-2025/02/03-12:44:05.520 2d2c Delete type=2 #1138
-2025/02/03-12:44:07.449 1a64 Level-0 table #1148: started
-2025/02/03-12:44:07.483 1a64 Level-0 table #1148: 882619 bytes OK
-2025/02/03-12:44:07.485 1a64 Delete type=0 #1137
-2025/02/03-12:44:07.489 1a64 Manual compaction at level-0 from '\x00w\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00x\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/02/03-12:44:10.029 1a64 Compacting 1@1 + 7@2 files
-2025/02/03-12:44:10.194 1a64 Generated table #1149@1: 86333 keys, 2236560 bytes
-2025/02/03-12:44:10.418 1a64 Generated table #1150@1: 93151 keys, 2282650 bytes
-2025/02/03-12:44:10.580 1a64 Generated table #1151@1: 33250 keys, 2215970 bytes
-2025/02/03-12:44:10.646 1a64 Generated table #1152@1: 3035 keys, 2154855 bytes
-2025/02/03-12:44:10.812 1a64 Generated table #1153@1: 29261 keys, 2235591 bytes
-2025/02/03-12:44:10.874 1a64 Generated table #1154@1: 8930 keys, 2143080 bytes
-2025/02/03-12:44:11.089 1a64 Generated table #1155@1: 85931 keys, 2038989 bytes
-2025/02/03-12:44:11.089 1a64 Compacted 1@1 + 7@2 files => 15307695 bytes
-2025/02/03-12:44:11.090 1a64 compacted to: files[ 0 0 7 0 0 0 0 ]
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1139
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1140
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1141
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1142
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1143
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1144
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1145
-2025/02/03-12:44:11.091 1a64 Delete type=2 #1148
+2025/02/03-16:59:53.225 446c Reusing MANIFEST D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/02/03-16:59:53.225 446c Recovering log #1157
+2025/02/03-16:59:53.460 446c Reusing old log D:\work\modernize-react-v4\packages\typescript\main\my-backend\.wwebjs_auth\session-1_free_1737554430894\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/001157.log 
+2025/02/03-16:59:57.916 3f20 Level-0 table #1168: started
+2025/02/03-16:59:57.947 3f20 Level-0 table #1168: 983366 bytes OK
+2025/02/03-16:59:57.949 3f20 Delete type=0 #1157
+2025/02/03-16:59:57.949 3f20 Manual compaction at level-0 from '\x00y\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00z\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/02/03-17:00:01.709 1dd0 Compacting 1@1 + 7@2 files
+2025/02/03-17:00:02.059 1dd0 Generated table #1169@1: 85813 keys, 2236388 bytes
+2025/02/03-17:00:02.332 1dd0 Generated table #1170@1: 96878 keys, 2270363 bytes
+2025/02/03-17:00:02.518 1dd0 Generated table #1171@1: 33239 keys, 2234487 bytes
+2025/02/03-17:00:02.583 1dd0 Generated table #1172@1: 2964 keys, 2160678 bytes
+2025/02/03-17:00:02.761 1dd0 Generated table #1173@1: 26287 keys, 2230781 bytes
+2025/02/03-17:00:02.842 1dd0 Generated table #1174@1: 11479 keys, 2145772 bytes
+2025/02/03-17:00:03.174 1dd0 Generated table #1175@1: 86898 keys, 2197527 bytes
+2025/02/03-17:00:03.174 1dd0 Compacted 1@1 + 7@2 files => 15475996 bytes
+2025/02/03-17:00:03.177 1dd0 compacted to: files[ 0 0 7 0 0 0 0 ]
+2025/02/03-17:00:03.177 1dd0 Delete type=2 #1159
+2025/02/03-17:00:03.177 1dd0 Delete type=2 #1160
+2025/02/03-17:00:03.177 1dd0 Delete type=2 #1161
+2025/02/03-17:00:03.177 1dd0 Delete type=2 #1162
+2025/02/03-17:00:03.177 1dd0 Delete type=2 #1163
+2025/02/03-17:00:03.177 1dd0 Delete type=2 #1164
+2025/02/03-17:00:03.178 1dd0 Delete type=2 #1165
+2025/02/03-17:00:03.178 1dd0 Delete type=2 #1168

@@ -1,28 +1,43 @@
-import jwt, { JwtPayload } from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
+// src/middleware/authMiddleware.ts
 
-// توسيع نوع Request لإضافة user
-declare module 'express' {
-  export interface Request {
-    user?: JwtPayload | string;
+import jwt, { JwtPayload } from 'jsonwebtoken'
+import { Request, Response, NextFunction } from 'express'
+
+// 1) عرّف واجهة للـ JWT Payload، تشمل الحقول المضافة
+interface MyJwtPayload extends JwtPayload {
+  id: number
+  username: string
+  subscriptionType: string
+  name?: string
+  subscriptionStart?: string
+  subscriptionEnd?: string
+  createdAt?: string
+  maxSessions?: number
+}
+
+// 2) توسعة Request بإضافة user من نوع MyJwtPayload
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: MyJwtPayload
   }
 }
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.split(' ')[1]
 
   if (!token) {
-    return res.status(401).json({ message: 'Access Denied. No token provided.' });
+    return res.status(401).json({ message: 'Access Denied. No token provided.' })
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    // 3) فك التوكن مع تحويله إلى MyJwtPayload
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as MyJwtPayload
 
     // إضافة بيانات المستخدم إلى req.user
-    req.user = decoded;
-    next();
+    req.user = decoded
+    next()
   } catch (err) {
-    return res.status(403).json({ message: 'Invalid token.' });
+    return res.status(403).json({ message: 'Invalid token.' })
   }
-};
+}

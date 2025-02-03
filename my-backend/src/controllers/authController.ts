@@ -1,8 +1,10 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { getConnection } from '../config/db';
 import bcrypt from 'bcrypt';
 import * as sql from 'mssql';
 import jwt from 'jsonwebtoken';
+import { MyJwtPayload } from '../types/MyJwtPayload' // واجهة تعرف حقولك الإضافية
+
 
 export const registerUser = async (req: Request, res: Response): Promise<Response> => {
   const { username, password, subscriptionType, name } = req.body;
@@ -92,22 +94,33 @@ export const loginUser = async (req: Request, res: Response): Promise<Response> 
 };
 
 // فك تشفير التوكين
-export const verifyToken = (req: Request, res: Response, next: Function): Response | void => {
-  const token = req.headers['authorization']?.split(' ')[1]; // استخراج التوكين
+export const verifyToken = (req: Request, res: Response, next: NextFunction): Response | void => {
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1]
 
   if (!token) {
-    return res.status(403).json({ message: 'التوكين غير موجود' });
+    return res.status(403).json({ message: 'التوكين غير موجود' })
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    req.user = decoded; // تخزين بيانات المستخدم في req.user
-    next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string)
+
+    // الآن decoded من نوع (string | JwtPayload)
+    if (typeof decoded === 'string') {
+      // لو أردت اعتباره خطأ:
+      return res.status(401).json({ message: 'Invalid token payload (string).' })
+    }
+
+    // الآن decoded هو JwtPayload => حوله إلى MyJwtPayload
+    const customPayload = decoded as MyJwtPayload
+    req.user = customPayload
+
+    next()
   } catch (err) {
-    console.error('Token verification failed:', err);
-    return res.status(401).json({ message: 'التوكين غير صالح' });
+    console.error('Token verification failed:', err)
+    return res.status(401).json({ message: 'التوكين غير صالح' })
   }
-};
+}
 
 
 

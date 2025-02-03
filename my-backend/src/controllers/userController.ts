@@ -1,3 +1,4 @@
+// src/controllers/userController.ts
 import { Request, Response } from 'express';
 import { getConnection } from '../config/db';
 import * as sql from 'mssql';
@@ -5,6 +6,11 @@ import bcrypt from 'bcrypt';
 
 // جلب جميع المستخدمين
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
+  // تحقق: هل المستخدم admin؟
+  if (!req.user || req.user.subscriptionType !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admins only.' });
+  }
+
   try {
     const pool = await getConnection();
     const result = await pool.request().query(`
@@ -20,6 +26,11 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
 
 // إنشاء مستخدم جديد
 export const createUser = async (req: Request, res: Response): Promise<Response> => {
+  // تحقق: هل المستخدم admin؟
+  if (!req.user || req.user.subscriptionType !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admins only.' });
+  }
+
   const { username, password, name, subscriptionStart, subscriptionEnd, subscriptionType } = req.body;
 
   if (!username || !password) {
@@ -61,6 +72,11 @@ export const createUser = async (req: Request, res: Response): Promise<Response>
 
 // تعديل بيانات المستخدم
 export const updateUser = async (req: Request, res: Response): Promise<Response> => {
+  // تحقق: هل المستخدم admin؟
+  if (!req.user || req.user.subscriptionType !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admins only.' });
+  }
+
   const { id } = req.params;
   const { username, name, password, subscriptionStart, subscriptionEnd, subscriptionType } = req.body;
 
@@ -104,6 +120,11 @@ export const updateUser = async (req: Request, res: Response): Promise<Response>
 
 // حذف مستخدم
 export const deleteUser = async (req: Request, res: Response): Promise<Response> => {
+  // تحقق: هل المستخدم admin؟
+  if (!req.user || req.user.subscriptionType !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admins only.' });
+  }
+
   const { id } = req.params;
   try {
     const pool = await getConnection();
