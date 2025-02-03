@@ -15,7 +15,6 @@ import axiosServices from '../../../utils/axios'; // استيراد axiosService
 import CustomCheckbox from '../../../components/forms/theme-elements/CustomCheckbox';
 import CustomTextField from '../../../components/forms/theme-elements/CustomTextField';
 import CustomFormLabel from '../../../components/forms/theme-elements/CustomFormLabel';
-import AuthSocialButtons from './AuthSocialButtons';
 import { loginType } from 'src/types/auth/auth';
 import { setToken } from 'src/store/auth/AuthSlice'; // استيراد إجراء setToken
 

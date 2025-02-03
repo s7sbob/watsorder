@@ -5,11 +5,10 @@ import { useTheme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 
 // mui imports
-import { ListItemIcon, styled, ListItemText, Box, ListItemButton } from '@mui/material';
+import { ListItemIcon, styled, ListItemText,  ListItemButton } from '@mui/material';
 import { useSelector } from 'src/store/Store';
 
 // custom imports
-import NavItem from '../NavItem/NavItem';
 
 // plugins
 import { IconChevronDown } from '@tabler/icons-react';
@@ -34,7 +33,7 @@ interface NavCollapseProps {
 }
 
 // FC Component For Dropdown Menu
-const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, hideMenu }: NavCollapseProps) => {
+const NavCollapse = ({ menu, level, pathWithoutLastPart }: NavCollapseProps) => {
   const Icon = menu.icon;
   const theme = useTheme();
   const { pathname } = useLocation();
@@ -72,17 +71,6 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, hideMenu }:
     '&:hover > .SubNav': { display: 'block' },
   }));
 
-  const ListSubMenu = styled(Box)(() => ({
-    display: 'none',
-    position: 'absolute',
-    top: level > 1 ? `0px` : '35px',
-    left: level > 1 ? `${level + 228}px` : '0px',
-    padding: '10px',
-    width: '250px',
-    color: theme.palette.text.primary,
-    boxShadow: theme.shadows[8],
-    backgroundColor: theme.palette.background.paper,
-  }));
 
   const listItemProps: {
     component: string;
@@ -91,30 +79,6 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, hideMenu }:
   };
 
   // If Menu has Children
-  const submenus = menu.children?.map((item: any) => {
-    if (item.children) {
-      return (
-        <NavCollapse
-          key={item.id}
-          menu={item}
-          level={level + 1}
-          pathWithoutLastPart={pathWithoutLastPart}
-          pathDirect={pathDirect}
-          hideMenu={hideMenu} onClick={undefined}        />
-      );
-    } else {
-      return (
-        <NavItem
-          key={item.id}
-          item={item}
-          level={level + 1}
-          pathDirect={pathDirect}
-          hideMenu={hideMenu} onClick={function (): void {
-            throw new Error('Function not implemented.');
-          } }        />
-      );
-    }
-  });
 
   return (
     <React.Fragment key={menu.id}>
@@ -136,9 +100,7 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, hideMenu }:
           {menu.title}
         </ListItemText>
         <IconChevronDown size="1rem" />
-        <ListSubMenu component={'ul'} className="SubNav">
-          {submenus}
-        </ListSubMenu>
+
       </ListItemStyled>
     </React.Fragment>
   );

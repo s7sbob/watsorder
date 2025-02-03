@@ -1,4 +1,3 @@
-import React from 'react';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { useRoutes } from 'react-router-dom';
 import { useSelector } from 'react-redux';

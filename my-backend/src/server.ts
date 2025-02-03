@@ -12,6 +12,8 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/user'; // استيراد مسارات المستخدمين
 import sessionRoutes from './routes/sessionRoutes';
 import otpRoutes from './routes/otpRoutes';
+import bulkImportRoutes from './routes/bulkImportRoutes';
+import orderListingRoutes from './routes/orderListingRoutes';
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.use('/api/users', userRoutes);
 
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/otp', otpRoutes)
+app.use('/api/bulk-import', bulkImportRoutes)
+app.use('/api/orders', orderListingRoutes)
 
 app.get('/', (req, res) => {
   res.send('Server is running');

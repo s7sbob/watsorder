@@ -6,10 +6,8 @@ import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import PageContainer from 'src/components/container/PageContainer';
 import ParentCard from 'src/components/shared/ParentCard';
 import ChildCard from 'src/components/shared/ChildCard';
-import BasicTransferList from 'src/components/material-ui/transfer-list/BasicTransferList';
 import EnhancedTransferList from 'src/components/material-ui/transfer-list/EnhancedTransferList';
 
-import BasicTransferListCode from 'src/components/material-ui/transfer-list/code/BasicTransferListCode';
 import EnhancedTransferListCode from 'src/components/material-ui/transfer-list/code/EnhancedTransferListCode';
 
 const BCrumb = [
@@ -31,9 +29,6 @@ const MuiTransferList = () => (
     <ParentCard title="Transfer List">
       <Grid container spacing={3}>
         <Grid item xs={12}  display="flex" alignItems="stretch">
-          <ChildCard title="Basic" codeModel={<BasicTransferListCode />}>
-            <BasicTransferList />
-          </ChildCard>
         </Grid>
         <Grid item xs={12}  display="flex" alignItems="stretch">
           <ChildCard title="Enhanced" codeModel={<EnhancedTransferListCode />}>

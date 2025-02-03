@@ -6,14 +6,9 @@ import {
   Button,
   Dialog,
   DialogTitle,
-  List,
-  ListItem,
-  ListItemAvatar,
-  Avatar,
-  ListItemText,
+
 } from '@mui/material';
 
-import { IconUser, IconPlus } from '@tabler/icons-react';
 
 const emails = ['JohnDeo@gmail.com', 'SmithRocky@gmail.com'];
 
@@ -40,27 +35,7 @@ const SimpleDialog = () => {
       </Typography>
       <Dialog onClose={() => handleClose(selectedValue)} open={open}>
         <DialogTitle>Set backup account</DialogTitle>
-        <List sx={{ pt: 0 }}>
-          {emails.map((email) => (
-            <ListItem button onClick={() => handleClose(email)} key={email}>
-              <ListItemAvatar>
-                <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main' }}>
-                  <IconUser width={20} height={20} />
-                </Avatar>
-              </ListItemAvatar>
-              <ListItemText primary={email} />
-            </ListItem>
-          ))}
 
-          <ListItem autoFocus button onClick={() => handleClose('addAccount')}>
-            <ListItemAvatar>
-              <Avatar>
-                <IconPlus width={20} height={20} />
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText primary="Add account" />
-          </ListItem>
-        </List>
       </Dialog>
     </>
   );

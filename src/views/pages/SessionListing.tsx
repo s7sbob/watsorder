@@ -37,8 +37,10 @@ import ProductList from './ProductList'
 import KeywordList from './KeywordList' // ملف عرض الـ Keywords (نستعين به)
 
 import socket from 'src/socket'
+import { useNavigate } from 'react-router'
 
 const SessionListing = () => {
+  const navigate = useNavigate()
   const dispatch = useDispatch()
   const sessions = useSelector(state => state.sessionReducer.sessions) as SessionType[]
   const maxSessionsReached = useSelector(state => state.sessionReducer.maxSessionsReached) as boolean
@@ -558,6 +560,16 @@ const SessionListing = () => {
       {/* ------------- Create Session Form ------------- */}
       <Button variant='contained' color='primary' onClick={handleCreateSession} sx={{ mt: 2 }}>
         Create Session
+      </Button>
+
+      
+      <Button
+        variant='contained'
+        color='primary'
+        sx={{ mt: 2 }}
+        onClick={() => navigate('/api-docs')}
+      >
+        Open API Documentation
       </Button>
 
       {/* ------------- Sessions Table ------------- */}

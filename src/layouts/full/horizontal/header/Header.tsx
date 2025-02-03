@@ -14,7 +14,7 @@ import {
 
 import { useSelector, useDispatch } from 'src/store/Store';
 import {  setDarkMode } from 'src/store/customizer/CustomizerSlice';
-import { IconMenu2, IconMoon, IconSun } from '@tabler/icons-react';
+import {  IconMoon, IconSun } from '@tabler/icons-react';
 import Notifications from 'src/layouts/full/vertical/header/Notification';
 import Profile from 'src/layouts/full/vertical/header/Profile';
 import Language from 'src/layouts/full/vertical/header/Language';

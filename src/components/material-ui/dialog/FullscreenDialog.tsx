@@ -9,8 +9,7 @@ import {
   IconButton,
   Typography,
   List,
-  ListItem,
-  ListItemText,
+
   Divider,
 } from '@mui/material';
 import Slide from '@mui/material/Slide';
@@ -57,13 +56,9 @@ const FullscreenDialog = () => {
           </Toolbar>
         </AppBar>
         <List>
-          <ListItem button>
-            <ListItemText primary="Phone ringtone" secondary="Titania" />
-          </ListItem>
+
           <Divider />
-          <ListItem button>
-            <ListItemText primary="Default notification ringtone" secondary="Tethys" />
-          </ListItem>
+
         </List>
       </Dialog>
     </>

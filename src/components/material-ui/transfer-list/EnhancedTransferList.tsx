@@ -6,8 +6,7 @@ import {
   Grid,
   List,
   ListItem,
-  ListItemIcon,
-  ListItemText,
+
   Button,
   Divider,
   CardHeader,
@@ -39,18 +38,6 @@ const EnhancedTransferList = () => {
   const leftChecked = intersection(checked, left);
   const rightChecked = intersection(checked, right);
 
-  const handleToggle = (value: number) => () => {
-    const currentIndex = checked.indexOf(value);
-    const newChecked = [...checked];
-
-    if (currentIndex === -1) {
-      newChecked.push(value);
-    } else {
-      newChecked.splice(currentIndex, 1);
-    }
-
-    setChecked(newChecked);
-  };
 
   const numberOfChecked = (items: readonly number[]) => intersection(checked, items).length;
 
@@ -106,25 +93,6 @@ const EnhancedTransferList = () => {
         component="div"
         role="list"
       >
-        {items.map((value) => {
-          const labelId = `transfer-list-all-item-${value}-label`;
-
-          return (
-            <ListItem key={value} role="listitem" button onClick={handleToggle(value)}>
-              <ListItemIcon>
-                <CustomCheckbox
-                  checked={checked.indexOf(value) !== -1}
-                  tabIndex={-1}
-                  disableRipple
-                  inputProps={{
-                    'aria-labelledby': labelId,
-                  }}
-                />
-              </ListItemIcon>
-              <ListItemText id={labelId} primary={`List item ${value + 1}`} />
-            </ListItem>
-          );
-        })}
         <ListItem />
       </List>
     </Paper>

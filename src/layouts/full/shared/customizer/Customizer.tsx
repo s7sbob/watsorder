@@ -20,7 +20,6 @@ import {
   setDarkMode,
   toggleLayout,
   toggleSidebar,
-  toggleHorizontal,
   setBorderRadius,
   setCardShadow,
 } from 'src/store/customizer/CustomizerSlice';
@@ -34,7 +33,7 @@ import AspectRatioTwoToneIcon from '@mui/icons-material/AspectRatioTwoTone';
 import CallToActionTwoToneIcon from '@mui/icons-material/CallToActionTwoTone';
 import ViewSidebarTwoToneIcon from '@mui/icons-material/ViewSidebarTwoTone';
 import WebAssetTwoToneIcon from '@mui/icons-material/WebAssetTwoTone';
-import { ViewComfyTwoTone, PaddingTwoTone, BorderOuter } from '@mui/icons-material';
+import { BorderOuter } from '@mui/icons-material';
 
 const SidebarWidth = '320px';
 interface colors {

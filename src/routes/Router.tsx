@@ -11,6 +11,7 @@ import About from 'src/views/pages/frontend-pages/About';
 import BlogPage from 'src/views/pages/frontend-pages/Blog';
 import Contact from 'src/views/pages/frontend-pages/Contact';
 import Portfolio from 'src/views/pages/frontend-pages/Portfolio';
+import Lazy from 'yup/lib/Lazy';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
@@ -24,7 +25,7 @@ const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
 const UserList = Loadable(lazy(() => import('../views/admin/UserListing')))
 const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')))
 const ConfirmedOrdersPage = Loadable(lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')))
-
+const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')))
 /* --- UI Components, Form Elements, Forms, Pages, Charts, Tables, React Tables, Widgets --- */
 // تم حذف استيرادات هذه الأقسام من أجل الاختصار، لكن يجب تضمينها في ملفك كما هي في النسخة السابقة.
 
@@ -49,6 +50,7 @@ const Router = [
       { path: '/UserList', element: <UserList /> },
       { path: '/apps/sessions', element: <Sessions /> },
       { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
+      { path: '/api-docs', element: <ApiDocumentation  /> },
 
 
       // ... باقي المسارات المحمية
@@ -67,7 +69,6 @@ const Router = [
       { path: '/frontend-pages/pricing', element: <PagePricing /> },
       { path: '/frontend-pages/blog', element: <BlogPage /> },
       { path: '/frontend-pages/blog/detail/:id', element: <BlogPost /> },
-
       { path: '404', element: <Error /> },
       { path: '/auth/login', element: <Login /> },
       { path: 'auth/register', element: <Register /> },
