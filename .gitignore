@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.wwebjs_auth
+.wwebjs_cache
 *.local
 
 # Editor directories and files

@@ -6,17 +6,23 @@ import * as sql from 'mssql'
 
 /**
  * دالة لجلب الطلبات الجديدة (غير المؤكدة) بكل التفاصيل
- * شرط: o.status != 'CONFIRMED' (عدّل إن كنت تستخدم منطقًا آخر)
+ * شرط: o.status != 'CONFIRMED' 
  */
 export const getNewOrdersForUser = async (req: Request, res: Response) => {
   try {
-    // استخراج userId من التوكن
-    const userId = req.user && typeof req.user !== 'string' ? req.user.id : null
-    if (!userId) {
-      return res.status(401).json({ message: 'User not authorized.' })
+    // 1) تأكد من وجود req.user (أي تحقق التوكن)
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authorized. No token or invalid token.' })
     }
 
-    // جلب الجلسات المملوكة لهذا المستخدم
+    // لو أردت السماح للـ admin برؤية كل الطلبات الجديدة (بغضّ النظر عن userId):
+    // if (req.user.subscriptionType === 'admin') {
+    //   // اجلب كل الطلبات الجديدة من Orders 
+    //   // return ...
+    // }
+
+    // 2) جلب الجلسات المملوكة لهذا المستخدم
+    const userId = req.user.id
     const pool = await getConnection()
     const sessionsResult = await pool.request()
       .input('userId', sql.Int, userId)
@@ -36,11 +42,8 @@ export const getNewOrdersForUser = async (req: Request, res: Response) => {
       return res.status(200).json([])
     }
 
-    // حول المصفوفة إلى سلسلة مفصولة بفواصل لاستخدامها في استعلام IN (...)
+    // 3) الآن استعلام الطلبات ذات الحالة != 'CONFIRMED'
     const inClause = sessionIds.join(',')
-
-    // 1) جلب الطلبات نفسها (Orders)
-    // اخترنا شرطي: الحالة != 'CONFIRMED' لجلب الطلبات الجديدة
     const ordersQuery = `
       SELECT
         o.*,
@@ -48,17 +51,16 @@ export const getNewOrdersForUser = async (req: Request, res: Response) => {
       FROM Orders o
       JOIN Sessions s ON s.id = o.sessionId
       WHERE o.sessionId IN (${inClause})
-        AND o.status != 'CONFIRMED'
+        AND o.status = 'CONFIRMED'
       ORDER BY o.createdAt DESC
     `
     const ordersResult = await pool.request().query(ordersQuery)
 
-    // لو لم نجد طلبات، نعيد مصفوفة فارغة
     if (!ordersResult.recordset.length) {
       return res.status(200).json([])
     }
 
-    // 2) جلب عناصر الطلب (OrderItems) + ربط مع Products و Categories
+    // 4) جلب عناصر الطلب وربطها
     const orderIds = ordersResult.recordset.map((ord: any) => ord.id)
     const inOrders = orderIds.join(',')
 
@@ -79,7 +81,7 @@ export const getNewOrdersForUser = async (req: Request, res: Response) => {
     `
     const itemsResult = await pool.request().query(itemsQuery)
 
-    // 3) بناء النتيجة النهائية: ربط كل Order بعناصره
+    // 5) بناء النتيجة النهائية
     const newOrdersData = ordersResult.recordset.map((ord: any) => {
       const orderItems = itemsResult.recordset.filter((it: any) => it.orderId === ord.id)
 
@@ -92,7 +94,6 @@ export const getNewOrdersForUser = async (req: Request, res: Response) => {
         deliveryAddress: ord.deliveryAddress,
         totalPrice: ord.totalPrice,
         createdAt: ord.createdAt,
-        // بإمكانك إضافة حقول أخرى من جدول Orders
         items: orderItems.map((it: any) => ({
           productName: it.product_name,
           productInternalCode: it.product_internal_code,
@@ -112,18 +113,26 @@ export const getNewOrdersForUser = async (req: Request, res: Response) => {
   }
 }
 
+
 /**
- * دالة لجلب جميع الطلبات (all orders) الخاصة بالمستخدم (بغض النظر عن الحالة)
+ * دالة لجلب جميع الطلبات الخاصة بالمستخدم (بغض النظر عن الحالة)
  */
 export const getAllOrdersForUser = async (req: Request, res: Response) => {
   try {
-    const userId = req.user && typeof req.user !== 'string' ? req.user.id : null
-    if (!userId) {
-      return res.status(401).json({ message: 'User not authorized.' })
+    // 1) تأكد من وجود req.user
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authorized. No token or invalid token.' })
     }
 
+    // إذا أردت السماح للـ admin برؤية كل الطلبات:
+    // if (req.user.subscriptionType === 'admin') {
+    //   // اجلب كل الطلبات من Orders
+    // }
+
+    const userId = req.user.id
     const pool = await getConnection()
-    // جلب جلسات المستخدم
+
+    // 2) جلب الجلسات المملوكة لهذا المستخدم
     const sessionsResult = await pool.request()
       .input('userId', sql.Int, userId)
       .query(`
@@ -141,9 +150,8 @@ export const getAllOrdersForUser = async (req: Request, res: Response) => {
       return res.status(200).json([])
     }
 
+    // 3) جلب كافة الطلبات دون قيد الحالة
     const inClause = sessionIds.join(',')
-
-    // جلب كافة الطلبات دون قيد الحالة
     const ordersQuery = `
       SELECT
         o.*,
@@ -158,7 +166,7 @@ export const getAllOrdersForUser = async (req: Request, res: Response) => {
       return res.status(200).json([])
     }
 
-    // الآن جلب عناصر الطلب
+    // 4) جلب عناصر الطلب وربطها
     const orderIds = ordersResult.recordset.map((ord: any) => ord.id)
     const inOrders = orderIds.join(',')
 
@@ -179,7 +187,7 @@ export const getAllOrdersForUser = async (req: Request, res: Response) => {
     `
     const itemsResult = await pool.request().query(itemsQuery)
 
-    // ربط الطلبات بعناصرها
+    // 5) ربط الطلبات بعناصرها
     const allOrdersData = ordersResult.recordset.map((ord: any) => {
       const orderItems = itemsResult.recordset.filter((it: any) => it.orderId === ord.id)
 
@@ -192,7 +200,6 @@ export const getAllOrdersForUser = async (req: Request, res: Response) => {
         deliveryAddress: ord.deliveryAddress,
         totalPrice: ord.totalPrice,
         createdAt: ord.createdAt,
-        // وغيرها من حقول Orders
         items: orderItems.map((it: any) => ({
           productName: it.product_name,
           productInternalCode: it.product_internal_code,
