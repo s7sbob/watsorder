@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import  { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice'
 import { AppState, AppDispatch } from 'src/store/Store'
@@ -6,7 +6,6 @@ import { io, Socket } from 'socket.io-client'
 import {
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -16,7 +15,6 @@ import {
   TextField,
   Typography,
   InputAdornment,
-  Stack,
   Grid,
   Paper
 } from '@mui/material'
@@ -42,7 +40,7 @@ function OrdersPage() {
   const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null)
 
   // socket state
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const [, setSocket] = useState<Socket | null>(null)
 
   // ====== [Setup Socket.io] ======
   useEffect(() => {

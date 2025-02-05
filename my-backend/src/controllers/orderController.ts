@@ -13,36 +13,9 @@ import { whatsappClients } from './whatsappClients'
 // إذا أردت السماح فقط للـ admin بتأكيد الطلب
 // أو السماح للمالك (الجلسة) بتأكيده. اختر ما يناسبك.
 // هنا نفترض: Admin فقط من يقوم بـ confirmOrderByRestaurant
-const isAdminUser = (req: Request) => {
-  return req.user && req.user.subscriptionType === 'admin'
-}
 
 // هذه الدالة تساعدنا في التحقق من ملكية الطلب. 
 // سنجلب الـ sessionOwner من جدول Sessions.
-async function checkOrderOwnership(pool: sql.ConnectionPool, orderId: number, currentUser: any) {
-  // 1) ابحث عن ال order
-  const orderRes = await pool.request()
-    .input('orderId', sql.Int, orderId)
-    .query(`
-      SELECT o.id, s.userId AS sessionOwner
-      FROM Orders o
-      JOIN Sessions s ON s.id = o.sessionId
-      WHERE o.id = @orderId
-    `)
-
-  if (!orderRes.recordset.length) {
-    throw new Error('OrderNotFound')
-  }
-
-  const { sessionOwner } = orderRes.recordset[0]
-  
-  // 2) إن لم يكن Admin وتختلف الملكية => منع
-  if (currentUser.subscriptionType !== 'admin' && currentUser.id !== sessionOwner) {
-    throw new Error('Forbidden')
-  }
-
-  return orderRes.recordset[0] // نعيد بيانات مفيدة إن أردنا
-}
 
 // ===================================================================
 // الدوال الرئيسية

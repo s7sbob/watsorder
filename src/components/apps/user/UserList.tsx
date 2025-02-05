@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import  { useContext, useState, useEffect } from "react";
 import { UserContext, User } from "src/context/UserContext";
 import {
   Table,
@@ -29,11 +29,11 @@ import { IconEdit, IconTrash, IconSearch, IconListDetails, IconShoppingBag, Icon
 import CustomCheckbox from "src/components/forms/theme-elements/CustomCheckbox";
 
 function UserList() {
-  const { users, addUser, updateUser, deleteUser, fetchUsers } = useContext(UserContext)!;
+  const { users, addUser, updateUser, fetchUsers } = useContext(UserContext)!;
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -70,23 +70,11 @@ function UserList() {
     }
   };
 
-  const handleDelete = () => {
-    setOpenDeleteDialog(true);
-  };
 
-  const handleConfirmDelete = async () => {
-    for (const userId of selectedUsers) {
-      await deleteUser(userId);
-    }
-    setSelectedUsers([]);
-    setSelectAll(false);
-    setOpenDeleteDialog(false);
-    await fetchUsers();
-  };
 
-  const handleCloseDeleteDialog = () => {
-    setOpenDeleteDialog(false);
-  };
+
+
+
 
   const handleEdit = (user: User) => {
     setCurrentUser(user);
@@ -261,7 +249,7 @@ function UserList() {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Delete User">
-                    <IconButton color="error" onClick={handleDelete}>
+                    <IconButton color="error" >
                       <IconTrash width={22} />
                     </IconButton>
                   </Tooltip>

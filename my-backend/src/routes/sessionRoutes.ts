@@ -25,6 +25,7 @@ import {
   deleteKeyword
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
+import { upload } from '../middleware/uploadMiddleware'
 
 const router = Router()
 
@@ -53,9 +54,9 @@ router.put('/:sessionId/product/:productId', authenticateToken, updateProduct)
 router.delete('/:sessionId/product/:productId', authenticateToken, deleteProduct)
 
 // routes for Keywords
-router.post('/:sessionId/keyword', authenticateToken, addKeyword)
+router.post('/:sessionId/keyword', authenticateToken, upload.array('media', 10), addKeyword)
 router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession)
-router.put('/:sessionId/keyword/:keywordId', authenticateToken, updateKeyword)
+router.put('/:sessionId/keyword/:keywordId', authenticateToken, upload.array('media', 10), updateKeyword)
 router.delete('/:sessionId/keyword/:keywordId', authenticateToken, deleteKeyword)
 
 // جلب QR

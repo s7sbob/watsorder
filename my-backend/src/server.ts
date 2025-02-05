@@ -28,13 +28,14 @@ app.use(bodyParser.json());
 app.use('/api/auth', authRoutes);
 // ربط مسارات المستخدمين
 app.use('/api/users', userRoutes);
+app.use('/keywords-images', express.static('keywords-images'))
 
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/otp', otpRoutes)
 app.use('/api/bulk-import', bulkImportRoutes)
 app.use('/api/orders', orderListingRoutes)
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.send('Server is running');
 });
 app.use('/api/orders', orderRoutes);

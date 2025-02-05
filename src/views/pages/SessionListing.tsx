@@ -1,5 +1,3 @@
-// src/components/SessionListing.tsx
-
 import { useEffect, useState, MouseEvent } from 'react'
 import {
   Box,
@@ -30,11 +28,11 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { fetchSessions, createSession, updateSession } from 'src/store/apps/sessions/SessionSlice'
 import { SessionType } from 'src/types/apps/session'
 import { useDispatch, useSelector } from 'src/store/Store'
-import AddDataPopup from './AddDataPopup'
+import AddDataPopup from './AddDataPopup'   // <-- لاحظ أننا نستخدمه الآن لإضافة الكلمات المفتاحية
 import axiosServices from 'src/utils/axios'
 import CategoryList from './CategoryList'
 import ProductList from './ProductList'
-import KeywordList from './KeywordList' // ملف عرض الـ Keywords (نستعين به)
+import KeywordList from './KeywordList'
 
 import socket from 'src/socket'
 import { useNavigate } from 'react-router'
@@ -59,6 +57,8 @@ const SessionListing = () => {
   // =============== [ Popups for adding data ] ===============
   const [categoryPopupOpen, setCategoryPopupOpen] = useState(false)
   const [productPopupOpen, setProductPopupOpen] = useState(false)
+
+  // عوضًا عن AddKeywordPopup => سنستخدم AddDataPopup
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null)
 
@@ -70,7 +70,7 @@ const SessionListing = () => {
   // تصنيفات متاحة للـ Product form
   const [productCategories, setProductCategories] = useState<{ value: number; label: string }[]>([])
 
-  // =============== [ Broadcast Dialog مرتبط بكل جلسة ] ===============
+  // =============== [ Broadcast Dialog ] ===============
   const [broadcastDialogOpen, setBroadcastDialogOpen] = useState(false)
   const [broadcastSessionId, setBroadcastSessionId] = useState<number | null>(null)
 
@@ -286,46 +286,71 @@ const SessionListing = () => {
     }
   }
 
-  // =============== [ Keywords Popup + Submission ] ===============
-  // في هذا المثال: سنجعل AddDataPopup يستقبل 3 حقول:
-  // 1) keyword
-  // 2) replyText
-  // 3) replyMedia (isFile)
-  const submitKeywordWithMedia = async (formData: any) => {
-    if (!activeSessionId) return
+  // -------------------------------------------------------------
+  // =============== [ Keywords Popup + Submission ] ==============
+  const handleOpenKeywordPopup = (sessionId: number) => {
+    setActiveSessionId(sessionId)
+    setKeywordPopupOpen(true)
+  }
 
-    const { keyword, replyText, replyMedia } = formData
-
-    if (!keyword || !replyText) {
-      showAlert('Please fill the keyword and replyText fields.', 'warning')
+  // هذه الدالة ستتعامل مع data القادم من AddDataPopup
+  // والذي قد يحتوي مثلاً:
+  // {
+  //   keywords: ["word1","word2",...],
+  //   replyText: "Some text",
+  //   replyMedia: File[] (لأننا سمحنا بـ multiple: true)
+  // }
+  const submitMultipleKeywords = async (data: any) => {
+    if (!activeSessionId) {
+      showAlert('No Session selected', 'error')
       return
     }
 
-    // لاحظ أننا في AddDataPopup نخزّن الحقل الملف كشيء فيه {base64, mimetype, filename}
-    // قد يكون replyMedia = undefined لو لم يرفع المستخدم أي ملف
-    let replyMediaBase64 = null
-    let replyMediaMimeType = null
-    let replyMediaFilename = null
-
-    if (replyMedia) {
-      replyMediaBase64 = replyMedia.base64 || null
-      replyMediaMimeType = replyMedia.mimetype || null
-      replyMediaFilename = replyMedia.filename || null
+    const { keywords, replyText, replyMedia } = data
+    if (!keywords?.length) {
+      showAlert('Please enter at least one keyword!', 'warning')
+      return
+    }
+    if (!replyText) {
+      showAlert('Please provide a reply text!', 'warning')
+      return
     }
 
     try {
-      await axiosServices.post(`/api/sessions/${activeSessionId}/keyword`, {
-        keyword,
-        replyText,
-        replyMediaBase64,
-        replyMediaMimeType,
-        replyMediaFilename
-      })
-      showAlert('Keyword added successfully.', 'success')
-    } catch (error) {
-      showAlert('Error adding keyword.', 'error')
+      // نفترض أنك تريد أن تضيف لكل كلمة مفتاحية سطر مستقل في DB
+      // لذلك نقوم بحلقة على كل keyword:
+      for (const kw of keywords) {
+        // 1) نبني FormData لكل Keyword
+        const formData = new FormData()
+        formData.append('keyword', kw)
+        formData.append('replyText', replyText)
+
+        // إن وُجدت ملفات, نضيفها:
+        if (Array.isArray(replyMedia)) {
+          replyMedia.forEach((file: File) => {
+            formData.append('media', file, file.name)
+          })
+        }
+
+        // 2) نرسل الطلب إلى المسار:
+        //    POST /api/sessions/:sessionId/keyword
+        await axiosServices.post(
+          `/api/sessions/${activeSessionId}/keyword`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          }
+        )
+      }
+
+      showAlert('Keywords added successfully.', 'success')
+    } catch (err) {
+      console.error('Error adding multiple keywords:', err)
+      showAlert('Error adding multiple keywords.', 'error')
     }
   }
+
+  // -------------------------------------------------------------
 
   // =============== [ Toggle Bot on/off ] ===============
   const handleToggleBot = async (session: SessionType) => {
@@ -352,14 +377,12 @@ const SessionListing = () => {
       await axiosServices.put(`/api/sessions/${session.id}/menu-bot`, {
         menuBotActive: newMenuBotActive
       })
-
       dispatch(
         updateSession({
           sessionId: session.id,
           changes: { menuBotActive: newMenuBotActive }
         })
       )
-
       showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
     } catch (error) {
       console.error('Error toggling menu bot:', error)
@@ -367,10 +390,9 @@ const SessionListing = () => {
     }
   }
 
-  // =============== [ Broadcast Handling لكل جلسة ] ===============
+  // =============== [ Broadcast Handling ] ===============
   const openBroadcastDialog = (sessionId: number) => {
     setBroadcastSessionId(sessionId)
-    // إعادة التهيئة
     setBroadcastData({
       phoneNumbers: [],
       message: '',
@@ -379,10 +401,8 @@ const SessionListing = () => {
     })
     setBroadcastDialogOpen(true)
   }
-
   const handleCloseBroadcastDialog = () => {
     setBroadcastDialogOpen(false)
-    // إعادة تهيئة
     setBroadcastData({
       phoneNumbers: [],
       message: '',
@@ -397,27 +417,21 @@ const SessionListing = () => {
     if (!file) return
 
     const reader = new FileReader()
-
     reader.onload = e => {
       const data = e.target?.result
       if (!data) return
 
-      // قراءة الملف بواسطة XLSX
       const workbook = XLSX.read(data, { type: 'binary' })
       const sheetName = workbook.SheetNames[0]
       const worksheet = workbook.Sheets[sheetName]
-
       const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 })
-      const phoneNumbersFromExcel = rows
-        .map(row => row[0])
-        .filter(Boolean)
+      const phoneNumbersFromExcel = rows.map(row => row[0]).filter(Boolean)
 
       setBroadcastData(prev => ({
         ...prev,
         phoneNumbers: phoneNumbersFromExcel as string[]
       }))
     }
-
     reader.readAsBinaryString(file)
   }
 
@@ -496,8 +510,6 @@ const SessionListing = () => {
     }
 
     try {
-      // فقط مثال بسيط: استبدال ${recipientPhone} و${currentDateTime} للجميع
-      // لو أردت إرسال رسالة مختلفة لكل رقم، تحتاج منطق مختلف
       const finalMessage = phoneNumbers.map(phoneNumber =>
         message
           .replace('${recipientPhone}', phoneNumber)
@@ -505,7 +517,7 @@ const SessionListing = () => {
       )
       await axiosServices.post(`/api/sessions/${broadcastSessionId}/broadcast`, {
         phoneNumbers,
-        message: finalMessage.join(' '), // دمجهم في رسالة واحدة؛ لو أردت رسالة لكل رقم على حدة، غيّر المنطق
+        message: finalMessage.join(' '), // مجرد مثال
         randomNumbers,
         media
       })
@@ -557,16 +569,15 @@ const SessionListing = () => {
 
   return (
     <Box mt={4}>
-      {/* ------------- Create Session Form ------------- */}
+      {/* ------------- Create Session Button ------------- */}
       <Button variant='contained' color='primary' onClick={handleCreateSession} sx={{ mt: 2 }}>
         Create Session
       </Button>
 
-      
       <Button
         variant='contained'
         color='primary'
-        sx={{ mt: 2 }}
+        sx={{ mt: 2, ml: 2 }}
         onClick={() => navigate('/api-docs')}
       >
         Open API Documentation
@@ -664,19 +675,17 @@ const SessionListing = () => {
                     <MenuItem onClick={handleExistingProductMenu}>Existing Products</MenuItem>
                   </Menu>
 
-                  {/* Keywords Menu: Add or Existing */}
+                  {/* Add Keyword (multiple) */}
                   <Button
                     variant='outlined'
                     size='small'
-                    onClick={() => {
-                      setActiveSessionId(session.id)
-                      setKeywordPopupOpen(true) // لفتح AddDataPopup
-                    }}
                     sx={{ mr: 1, mb: 1 }}
+                    onClick={() => handleOpenKeywordPopup(session.id)}
                   >
                     Add Keyword
                   </Button>
 
+                  {/* Existing Keywords */}
                   <Button
                     variant='outlined'
                     size='small'
@@ -689,7 +698,7 @@ const SessionListing = () => {
                     Existing Keywords
                   </Button>
 
-                  {/* Broadcast Button */}
+                  {/* Broadcast */}
                   <Button
                     variant='outlined'
                     size='small'
@@ -741,13 +750,37 @@ const SessionListing = () => {
                   >
                     <DeleteIcon />
                   </IconButton>
-
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* AddDataPopup لاضافة عدة Keywords + رد نصي + صور */}
+      <AddDataPopup
+        open={keywordPopupOpen}
+        onClose={() => setKeywordPopupOpen(false)}
+        onSubmit={submitMultipleKeywords}
+        title='Add Multiple Keyword(s) with Reply'
+        fields={[
+          {
+            label: 'Keywords',
+            name: 'keywords',
+            isMultipleKeywords: true // <-- يسمح بإضافة عدة كلمات مرة واحدة
+          },
+          {
+            label: 'Reply Text',
+            name: 'replyText'
+          },
+          {
+            label: 'Reply Media',
+            name: 'replyMedia',
+            isFile: true,
+            multiple: true // <-- رفع ملفات متعددة
+          }
+        ]}
+      />
 
       {/* ------------- QR Code Dialog ------------- */}
       <Dialog open={qrDialogOpen} onClose={handleCloseQrDialog}>
@@ -815,11 +848,7 @@ const SessionListing = () => {
           >
             Insert Recipient Phone
           </Button>
-          <Button
-            variant='outlined'
-            onClick={() => handleInsertPlaceholder('${currentDateTime}')}
-            sx={{ mt: 2 }}
-          >
+          <Button variant='outlined' onClick={() => handleInsertPlaceholder('${currentDateTime}')} sx={{ mt: 2 }}>
             Insert Date/Time
           </Button>
 
@@ -859,9 +888,7 @@ const SessionListing = () => {
         onClose={() => setCategoryPopupOpen(false)}
         onSubmit={submitCategory}
         title='Add Category'
-        fields={[
-          { label: 'Category Name', name: 'category_name' }
-        ]}
+        fields={[{ label: 'Category Name', name: 'category_name' }]}
       />
 
       {/* ------------- Add Product Popup ------------- */}
@@ -874,19 +901,6 @@ const SessionListing = () => {
           { label: 'Product Name', name: 'product_name' },
           { label: 'Category', name: 'category_id', options: productCategories },
           { label: 'Price', name: 'price' }
-        ]}
-      />
-
-      {/* ------------- Add Keyword Popup (يستخدم AddDataPopup) ------------- */}
-      <AddDataPopup
-        open={keywordPopupOpen}
-        onClose={() => setKeywordPopupOpen(false)}
-        onSubmit={submitKeywordWithMedia}
-        title='Add Keyword or  Multiple Keywords'
-        fields={[
-          { label: 'Keywords', name: 'keywords', isMultipleKeywords: true },
-          { label: 'Reply Text', name: 'replyText' },
-          { label: 'Reply Media', name: 'replyMedia', isFile: true }
         ]}
       />
 

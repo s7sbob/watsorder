@@ -24,6 +24,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "my-backend/src/config", "my-backend/src/routes/auth.ts", "my-backend/src/controllers", "my-backend/src/server.ts", "my-backend/src/middleware/authMiddleware.ts"],
+  "include": ["src", "my-backend/src/config", "my-backend/src/routes/auth.ts", "my-backend/src/controllers", "my-backend/src/server.ts", "my-backend/src/middleware/authMiddleware.ts", "my-backend/src/middleware/uploadMiddleware.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

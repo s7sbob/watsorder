@@ -629,13 +629,7 @@ async function checkSessionOwnershipForKeywords(pool: sql.ConnectionPool, sessio
 // ---------------------------------------------------------------------------
 export const addKeyword = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10)
-  const {
-    keyword,
-    replyText,
-    replyMediaBase64,
-    replyMediaMimeType,
-    replyMediaFilename
-  } = req.body
+  const { keyword, replyText } = req.body
 
   if (!keyword || !replyText) {
     return res.status(400).json({ message: 'keyword and replyText are required.' })
@@ -643,12 +637,11 @@ export const addKeyword = async (req: Request, res: Response) => {
 
   try {
     const pool = await getConnection()
+    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user)
 
-    // تحقق من ملكية الجلسة أو صلاحيات admin
-    await checkSessionOwnershipForKeywords(pool, sessionId, req.user)
-
-    // ابحث عن Replay لو موجود بنفس النص
     let replayId: number
+
+    // البحث عن Replay بنفس النص (إذا كان موجودًا)
     const replaySearch = await pool.request()
       .input('replyText', sql.NVarChar, replyText)
       .query(`
@@ -657,50 +650,29 @@ export const addKeyword = async (req: Request, res: Response) => {
       `)
 
     if (replaySearch.recordset.length > 0) {
-      // يوجد Replay بنفس الرد => حدث الميديا لو لزم
       replayId = replaySearch.recordset[0].id
-
+      // تحديث النص إن رغبت (اختياري)
       await pool.request()
         .input('replayId', sql.Int, replayId)
         .input('replyText', sql.NVarChar, replyText)
-        .input('replyMediaBase64', sql.NVarChar(sql.MAX), replyMediaBase64 || null)
-        .input('replyMediaMimeType', sql.NVarChar(200), replyMediaMimeType || null)
-        .input('replyMediaFilename', sql.NVarChar(200), replyMediaFilename || null)
         .query(`
           UPDATE [dbo].[Replays]
-          SET 
-            replyText = @replyText,
-            replyMediaBase64 = @replyMediaBase64,
-            replyMediaMimeType = @replyMediaMimeType,
-            replyMediaFilename = @replyMediaFilename
+          SET replyText = @replyText
           WHERE id = @replayId
         `)
     } else {
-      // لا يوجد Replay => أنشئ جديد
+      // إنشاء Replay جديد (فقط النص)
       const replayInsert = await pool.request()
         .input('replyText', sql.NVarChar, replyText)
-        .input('replyMediaBase64', sql.NVarChar(sql.MAX), replyMediaBase64 || null)
-        .input('replyMediaMimeType', sql.NVarChar(200), replyMediaMimeType || null)
-        .input('replyMediaFilename', sql.NVarChar(200), replyMediaFilename || null)
         .query(`
-          INSERT INTO [dbo].[Replays] (
-            replyText,
-            replyMediaBase64,
-            replyMediaMimeType,
-            replyMediaFilename
-          )
+          INSERT INTO [dbo].[Replays] (replyText)
           OUTPUT INSERTED.id
-          VALUES (
-            @replyText,
-            @replyMediaBase64,
-            @replyMediaMimeType,
-            @replyMediaFilename
-          )
+          VALUES (@replyText)
         `)
       replayId = replayInsert.recordset[0].id
     }
 
-    // إضافة الـ keyword
+    // إضافة الـ Keyword
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('keyword', sql.NVarChar, keyword)
@@ -709,6 +681,30 @@ export const addKeyword = async (req: Request, res: Response) => {
         INSERT INTO [dbo].[Keywords] (sessionId, keyword, replay_id)
         VALUES (@sessionId, @keyword, @replay_id)
       `)
+
+    // قبل إدخال الملفات، تحقق إذا كان لهذا Replay ملفات موجودة بالفعل
+    const existingMedia = await pool.request()
+      .input('replayId', sql.Int, replayId)
+      .query(`SELECT COUNT(*) as cnt FROM ReplayMedia WHERE replayId = @replayId`)
+
+    if (existingMedia.recordset[0].cnt === 0) {
+      // إذا لم توجد ملفات، نقوم بإدخال الملفات المرفوعة (إذا كانت موجودة)
+      const files = req.files as Express.Multer.File[]
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const filePath = file.path // المسار الذي حفظه multer
+          const originalName = file.originalname
+          await pool.request()
+            .input('replayId', sql.Int, replayId)
+            .input('filePath', sql.NVarChar, filePath)
+            .input('fileName', sql.NVarChar, originalName)
+            .query(`
+              INSERT INTO [dbo].[ReplayMedia] (replayId, filePath, fileName)
+              VALUES (@replayId, @filePath, @fileName)
+            `)
+        }
+      }
+    }
 
     return res.status(201).json({ message: 'Keyword added successfully.' })
   } catch (error: any) {
@@ -728,13 +724,12 @@ export const addKeyword = async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 export const getKeywordsForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10)
+
   try {
     const pool = await getConnection()
+    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user)
 
-    // تحقق من الملكية
-    await checkSessionOwnershipForKeywords(pool, sessionId, req.user)
-
-    const result = await pool.request()
+    const queryResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
         SELECT 
@@ -742,14 +737,40 @@ export const getKeywordsForSession = async (req: Request, res: Response) => {
           k.keyword,
           r.id AS replayId,
           r.replyText,
-          r.replyMediaBase64,
-          r.replyMediaMimeType,
-          r.replyMediaFilename
+          m.id AS mediaId,
+          m.filePath AS mediaPath,
+          m.fileName AS mediaName
         FROM Keywords k
         JOIN Replays r ON k.replay_id = r.id
+        LEFT JOIN ReplayMedia m ON m.replayId = r.id
         WHERE k.sessionId = @sessionId
       `)
-    return res.status(200).json(result.recordset)
+
+    // تجميع النتائج بحيث يكون لكل Keyword مصفوفة mediaFiles
+    const rows = queryResult.recordset
+    const map = new Map<number, any>()
+
+    for (const row of rows) {
+      if (!map.has(row.keywordId)) {
+        map.set(row.keywordId, {
+          keywordId: row.keywordId,
+          keyword: row.keyword,
+          replayId: row.replayId,
+          replyText: row.replyText,
+          mediaFiles: []
+        })
+      }
+      if (row.mediaId) {
+        map.get(row.keywordId).mediaFiles.push({
+          mediaId: row.mediaId,
+          mediaPath: row.mediaPath,
+          mediaName: row.mediaName
+        })
+      }
+    }
+
+    const keywordsArray = Array.from(map.values())
+    return res.status(200).json(keywordsArray)
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
       return res.status(404).json({ message: 'Session not found.' })
@@ -762,20 +783,14 @@ export const getKeywordsForSession = async (req: Request, res: Response) => {
   }
 }
 
+
 // ---------------------------------------------------------------------------
 // (3) تحديث Keyword
 // ---------------------------------------------------------------------------
 export const updateKeyword = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10)
   const keywordId = parseInt(req.params.keywordId, 10)
-
-  const {
-    newKeyword,
-    newReplyText,
-    newReplyMediaBase64,
-    newReplyMediaMimeType,
-    newReplyMediaFilename
-  } = req.body
+  const { newKeyword, newReplyText } = req.body
 
   if (!newKeyword || !newReplyText) {
     return res.status(400).json({ message: 'newKeyword and newReplyText are required.' })
@@ -783,11 +798,9 @@ export const updateKeyword = async (req: Request, res: Response) => {
 
   try {
     const pool = await getConnection()
+    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user)
 
-    // تحقق من ملكية الـ session
-    await checkSessionOwnershipForKeywords(pool, sessionId, req.user)
-
-    // ابحث عن السجل
+    // استرجاع replay_id الخاص بالـ Keyword
     const keywordRow = await pool.request()
       .input('keywordId', sql.Int, keywordId)
       .input('sessionId', sql.Int, sessionId)
@@ -804,7 +817,7 @@ export const updateKeyword = async (req: Request, res: Response) => {
 
     const replayId = keywordRow.recordset[0].replay_id
 
-    // (1) حدّث keyword نفسه
+    // تحديث الـ Keyword
     await pool.request()
       .input('keywordId', sql.Int, keywordId)
       .input('sessionId', sql.Int, sessionId)
@@ -816,22 +829,37 @@ export const updateKeyword = async (req: Request, res: Response) => {
           AND sessionId = @sessionId
       `)
 
-    // (2) حدّث الـ Replay
+    // تحديث نص الرد في Replays
     await pool.request()
       .input('replayId', sql.Int, replayId)
       .input('newReplyText', sql.NVarChar, newReplyText)
-      .input('newReplyMediaBase64', sql.NVarChar(sql.MAX), newReplyMediaBase64 || null)
-      .input('newReplyMediaMimeType', sql.NVarChar(200), newReplyMediaMimeType || null)
-      .input('newReplyMediaFilename', sql.NVarChar(200), newReplyMediaFilename || null)
       .query(`
         UPDATE Replays
-        SET
-          replyText = @newReplyText,
-          replyMediaBase64 = @newReplyMediaBase64,
-          replyMediaMimeType = @newReplyMediaMimeType,
-          replyMediaFilename = @newReplyMediaFilename
+        SET replyText = @newReplyText
         WHERE id = @replayId
       `)
+
+    // حذف الملفات القديمة من ReplayMedia
+    await pool.request()
+      .input('replayId', sql.Int, replayId)
+      .query(`DELETE FROM ReplayMedia WHERE replayId = @replayId`)
+
+    // إدخال الملفات الجديدة (إذا وُجدت)
+    const files = req.files as Express.Multer.File[]
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const filePath = file.path
+        const originalName = file.originalname
+        await pool.request()
+          .input('replayId', sql.Int, replayId)
+          .input('filePath', sql.NVarChar, filePath)
+          .input('fileName', sql.NVarChar, originalName)
+          .query(`
+            INSERT INTO [dbo].[ReplayMedia] (replayId, filePath, fileName)
+            VALUES (@replayId, @filePath, @fileName)
+          `)
+      }
+    }
 
     return res.status(200).json({ message: 'Keyword updated successfully.' })
   } catch (error: any) {
@@ -855,9 +883,7 @@ export const deleteKeyword = async (req: Request, res: Response) => {
 
   try {
     const pool = await getConnection()
-
-    // تحقق ملكية
-    await checkSessionOwnershipForKeywords(pool, sessionId, req.user)
+    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user)
 
     // ابحث عن الـ replay_id
     const keywordRow = await pool.request()
@@ -885,7 +911,7 @@ export const deleteKeyword = async (req: Request, res: Response) => {
           AND sessionId = @sessionId
       `)
 
-    // تأكد هل لا يزال الـ replay يُستخدم؟
+    // تأكد هل لا يزال replay مستخدمًا؟
     const checkReplay = await pool.request()
       .input('replayId', sql.Int, replayId)
       .query(`
@@ -895,13 +921,16 @@ export const deleteKeyword = async (req: Request, res: Response) => {
       `)
 
     if (checkReplay.recordset[0].cnt === 0) {
-      // لا أحد يشير لهذا replay => نحذفه نهائيًا
+      // لا أحد يشير لهذا replay => نحذفه مع حذف ميديااته
+      // أولاً نحذف سجلات ReplayMedia
       await pool.request()
         .input('replayId', sql.Int, replayId)
-        .query(`
-          DELETE FROM Replays
-          WHERE id = @replayId
-        `)
+        .query(`DELETE FROM ReplayMedia WHERE replayId = @replayId`)
+
+      // ثم نحذف سجل الـ replay
+      await pool.request()
+        .input('replayId', sql.Int, replayId)
+        .query(`DELETE FROM Replays WHERE id = @replayId`)
     }
 
     return res.status(200).json({ message: 'Keyword deleted successfully.' })
@@ -916,6 +945,7 @@ export const deleteKeyword = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error deleting keyword.' })
   }
 }
+
 
 
 

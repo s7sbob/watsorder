@@ -1,6 +1,6 @@
 // src/components/AddDataPopup.tsx
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -9,7 +9,8 @@ import {
   TextField,
   Button,
   MenuItem,
-  Box
+  Box,
+  Typography
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 
@@ -19,13 +20,18 @@ import Autocomplete from '@mui/material/Autocomplete'
 interface PopupField {
   label: string
   name: string
-  options?: { value: any; label: string }[]     // لو كان الحقل من نوع select
-  isMultipleKeywords?: boolean                  // لو أردنا استخدام Autocomplete متعدد
-  isFile?: boolean                              // لو كان الحقل رفع ملف (صورة/ميديا)
+  // لو كان الحقل select (خيارات منسدلة)
+  options?: { value: any; label: string }[]
+  // لو أردنا استخدام Autocomplete متعدد (مثلاً Keywords)
+  isMultipleKeywords?: boolean
+  // لو كان الحقل رفع ملف (صورة/ميديا)
+  isFile?: boolean
+  // لو كان رفع عدة ملفات مرة واحدة
+  multiple?: boolean
 }
 
 /**
- * واجهة الخصائص المقبولة في المكوّن
+ * واجهة الخصائص المقبولة في المكون
  */
 interface AddDataPopupProps {
   open: boolean
@@ -42,81 +48,115 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
   title,
   fields
 }) => {
-  // formData سيحمل القيم المُدخلة من المستخدم لكل حقل
-  // بالنسبة للحقول العادية => formData[field.name] = "القيمة"
-  // بالنسبة لحقل الملف => formData[field.name] = { base64: string, mimetype: string, filename: string }
-  const [formData, setFormData] = useState<any>({})
+  // تخزين القيم في state
+  // بالنسبة للحقل النصي: formData[field.name] = string
+  // بالنسبة لحقل Autocomplete: formData[field.name] = string[]
+  // بالنسبة لحقل الملفات: formData[field.name] = File (أو File[] لو multiple=true)
+  const [formData, setFormData] = useState<Record<string, any>>({})
 
-  // عند تغيير القيمة في الحقول العادية
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+  useEffect(() => {
+    if (!open) {
+      setFormData({})
+    }
+  }, [open])
+
+  // تحديث الحقول النصية
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
   }
 
-  // عند النقر على زر "Submit"
+  // عند الضغط على زر Submit
   const handleSubmit = () => {
     onSubmit(formData)
-    // تفريغ الـ formData
     setFormData({})
     onClose()
   }
 
-  // دالة رفع الملف (صورة/ميديا) وتحويله إلى Base64
-  const handleFileChange = (fieldName: string, file?: File) => {
-    if (!file) {
-      // لو المستخدم ألغى الاختيار
-      setFormData((prev: any) => ({
+  // رفع ملف/ملفات: نقبل FileList ونخزن إما ملف واحد أو مصفوفة ملفات بناءً على الخاصية multiple
+  const handleFileChange = (
+    fieldName: string,
+    fileList: FileList | null,
+    multiple: boolean
+  ) => {
+    if (!fileList || fileList.length === 0) {
+      setFormData(prev => ({
         ...prev,
-        [fieldName]: undefined
+        [fieldName]: multiple ? [] : undefined
       }))
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = e => {
-      if (e.target?.result) {
-        const base64String = e.target.result.toString()
-        const justBase64 = base64String.split(',')[1] // الجزء بعد "base64,"
-        setFormData((prev: any) => ({
-          ...prev,
-          [fieldName]: {
-            base64: justBase64,
-            mimetype: file.type,
-            filename: file.name
-          }
-        }))
-      }
+    const filesArray = Array.from(fileList)
+    if (multiple) {
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: filesArray
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: filesArray[0]
+      }))
     }
-    reader.readAsDataURL(file)
   }
 
-  // دالة لإزالة الملف
-  const handleRemoveFile = (fieldName: string) => {
-    setFormData((prev: any) => ({
+  // إزالة الملفات بالكامل للحقل المحدد
+  const handleRemoveAllFiles = (fieldName: string, multiple: boolean) => {
+    setFormData(prev => ({
       ...prev,
-      [fieldName]: undefined
+      [fieldName]: multiple ? [] : undefined
     }))
   }
 
-  // عرض Preview للصورة/الميديا (لو كانت صورة)
-  const renderFilePreview = (fieldName: string) => {
-    const fileData = formData[fieldName]
-    if (!fileData) return null
+  // عرض المعاينة للملفات باستخدام URL.createObjectURL
+  const renderPreviews = (fieldName: string, multiple: boolean) => {
+    const value = formData[fieldName]
+    if (!value) return null
 
-    // إذا كانت mimetype صورة => نعرضها
-    if (fileData.mimetype?.startsWith('image/')) {
+    if (multiple && Array.isArray(value)) {
       return (
-        <Box mt={2}>
-          <img
-            src={`data:${fileData.mimetype};base64,${fileData.base64}`}
-            alt={fileData.filename}
-            style={{ maxWidth: '200px', maxHeight: '200px' }}
-          />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2 }}>
+          {value.map((file: File, idx: number) => {
+            if (file.type.startsWith('image/')) {
+              return (
+                <Box key={idx} textAlign='center'>
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    style={{ width: 100, height: 100, objectFit: 'cover' }}
+                  />
+                  <Typography variant='caption'>{file.name}</Typography>
+                </Box>
+              )
+            }
+            return (
+              <Box key={idx} textAlign='center'>
+                <Typography variant='body2'>{file.name}</Typography>
+              </Box>
+            )
+          })}
         </Box>
       )
+    } else if (!multiple && value) {
+      const file = value as File
+      if (file.type.startsWith('image/')) {
+        return (
+          <Box sx={{ mt: 2 }} textAlign='center'>
+            <img
+              src={URL.createObjectURL(file)}
+              alt={file.name}
+              style={{ width: 100, height: 100, objectFit: 'cover' }}
+            />
+            <Typography variant='caption'>{file.name}</Typography>
+          </Box>
+        )
+      }
+      return <Box mt={2}>{file.name}</Box>
     }
-
-    // أو لو أردت عرض اسم الملف فقط:
-    return <Box mt={2}>{fileData.filename}</Box>
+    return null
   }
 
   return (
@@ -124,7 +164,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         {fields.map(field => {
-          // ============= (1) Autocomplete متعدد =============
+          // (1) Autocomplete متعدد (مثل Keywords)
           if (field.isMultipleKeywords) {
             const currentValue: string[] = formData[field.name] || []
             return (
@@ -132,10 +172,13 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 key={field.name}
                 multiple
                 freeSolo
-                options={[]} // يمكن وضع قائمة افتراضية للاقتراحات هنا
+                options={[]} // يمكن وضع اقتراحات هنا
                 value={currentValue}
-                onChange={(event, newValue) => {
-                  setFormData({ ...formData, [field.name]: newValue })
+                onChange={(_event, newValue) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    [field.name]: newValue
+                  }))
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -150,8 +193,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
               />
             )
           }
-
-          // ============= (2) حقل select =============
+          // (2) حقل select
           else if (field.options) {
             return (
               <TextField
@@ -162,7 +204,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 name={field.name}
                 fullWidth
                 variant='outlined'
-                onChange={handleChange}
+                onChange={handleTextChange}
                 sx={{ mt: 2 }}
               >
                 {field.options.map(option => (
@@ -173,10 +215,10 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
               </TextField>
             )
           }
-
-          // ============= (3) حقل ملف (isFile) =============
+          // (3) حقل رفع ملف (isFile)
           else if (field.isFile) {
-            const fileData = formData[field.name]
+            const multiple = !!field.multiple
+            const hasValue = formData[field.name]
             return (
               <Box key={field.name} mt={2}>
                 <Button variant='contained' component='label'>
@@ -184,32 +226,28 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                   <input
                     type='file'
                     hidden
-                    onChange={e =>
-                      handleFileChange(
-                        field.name,
-                        e.target.files?.[0]
-                      )
+                    multiple={multiple}
+                    accept='image/*'
+                    onChange={(e) =>
+                      handleFileChange(field.name, e.target.files, multiple)
                     }
                   />
                 </Button>
-                {/* زر إزالة الملف (لو وجد ملف بالفعل) */}
-                {fileData && (
+                {hasValue && (
                   <Button
                     variant='outlined'
                     color='error'
-                    onClick={() => handleRemoveFile(field.name)}
+                    onClick={() => handleRemoveAllFiles(field.name, multiple)}
                     sx={{ ml: 2 }}
                   >
                     Remove
                   </Button>
                 )}
-                {/* عرض المعاينة إن وجد */}
-                {renderFilePreview(field.name)}
+                {renderPreviews(field.name, multiple)}
               </Box>
             )
           }
-
-          // ============= (4) حقول نصية عادية =============
+          // (4) حقول نصية عادية
           else {
             return (
               <TextField
@@ -219,7 +257,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 name={field.name}
                 fullWidth
                 variant='outlined'
-                onChange={handleChange}
+                onChange={handleTextChange}
                 sx={{ mt: 2 }}
               />
             )

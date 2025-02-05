@@ -11,7 +11,6 @@ import About from 'src/views/pages/frontend-pages/About';
 import BlogPage from 'src/views/pages/frontend-pages/Blog';
 import Contact from 'src/views/pages/frontend-pages/Contact';
 import Portfolio from 'src/views/pages/frontend-pages/Portfolio';
-import Lazy from 'yup/lib/Lazy';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));

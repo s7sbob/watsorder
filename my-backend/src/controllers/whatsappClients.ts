@@ -5,6 +5,8 @@ import { getConnection } from '../config/db'
 import * as sql from 'mssql'
 import { io } from '../server'
 import { Request, Response } from 'express'
+import fs from 'fs'
+import path from 'path'
 
 interface WhatsAppClientMap {
   [sessionId: number]: Client
@@ -137,36 +139,43 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             SELECT 
               k.keyword, 
               r.replyText,
-              r.replyMediaBase64,
-              r.replyMediaMimeType,
-              r.replyMediaFilename
+              r.id AS replayId
             FROM Keywords k
             JOIN Replays r ON k.replay_id = r.id
             WHERE k.sessionId = @sessionId
           `)
-
+  
         const foundKeywordRow = keywordsRes.recordset.find((row: any) =>
           row.keyword?.toLowerCase() === text.toLowerCase()
         )
-
+  
         if (foundKeywordRow) {
-          // لو هناك ميديا محفوظة:
-          if (foundKeywordRow.replyMediaBase64) {
-            const mediaMsg = new MessageMedia(
-              foundKeywordRow.replyMediaMimeType,
-              foundKeywordRow.replyMediaBase64,
-              foundKeywordRow.replyMediaFilename
-            )
-            // إرسال الميديا + الكابشن
-            await client.sendMessage(msg.from, mediaMsg, { caption: bold(foundKeywordRow.replyText) })
-          } else {
-            // إرسال نص فقط
-            await client.sendMessage(msg.from, bold(foundKeywordRow.replyText))
+          // جلب ملفات الميديا من ReplayMedia باستخدام replayId
+          const mediaRes = await pool.request()
+            .input('replayId', sql.Int, foundKeywordRow.replayId)
+            .query(`
+              SELECT filePath
+              FROM ReplayMedia
+              WHERE replayId = @replayId
+            `)
+  
+          const mediaRows = mediaRes.recordset
+  
+          // إرسال الرد النصي أولاً
+          if (foundKeywordRow.replyText) {
+            await client.sendMessage(msg.from, `*${foundKeywordRow.replyText}*`)
+          }
+  
+          // إرسال الصور واحدة تلو الأخرى
+          for (const m of mediaRows) {
+            const fileData = fs.readFileSync(m.filePath)
+            const base64 = fileData.toString('base64')
+            const mediaMsg = new MessageMedia('image/jpeg', base64, path.basename(m.filePath))
+            await client.sendMessage(msg.from, mediaMsg)
           }
           return
         }
       }
-
       // ======================================================
       // 2) المنيو بوت (Menu Bot) إن كان مفعلًا
       // ======================================================
@@ -195,16 +204,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           }
 
           // إنشاء طلب جديد
-          const insertOrder = await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('status', sql.NVarChar, 'IN_CART')
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .query(`
-              INSERT INTO Orders (sessionId, status, customerPhoneNumber)
-              OUTPUT INSERTED.id
-              VALUES (@sessionId, @status, @custPhone)
-            `)
-          const newOrderId = insertOrder.recordset[0].id
 
           // جلب الأصناف
           const categories = await pool.request()
@@ -600,7 +599,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
           if (existingOrder.recordset.length === 0) {
             // أرسل الـ Greeting
-            await client.sendMessage(msg.from, bold(greetingMessage))
+            await client.sendMessage(msg.from, greetingMessage)
             return
           }
         }
