@@ -1,210 +1,81 @@
-import { Box, Typography, Grid, Container, Link } from '@mui/material';
-
-import { styled } from '@mui/material/styles';
-import { IconMinus, IconPlus } from '@tabler/icons-react';
-import { useTheme } from '@mui/material/styles';
+// src/components/frontend-pages/homepage/FAQ.tsx
+import { Box, Grid, Typography, Container, Link, Divider, Stack } from '@mui/material';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
+import { IconMinus, IconPlus } from '@tabler/icons-react';
 import { useState } from 'react';
+import { styled } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
+
+const StyledAccordion = styled(Accordion)(({ theme }) => ({
+  borderRadius: '8px',
+  marginBottom: '16px !important',
+  boxShadow: theme.palette.mode === 'light' ? '0px 3px 0px rgba(235, 241, 246, 0.25)' : 'unset',
+  border: `1px solid ${theme.palette.divider}`,
+  '&:before': { display: 'none' },
+  '&.Mui-expanded': { margin: 0 },
+}));
 
 const FAQ = () => {
   const theme = useTheme();
+  const [expanded, setExpanded] = useState<string | false>(false);
 
-  const [expanded, setExpanded] = useState(true);
-  const [expanded2, setExpanded2] = useState(false);
-  const [expanded3, setExpanded3] = useState(false);
-  const [expanded4, setExpanded4] = useState(false);
-  const [expanded5, setExpanded5] = useState(false);
-  const [expanded6, setExpanded6] = useState(false);
-
-  const StyledAccordian = styled(Accordion)(() => ({
-    borderRadius: '8px',
-    marginBottom: '16px !important',
-    boxShadow: theme.palette.mode == 'light' ? '0px 3px 0px rgba(235, 241, 246, 0.25)' : 'unset',
-    border: `1px solid ${theme.palette.divider}`,
-    '&:before': {
-      display: 'none',
-    },
-    '&.Mui-expanded': {
-      margin: '0',
-    },
-    '& .MuiAccordionSummary-root': {
-      padding: '8px 24px',
-      minHeight: '60px',
-      fontSize: '18px',
-      fontWeight: 500,
-    },
-    '& .MuiAccordionDetails-root': {
-      padding: '0 24px 24px',
-    },
-  }));
-
-  const handleChange = () => {
-    setExpanded(!expanded);
-  };
-
-  const handleChange2 = () => {
-    setExpanded2(!expanded2);
-  };
-
-  const handleChange3 = () => {
-    setExpanded3(!expanded3);
-  };
-
-  const handleChange4 = () => {
-    setExpanded4(!expanded4);
-  };
-
-  const handleChange5 = () => {
-    setExpanded5(!expanded5);
-  };
-
-  const handleChange6 = () => {
-    setExpanded6(!expanded6);
+  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpanded(isExpanded ? panel : false);
   };
 
   return (
-    <Container
-      maxWidth="lg"
-      sx={{
-        pb: {
-          xs: '30px',
-          lg: '60px',
-        },
-      }}
-    >
+    <Container maxWidth="lg" sx={{ pb: { xs: '30px', lg: '60px' } }}>
       <Grid container spacing={3} justifyContent="center">
         <Grid item xs={12} lg={8}>
-          <Typography
-            variant="h4"
-            textAlign="center"
-            lineHeight="1.2"
-            sx={{
-              fontSize: {
-                lg: '40px',
-                xs: '35px',
-              },
-            }}
-            fontWeight="700"
-          >
+          <Typography variant="h4" textAlign="center" fontWeight="700" mb={4}>
             Frequently Asked Questions
           </Typography>
-          <Box mt={7}>
-            <StyledAccordian expanded={expanded} onChange={handleChange}>
+          <Box>
+            <StyledAccordion expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
               <AccordionSummary
-                expandIcon={
-                  expanded ? (
-                    <IconMinus size="21" stroke="1.5" />
-                  ) : (
-                    <IconPlus size="21" stroke="1.5" />
-                  )
-                }
+                expandIcon={expanded === 'panel1' ? <IconMinus size={21} /> : <IconPlus size={21} />}
                 aria-controls="panel1-content"
                 id="panel1-header"
               >
-                What is included with my purchase?
+                How does the WhatsApp Bot work for restaurants?
               </AccordionSummary>
               <AccordionDetails>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus
-                ex, sit amet blandit leo lobortis eget.
+                <Typography>
+                  Our bot integrates with your restaurant's order system. Customers can place orders via WhatsApp,
+                  and the orders are sent directly to your dashboard for review and confirmation.
+                </Typography>
               </AccordionDetails>
-            </StyledAccordian>
-            <StyledAccordian expanded={expanded2} onChange={handleChange2}>
+            </StyledAccordion>
+            <StyledAccordion expanded={expanded === 'panel2'} onChange={handleChange('panel2')}>
               <AccordionSummary
-                expandIcon={
-                  expanded2 ? (
-                    <IconMinus size="21" stroke="1.5" />
-                  ) : (
-                    <IconPlus size="21" stroke="1.5" />
-                  )
-                }
+                expandIcon={expanded === 'panel2' ? <IconMinus size={21} /> : <IconPlus size={21} />}
                 aria-controls="panel2-content"
                 id="panel2-header"
               >
-                Are there any recurring fees?
+                What support options are available?
               </AccordionSummary>
               <AccordionDetails>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus
-                ex, sit amet blandit leo lobortis eget.
+                <Typography>
+                  We offer email support, live chat, and dedicated support for our Premium and Ultimate plans.
+                </Typography>
               </AccordionDetails>
-            </StyledAccordian>
-            <StyledAccordian expanded={expanded3} onChange={handleChange3}>
+            </StyledAccordion>
+            <StyledAccordion expanded={expanded === 'panel3'} onChange={handleChange('panel3')}>
               <AccordionSummary
-                expandIcon={
-                  expanded3 ? (
-                    <IconMinus size="21" stroke="1.5" />
-                  ) : (
-                    <IconPlus size="21" stroke="1.5" />
-                  )
-                }
+                expandIcon={expanded === 'panel3' ? <IconMinus size={21} /> : <IconPlus size={21} />}
                 aria-controls="panel3-content"
                 id="panel3-header"
               >
-                Can I use the template on multiple projects?
+                Are there any setup fees or recurring costs?
               </AccordionSummary>
               <AccordionDetails>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus
-                ex, sit amet blandit leo lobortis eget.
+                <Typography>
+                  There are no recurring fees for our one-time purchase plans. Choose the plan that fits your needs.
+                </Typography>
               </AccordionDetails>
-            </StyledAccordian>
-            <StyledAccordian expanded={expanded4} onChange={handleChange4}>
-              <AccordionSummary
-                expandIcon={
-                  expanded4 ? (
-                    <IconMinus size="21" stroke="1.5" />
-                  ) : (
-                    <IconPlus size="21" stroke="1.5" />
-                  )
-                }
-                aria-controls="panel2-content"
-                id="panel2-header"
-              >
-                Can I customize the admin dashboard template to match my brand?
-              </AccordionSummary>
-              <AccordionDetails>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus
-                ex, sit amet blandit leo lobortis eget.
-              </AccordionDetails>
-            </StyledAccordian>
-            <StyledAccordian expanded={expanded5} onChange={handleChange5}>
-              <AccordionSummary
-                expandIcon={
-                  expanded5 ? (
-                    <IconMinus size="21" stroke="1.5" />
-                  ) : (
-                    <IconPlus size="21" stroke="1.5" />
-                  )
-                }
-                aria-controls="panel2-content"
-                id="panel2-header"
-              >
-                Are there any restrictions on using the template?
-              </AccordionSummary>
-              <AccordionDetails>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus
-                ex, sit amet blandit leo lobortis eget.
-              </AccordionDetails>
-            </StyledAccordian>
-            <StyledAccordian expanded={expanded6} onChange={handleChange6}>
-              <AccordionSummary
-                expandIcon={
-                  expanded6 ? (
-                    <IconMinus size="21" stroke="1.5" />
-                  ) : (
-                    <IconPlus size="21" stroke="1.5" />
-                  )
-                }
-                aria-controls="panel2-content"
-                id="panel2-header"
-              >
-                How can I get support after purchase?
-              </AccordionSummary>
-              <AccordionDetails>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus
-                ex, sit amet blandit leo lobortis eget.
-              </AccordionDetails>
-            </StyledAccordian>
+            </StyledAccordion>
           </Box>
         </Grid>
       </Grid>
@@ -222,9 +93,7 @@ const FAQ = () => {
               border: `1px dashed ${theme.palette.divider}`,
               padding: '7px 10px',
               cursor: 'pointer',
-              '&:hover': {
-                borderColor: 'primary.main',
-              },
+              '&:hover': { borderColor: 'primary.main' },
             }}
           >
             <Typography>Still have a question?</Typography>
@@ -232,24 +101,16 @@ const FAQ = () => {
               href="https://discord.com/invite/XujgB8ww4n"
               color="inherit"
               underline="always"
-              sx={{
-                '&:hover': {
-                  color: 'primary.main',
-                },
-              }}
+              sx={{ '&:hover': { color: 'primary.main' } }}
             >
-              Ask on discord{' '}
+              Ask on Discord
             </Link>
             <Typography>or</Typography>
             <Link
-              href="https://adminmart.com/support/"
+              href="https://your-support-link.com"
               color="inherit"
               underline="always"
-              sx={{
-                '&:hover': {
-                  color: 'primary.main',
-                },
-              }}
+              sx={{ '&:hover': { color: 'primary.main' } }}
             >
               submit a ticket
             </Link>
@@ -260,4 +121,5 @@ const FAQ = () => {
     </Container>
   );
 };
+
 export default FAQ;

@@ -1,15 +1,13 @@
 import { Router } from 'express';
 import { getAllUsers, createUser, updateUser, deleteUser } from '../controllers/userController';
+import { authenticateToken } from '../middleware/authMiddleware';
 
 const router = Router();
 
-// جلب جميع المستخدمين
-router.get('/', getAllUsers);
-// إنشاء مستخدم جديد
-router.post('/', createUser);
-// تعديل بيانات مستخدم
-router.put('/:id', updateUser);
-// حذف مستخدم
-router.delete('/:id', deleteUser);
+
+router.get('/',authenticateToken, getAllUsers);
+router.post('/',authenticateToken, createUser);
+router.put('/:id',authenticateToken, updateUser);
+router.delete('/:id',authenticateToken, deleteUser);
 
 export default router;

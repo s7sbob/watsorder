@@ -25,6 +25,8 @@ const UserList = Loadable(lazy(() => import('../views/admin/UserListing')))
 const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')))
 const ConfirmedOrdersPage = Loadable(lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')))
 const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')))
+const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')))
+
 /* --- UI Components, Form Elements, Forms, Pages, Charts, Tables, React Tables, Widgets --- */
 // تم حذف استيرادات هذه الأقسام من أجل الاختصار، لكن يجب تضمينها في ملفك كما هي في النسخة السابقة.
 
@@ -50,7 +52,9 @@ const Router = [
       { path: '/apps/sessions', element: <Sessions /> },
       { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
       { path: '/api-docs', element: <ApiDocumentation  /> },
+      { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
 
+      
 
       // ... باقي المسارات المحمية
       { path: '*', element: <Navigate to="/auth/404" /> },

@@ -1,57 +1,38 @@
-import  { useContext, useState, useEffect } from "react";
+// src/components/apps/user/UserList.tsx
+import { useContext, useState, useEffect } from "react";
 import { UserContext, User } from "src/context/UserContext";
-import {
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Tooltip,
-  IconButton,
-  Chip,
-  Box,
-  Typography,
-  Grid,
-  Stack,
-  TextField,
-  InputAdornment,
-  MenuItem,
-} from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { IconEdit, IconTrash, IconSearch, IconListDetails, IconShoppingBag, IconSortAscending, IconTruck } from "@tabler/icons-react";
-import CustomCheckbox from "src/components/forms/theme-elements/CustomCheckbox";
+import { Box } from "@mui/material";
+import UserFilters from "./UserFilters";
+import UserTable from "./UserTable";
+import UserDialog from "./UserDialog";
+import axiosServices from "src/utils/axios";
 
-function UserList() {
-  const { users, addUser, updateUser, fetchUsers } = useContext(UserContext)!;
+const UserList = () => {
+  const { users, addUser, updateUser, deleteUser, fetchUsers } = useContext(UserContext)!;
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("All");
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [] = useState(false);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
+
+  // للحوار (Dialog) الخاص بالتحرير أو الإضافة
+  const [openDialog, setOpenDialog] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState("All");
+  const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
 
   useEffect(() => {
     fetchUsers();
+    // تأكد من أن التوكن الخاص بالمستخدم يحمل subscriptionType:"admin"
   }, []);
 
+  // تصفية المستخدمين حسب التبويب وكلمة البحث
   const filteredUsers = users
-  .filter((user) => {
-    if (activeTab === "All") return true;
-    return user.subscriptionType === activeTab;
-  })
-  .filter((user) => {
-    return user.name?.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+    .filter((user) => {
+      if (activeTab === "All") return true;
+      return user.subscriptionType === activeTab;
+    })
+    .filter((user) => user.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // دوال تحديد المستخدمين
   const toggleSelectAll = () => {
     const newSelectAll = !selectAll;
     setSelectAll(newSelectAll);
@@ -70,25 +51,7 @@ function UserList() {
     }
   };
 
-
-
-
-
-
-
-  const handleEdit = (user: User) => {
-    setCurrentUser(user);
-    setOpenEditDialog(true);
-  };
-
-  const handleEditSave = async () => {
-    if (currentUser) {
-      await updateUser(currentUser);
-      await fetchUsers();
-    }
-    setOpenEditDialog(false);
-  };
-
+  // فتح الحوار للإضافة
   const handleAddUser = () => {
     setCurrentUser({
       id: 0,
@@ -100,287 +63,70 @@ function UserList() {
       subscriptionEnd: "",
       status: "",
     });
-    setOpenAddDialog(true);
+    setDialogMode("add");
+    setOpenDialog(true);
   };
 
-  const handleAddSave = async () => {
+  // فتح الحوار للتحرير
+  const handleEdit = (user: User) => {
+    setCurrentUser(user);
+    setDialogMode("edit");
+    setOpenDialog(true);
+  };
+
+  // حفظ التعديلات أو الإضافة
+  const handleDialogSave = async () => {
     if (currentUser) {
-      await addUser(currentUser);
+      if (dialogMode === "edit") {
+        await updateUser(currentUser);
+      } else {
+        await addUser(currentUser);
+      }
       await fetchUsers();
     }
-    setOpenAddDialog(false);
+    setOpenDialog(false);
+  };
+
+  // حذف مستخدم
+  const handleDelete = async (userId: number) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await axiosServices.delete(`/api/users/${userId}`);
+        await fetchUsers();
+      } catch (error) {
+        console.error("Error deleting user", error);
+      }
+    }
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box>
-        {/* Filters */}
-        <Grid container spacing={3} mb={3}>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Box bgcolor="primary.light" p={3} onClick={() => setActiveTab("All")} sx={{ cursor: "pointer" }}>
-              <Stack direction="row" gap={2} alignItems="center">
-                <Box width={38} height={38} bgcolor="primary.main" display="flex" alignItems="center" justifyContent="center">
-                  <Typography color="primary.contrastText">
-                    <IconListDetails width={22} />
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography>Total Users</Typography>
-                  <Typography fontWeight={500}>{users.length}</Typography>
-                </Box>
-              </Stack>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Box bgcolor="success.light" p={3} onClick={() => setActiveTab("Regular")} sx={{ cursor: "pointer" }}>
-              <Stack direction="row" gap={2} alignItems="center">
-                <Box width={38} height={38} bgcolor="success.main" display="flex" alignItems="center" justifyContent="center">
-                  <Typography color="primary.contrastText">
-                    <IconShoppingBag width={22} />
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography>Regular Subscription</Typography>
-                  <Typography fontWeight={500}>
-                    {users.filter((user) => user.subscriptionType === "Regular").length}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Box bgcolor="warning.light" p={3} onClick={() => setActiveTab("Premium")} sx={{ cursor: "pointer" }}>
-              <Stack direction="row" gap={2} alignItems="center">
-                <Box width={38} height={38} bgcolor="warning.main" display="flex" alignItems="center" justifyContent="center">
-                  <Typography color="primary.contrastText">
-                    <IconSortAscending width={22} />
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography>Premium Subscription</Typography>
-                  <Typography fontWeight={500}>
-                    {users.filter((user) => user.subscriptionType === "Premium").length}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Box bgcolor="error.light" p={3} onClick={() => setActiveTab("Expired")} sx={{ cursor: "pointer" }}>
-              <Stack direction="row" gap={2} alignItems="center">
-                <Box width={38} height={38} bgcolor="error.main" display="flex" alignItems="center" justifyContent="center">
-                  <Typography color="primary.contrastText">
-                    <IconTruck width={22} />
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography>Expired Subscription</Typography>
-                  <Typography fontWeight={500}>
-                    {users.filter((user) => user.subscriptionType === "Expired").length}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Stack direction="row" spacing={2} mt={3} mb={3}>
-          <TextField
-            placeholder="Search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconSearch size={16} />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button variant="contained" color="primary" onClick={handleAddUser}>
-            Add New User
-          </Button>
-        </Stack>
-
-        {/* Users Table */}
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <CustomCheckbox checked={selectAll} onChange={toggleSelectAll} />
-              </TableCell>
-              <TableCell>Id</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Subscription Type</TableCell>
-              <TableCell>Subscription Start</TableCell>
-              <TableCell>Subscription End</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell padding="checkbox">
-                  <CustomCheckbox checked={selectedUsers.includes(user.id)} onChange={() => toggleSelectUser(user.id)} />
-                </TableCell>
-                <TableCell>{user.id}</TableCell>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.subscriptionType}</TableCell>
-                <TableCell>{user.subscriptionStart}</TableCell>
-                <TableCell>{user.subscriptionEnd}</TableCell>
-                <TableCell>
-                  {user.subscriptionType === "Regular" ? (
-                    <Chip color="success" label="Regular" size="small" />
-                  ) : user.subscriptionType === "Premium" ? (
-                    <Chip color="warning" label="Premium" size="small" />
-                  ) : user.subscriptionType === "Expired" ? (
-                    <Chip color="error" label="Expired" size="small" />
-                  ) : (
-                    <Chip color="default" label="Free" size="small" />
-                  )}
-                </TableCell>
-                <TableCell align="center">
-                  <Tooltip title="Edit User">
-                    <IconButton color="success" onClick={() => handleEdit(user)}>
-                      <IconEdit width={22} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete User">
-                    <IconButton color="error" >
-                      <IconTrash width={22} />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {/* Edit User Dialog */}
-        <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
-          <DialogTitle>Edit User</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Name"
-              value={currentUser?.name}
-              onChange={(e) => setCurrentUser({ ...currentUser, name: e.target.value } as User)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Username"
-              value={currentUser?.username}
-              onChange={(e) => setCurrentUser({ ...currentUser, username: e.target.value } as User)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={currentUser?.password}
-              onChange={(e) => setCurrentUser({ ...currentUser, password: e.target.value } as User)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Subscription Type"
-              select
-              value={currentUser?.subscriptionType}
-              onChange={(e) => setCurrentUser({ ...currentUser, subscriptionType: e.target.value } as User)}
-              margin="normal"
-            >
-              <MenuItem value="free">Free</MenuItem>
-              <MenuItem value="Regular">Regular</MenuItem>
-              <MenuItem value="Premium">Premium</MenuItem>
-              <MenuItem value="Expired">Expired</MenuItem>
-            </TextField>
-            <DatePicker
-              label="Subscription Start"
-              value={currentUser?.subscriptionStart ? new Date(currentUser.subscriptionStart) : null}
-              onChange={(date) => setCurrentUser({ ...currentUser, subscriptionStart: date?.toISOString().split("T")[0] } as User)}
-              renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-            />
-            <DatePicker
-              label="Subscription End"
-              value={currentUser?.subscriptionEnd ? new Date(currentUser.subscriptionEnd) : null}
-              onChange={(date) => setCurrentUser({ ...currentUser, subscriptionEnd: date?.toISOString().split("T")[0] } as User)}
-              renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-            <Button onClick={handleEditSave} variant="contained" color="primary">
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Add User Dialog */}
-        <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)}>
-          <DialogTitle>Add New User</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Name"
-              value={currentUser?.name}
-              onChange={(e) => setCurrentUser({ ...currentUser, name: e.target.value } as User)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Username"
-              value={currentUser?.username}
-              onChange={(e) => setCurrentUser({ ...currentUser, username: e.target.value } as User)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={currentUser?.password}
-              onChange={(e) => setCurrentUser({ ...currentUser, password: e.target.value } as User)}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Subscription Type"
-              select
-              value={currentUser?.subscriptionType}
-              onChange={(e) => setCurrentUser({ ...currentUser, subscriptionType: e.target.value } as User)}
-              margin="normal"
-            >
-              <MenuItem value="free">Free</MenuItem>
-              <MenuItem value="Regular">Regular</MenuItem>
-              <MenuItem value="Premium">Premium</MenuItem>
-              <MenuItem value="Expired">Expired</MenuItem>
-            </TextField>
-            <DatePicker
-              label="Subscription Start"
-              value={currentUser?.subscriptionStart ? new Date(currentUser.subscriptionStart) : null}
-              onChange={(date) => setCurrentUser({ ...currentUser, subscriptionStart: date?.toISOString().split("T")[0] } as User)}
-              renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-            />
-            <DatePicker
-              label="Subscription End"
-              value={currentUser?.subscriptionEnd ? new Date(currentUser.subscriptionEnd) : null}
-              onChange={(date) => setCurrentUser({ ...currentUser, subscriptionEnd: date?.toISOString().split("T")[0] } as User)}
-              renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddSave} variant="contained" color="primary">
-              Add
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </LocalizationProvider>
+    <Box>
+      <UserFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onAddUser={handleAddUser}
+      />
+      <UserTable
+        users={filteredUsers}
+        selectedUsers={selectedUsers}
+        selectAll={selectAll}
+        toggleSelectAll={toggleSelectAll}
+        toggleSelectUser={toggleSelectUser}
+        onEditUser={handleEdit}
+        onDeleteUser={handleDelete}
+      />
+      <UserDialog
+        open={openDialog}
+        user={currentUser}
+        setUser={setCurrentUser}
+        onClose={() => setOpenDialog(false)}
+        onSave={handleDialogSave}
+        mode={dialogMode}
+      />
+    </Box>
   );
-}
+};
 
 export default UserList;

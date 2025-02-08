@@ -1,143 +1,146 @@
-import  { useEffect, useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice'
-import { AppState, AppDispatch } from 'src/store/Store'
-import { io, Socket } from 'socket.io-client'
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Tooltip,
-  TextField,
-  Typography,
-  InputAdornment,
-  Grid,
-  Paper
-} from '@mui/material'
-import { IconEye, IconCheck, IconSearch, IconReceipt, IconPlus, IconMinus } from '@tabler/icons-react' // استدعِ أيقونات الزيادة/النقصان
-import axiosServices from 'src/utils/axios'
-import { OrderType, OrderItemType } from 'src/types/apps/order'
+// src/pages/OrdersPage.tsx
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, TextField, InputAdornment, Grid } from '@mui/material';
+import { IconSearch } from '@tabler/icons-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice';
+import { AppState, AppDispatch } from 'src/store/Store';
+import axiosServices from 'src/utils/axios';
+import socket from 'src/socket';
+import OrdersColumn from './OrdersColumn';
+import OrderDetailsDialog from './OrderDetailsDialog';
+import InvoiceDialog from './InvoiceDialog';
+import ConfirmOrderDialog from './ConfirmOrderDialog';
+import { OrderType } from 'src/types/apps/order';
 
-function OrdersPage() {
-  const dispatch = useDispatch<AppDispatch>()
-  const { orders, loading, error } = useSelector((state: AppState) => state.order)
+const OrdersPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { orders, loading, error } = useSelector((state: AppState) => state.order);
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [prepTime, setPrepTime] = useState<number>(30)
-  const [deliveryFee, setDeliveryFee] = useState<number>(0)
-  const [taxValue, setTaxValue] = useState<number>(0)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [orderDetails, setOrderDetails] = useState<OrderType | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null);
 
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
-
-  const [orderDetails, setOrderDetails] = useState<OrderType | null>(null)
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
-
-  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
-  const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null)
-
-  // socket state
-  const [, setSocket] = useState<Socket | null>(null)
-
-  // ====== [Setup Socket.io] ======
+  // ====== [Socket.io setup using imported socket] ======
   useEffect(() => {
-    const newSocket = io('http://localhost:5000')
-    setSocket(newSocket)
+    const handleNewOrder = (data: any) => {
+      console.log('New order event received:', data);
+      dispatch(fetchConfirmedOrders());
+      triggerAlarm(); // تشغيل التنبيه عند وصول طلب جديد
+    };
 
-    newSocket.on('newOrder', data => {
-      console.log('New order event received:', data)
-      dispatch(fetchConfirmedOrders())
-    })
+    const handleOrderConfirmed = (data: { orderId: number }) => {
+      console.log('Order Confirmed event received:', data);
+      dispatch(fetchConfirmedOrders());
+    };
 
-    newSocket.on('orderConfirmed', (data: { orderId: number }) => {
-      console.log('Order Confirmed event received:', data)
-      dispatch(fetchConfirmedOrders())
-    })
+    socket.on('newOrder', handleNewOrder);
+    socket.on('orderConfirmed', handleOrderConfirmed);
 
     return () => {
-      newSocket.disconnect()
+      socket.off('newOrder', handleNewOrder);
+      socket.off('orderConfirmed', handleOrderConfirmed);
+    };
+  }, [dispatch]);
+
+  // ====== [Alarm repeating effect] ======
+  // إذا كان هناك طلب جديد (غير مؤكد) نعيد تشغيل التنبيه بشكل دوري
+  const filteredNewOrders = orders.filter((order: OrderType) => !order.finalConfirmed);
+  useEffect(() => {
+    if (filteredNewOrders.length > 0) {
+      const intervalId = setInterval(() => {
+        triggerAlarm();
+      }, 5000); // كل 5 ثوانٍ (يمكنك تعديل الوقت)
+      return () => clearInterval(intervalId);
     }
-  }, [dispatch])
+  }, [filteredNewOrders]);
+
+  // دالة التنبيه: تستخدم الاهتزاز وتشغيل الصوت
+  const triggerAlarm = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(200);
+    }
+    const audio = new Audio('/notification.mp3'); // تأكد من وجود الملف في مجلد public
+    audio.play().catch(err => console.error('Error playing sound:', err));
+  };
 
   useEffect(() => {
-    dispatch(fetchConfirmedOrders())
-  }, [dispatch])
+    dispatch(fetchConfirmedOrders());
+  }, [dispatch]);
 
-  // ====== [Filtering logic] ======
+  // تصفية الطلبات حسب البحث
   const filteredOrders = orders.filter((order: OrderType) => {
-    const phoneMatch = order.customerPhone.toLowerCase().includes(searchTerm.toLowerCase())
+    const phoneMatch = order.customerPhone.toLowerCase().includes(searchTerm.toLowerCase());
     const addressMatch =
       order.deliveryAddress &&
-      order.deliveryAddress.toLowerCase().includes(searchTerm.toLowerCase())
-    return phoneMatch || addressMatch
-  })
+      order.deliveryAddress.toLowerCase().includes(searchTerm.toLowerCase());
+    return phoneMatch || addressMatch;
+  });
 
-  const newOrders = filteredOrders.filter(o => !o.finalConfirmed)
-  const acceptedOrders = filteredOrders.filter(o => o.finalConfirmed)
+  const acceptedOrders = filteredOrders.filter((o: OrderType) => o.finalConfirmed);
+  const newOrders = filteredOrders.filter((o: OrderType) => !o.finalConfirmed);
 
   // ====== [Handlers] ======
   const handleViewDetails = async (orderId: number) => {
     try {
-      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`)
-      setOrderDetails(res.data)
-      setDetailsDialogOpen(true)
+      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`);
+      setOrderDetails(res.data);
+      setDetailsDialogOpen(true);
     } catch (error) {
-      console.error('Error fetching order details', error)
+      console.error('Error fetching order details', error);
     }
-  }
+  };
 
   const handleViewInvoice = async (orderId: number) => {
     try {
-      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`)
-      setInvoiceDetails(res.data)
-      setInvoiceDialogOpen(true)
+      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`);
+      setInvoiceDetails(res.data);
+      setInvoiceDialogOpen(true);
     } catch (error) {
-      console.error('Error fetching invoice details:', error)
-      alert('Failed to fetch invoice details. Please check console for more info.')
+      console.error('Error fetching invoice details:', error);
+      alert('Failed to fetch invoice details. Please check console for more info.');
     }
-  }
+  };
 
   const handleConfirmClick = (orderId: number) => {
-    setSelectedOrderId(orderId)
-  }
+    setSelectedOrderId(orderId);
+  };
 
-  const handleConfirmSubmit = async () => {
-    if (!selectedOrderId) return
+  const handleConfirmSubmit = async (prepTime: number, deliveryFee: number, taxValue: number) => {
+    if (!selectedOrderId) return;
     await dispatch(
       confirmOrderByRestaurant({
         orderId: selectedOrderId,
         prepTime,
         deliveryFee,
-        // لم نعد نرسل serviceFee
         taxValue
       })
-    )
-    setSelectedOrderId(null)
-  }
+    );
+    setSelectedOrderId(null);
+  };
 
-  // ====== [Render] ======
-  if (loading) return <div>Loading orders...</div>
-  if (error) return <div>Error: {error}</div>
+  if (loading) return <div>Loading orders...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <Box p={3}>
-      <Typography variant='h4' gutterBottom>
+      <Typography variant="h4" gutterBottom>
         Confirmed Orders
       </Typography>
 
       {/* Search bar */}
       <Box mb={3}>
         <TextField
-          placeholder='Search by phone or address'
+          placeholder="Search by phone or address"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           fullWidth
           InputProps={{
             endAdornment: (
-              <InputAdornment position='end'>
+              <InputAdornment position="end">
                 <IconSearch size={16} />
               </InputAdornment>
             )
@@ -146,301 +149,48 @@ function OrdersPage() {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Accepted Column */}
+        {/* Accepted Orders Column */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant='h6' sx={{ mb: 2 }}>
-              Accepted <span style={{ color: '#f90' }}>({acceptedOrders.length})</span>
-            </Typography>
-
-            {acceptedOrders.length === 0 ? (
-              <Typography>No accepted orders</Typography>
-            ) : (
-              acceptedOrders.map(order => (
-                <Box
-                  key={order.id}
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    backgroundColor: '#fff'
-                  }}
-                >
-                  <Typography variant='subtitle1'>Order #{order.id}</Typography>
-                  <Typography variant='body2'>
-  <strong>Customer Name:</strong> {order.customerName || 'N/A'}
-</Typography>
-<Typography variant='body2'>Phone: {order.customerPhone}</Typography>                  <Typography variant='body2'>Address: {order.deliveryAddress}</Typography>
-                  <Typography variant='body2'>Total: {order.totalPrice}</Typography>
-                  <Typography variant='body2'>
-                    Status: {order.finalConfirmed ? 'Confirmed' : 'Pending'}
-                  </Typography>
-                  <Typography variant='body2'>Created At: {order.createdAt}</Typography>
-
-                  <Box sx={{ mt: 1 }}>
-                    <Tooltip title='View Details'>
-                      <IconButton color='primary' onClick={() => handleViewDetails(order.id)}>
-                        <IconEye size={22} />
-                      </IconButton>
-                    </Tooltip>
-
-                    {order.finalConfirmed && (
-                      <Tooltip title='View Invoice'>
-                        <IconButton color='secondary' onClick={() => handleViewInvoice(order.id)}>
-                          <IconReceipt size={22} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-
-                    <Tooltip title='Restaurant Confirm'>
-                      <IconButton color='success' onClick={() => handleConfirmClick(order.id)}>
-                        <IconCheck size={22} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))
-            )}
-          </Paper>
+          <OrdersColumn
+            title="Accepted"
+            orders={acceptedOrders}
+            onViewDetails={handleViewDetails}
+            onViewInvoice={handleViewInvoice}
+            onConfirmClick={handleConfirmClick}
+          />
         </Grid>
-
-        {/* New Column */}
+        {/* New Orders Column */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant='h6' sx={{ mb: 2 }}>
-              New <span style={{ color: '#f90' }}>({newOrders.length})</span>
-            </Typography>
-
-            {newOrders.length === 0 ? (
-              <Typography>No new orders</Typography>
-            ) : (
-              newOrders.map(order => (
-                <Box
-                  key={order.id}
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    backgroundColor: '#fff'
-                  }}
-                >
-                  <Typography variant='subtitle1'>Order #{order.id}</Typography>
-                  <Typography variant='body2'>Phone: {order.customerPhone}</Typography>
-                  <Typography variant='body2'>Address: {order.deliveryAddress}</Typography>
-                  <Typography variant='body2'>Total: {order.totalPrice}</Typography>
-                  <Typography variant='body2'>
-                    Status: {order.finalConfirmed ? 'Confirmed' : 'Pending'}
-                  </Typography>
-                  <Typography variant='body2'>Created At: {order.createdAt}</Typography>
-
-                  <Box sx={{ mt: 1 }}>
-                    <Tooltip title='View Details'>
-                      <IconButton color='primary' onClick={() => handleViewDetails(order.id)}>
-                        <IconEye size={22} />
-                      </IconButton>
-                    </Tooltip>
-
-                    {order.finalConfirmed && (
-                      <Tooltip title='View Invoice'>
-                        <IconButton color='secondary' onClick={() => handleViewInvoice(order.id)}>
-                          <IconReceipt size={22} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-
-                    <Tooltip title='Restaurant Confirm'>
-                      <IconButton color='success' onClick={() => handleConfirmClick(order.id)}>
-                        <IconCheck size={22} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))
-            )}
-          </Paper>
+          <OrdersColumn
+            title="New"
+            orders={newOrders}
+            onViewDetails={handleViewDetails}
+            onViewInvoice={handleViewInvoice}
+            onConfirmClick={handleConfirmClick}
+          />
         </Grid>
       </Grid>
 
-      {/* Order Details Dialog */}
-      <Dialog
+      <OrderDetailsDialog
         open={detailsDialogOpen}
+        orderDetails={orderDetails}
         onClose={() => setDetailsDialogOpen(false)}
-        fullWidth
-        maxWidth='sm'
-      >
-        <DialogTitle>Order Details #{orderDetails?.id}</DialogTitle>
-        <DialogContent>
-          {orderDetails && (
-            <Box>
-    <Typography>
-      <strong>Customer Name:</strong> {orderDetails.customerName}
-    </Typography>
-    <Typography>
-      <strong>Customer Phone:</strong> {orderDetails.customerPhoneNumber}
-    </Typography>
-              <Typography>
-                <strong>Delivery Address:</strong> {orderDetails.deliveryAddress}
-              </Typography>
-              <Typography>
-                <strong>Total Price:</strong> {orderDetails.totalPrice}
-              </Typography>
-              <Typography>
-                <strong>Status:</strong>{' '}
-                {orderDetails.finalConfirmed ? 'Confirmed' : 'Pending'}
-              </Typography>
-              <Typography>
-                <strong>Created At:</strong> {orderDetails.createdAt}
-              </Typography>
+      />
 
-              {orderDetails.deliveryFee !== null && (
-                <Typography>
-                  <strong>Delivery Fee:</strong> {orderDetails.deliveryFee}
-                </Typography>
-              )}
-              {orderDetails.taxValue !== null && (
-                <Typography>
-                  <strong>Tax Value:</strong> {orderDetails.taxValue}
-                </Typography>
-              )}
-              {orderDetails.prepTime !== null && (
-                <Typography>
-                  <strong>Preparation Time:</strong> {orderDetails.prepTime} minutes
-                </Typography>
-              )}
-
-              <Typography variant='h6' mt={2}>
-                Items:
-              </Typography>
-              {orderDetails.items.map((item: OrderItemType, idx: number) => (
-                <Typography key={idx}>
-                  {item.quantity} x {item.productName} = {item.price}
-                </Typography>
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Invoice Dialog */}
-      <Dialog
+      <InvoiceDialog
         open={invoiceDialogOpen}
+        invoiceDetails={invoiceDetails}
         onClose={() => setInvoiceDialogOpen(false)}
-        fullWidth
-        maxWidth='sm'
-      >
-        <DialogTitle>Invoice # {invoiceDetails?.id}</DialogTitle>
-        <DialogContent>
-          {invoiceDetails && (
-            <Box>
-              <Typography>
-                <strong>Customer Phone:</strong> {invoiceDetails.customerPhoneNumber}
-              </Typography>
-              <Typography>
-                <strong>Delivery Address:</strong> {invoiceDetails.deliveryAddress}
-              </Typography>
-              <Typography>
-                <strong>Total Price:</strong> {invoiceDetails.totalPrice}
-              </Typography>
-              <Typography>
-                <strong>Status:</strong>{' '}
-                {invoiceDetails.finalConfirmed ? 'Confirmed' : 'Pending'}
-              </Typography>
-              <Typography>
-                <strong>Created At:</strong> {invoiceDetails.createdAt}
-              </Typography>
+      />
 
-              {invoiceDetails.deliveryFee !== null && (
-                <Typography>
-                  <strong>Delivery Fee:</strong> {invoiceDetails.deliveryFee}
-                </Typography>
-              )}
-              {invoiceDetails.taxValue !== null && (
-                <Typography>
-                  <strong>Tax Value:</strong> {invoiceDetails.taxValue}
-                </Typography>
-              )}
-              {invoiceDetails.prepTime !== null && (
-                <Typography>
-                  <strong>Preparation Time:</strong> {invoiceDetails.prepTime} minutes
-                </Typography>
-              )}
-              <Typography variant='h6' mt={2}>
-                Items:
-              </Typography>
-              {invoiceDetails.items.map((item: OrderItemType, idx: number) => (
-                <Typography key={idx}>
-                  {item.quantity} x {item.productName} = {item.price}
-                </Typography>
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setInvoiceDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Confirm Order Dialog */}
-      {selectedOrderId && (
-        <Dialog open={selectedOrderId !== null} onClose={() => setSelectedOrderId(null)}>
-          <DialogTitle>Confirm Order #{selectedOrderId}</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label='Expected Preparation Time (minutes)'
-              type='number'
-              value={prepTime}
-              onChange={e => setPrepTime(Number(e.target.value))}
-              margin='normal'
-            />
-
-            {/* حقل التوصيل مع أزرار الزيادة/النقصان */}
-            <Box display='flex' alignItems='center' marginY={2}>
-              <TextField
-                label='Delivery Fee'
-                type='number'
-                value={deliveryFee}
-                onChange={e => setDeliveryFee(Number(e.target.value))}
-                sx={{ flex: 1 }}
-              />
-              <IconButton
-                color='primary'
-                onClick={() => setDeliveryFee(prev => prev + 5)}
-              >
-                <IconPlus size={22} />
-              </IconButton>
-              <IconButton
-                color='secondary'
-                onClick={() => setDeliveryFee(prev => (prev >= 5 ? prev - 5 : 0))}
-              >
-                <IconMinus size={22} />
-              </IconButton>
-            </Box>
-
-            <TextField
-              fullWidth
-              label='Tax Value'
-              type='number'
-              value={taxValue}
-              onChange={e => setTaxValue(Number(e.target.value))}
-              margin='normal'
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setSelectedOrderId(null)}>Cancel</Button>
-            <Button onClick={handleConfirmSubmit} variant='contained' color='primary'>
-              Confirm & Send Message
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
+      <ConfirmOrderDialog
+        open={selectedOrderId !== null}
+        orderId={selectedOrderId}
+        onClose={() => setSelectedOrderId(null)}
+        onSubmit={handleConfirmSubmit}
+      />
     </Box>
-  )
-}
+  );
+};
 
-export default OrdersPage
+export default OrdersPage;
