@@ -204,16 +204,15 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           }
 
           // إنشاء طلب جديد
-          const insertOrder = await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('status', sql.NVarChar, 'IN_CART')
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .query(`
-              INSERT INTO Orders (sessionId, status, customerPhoneNumber)
-              OUTPUT INSERTED.id
-              VALUES (@sessionId, @status, @custPhone)
-            `)
-          const newOrderId = insertOrder.recordset[0].id
+          await pool.request()
+          .input('sessionId', sql.Int, sessionId)
+          .input('status', sql.NVarChar, 'IN_CART')
+          .input('custPhone', sql.NVarChar, customerPhone)
+          .query(`
+            INSERT INTO Orders (sessionId, status, customerPhoneNumber)
+            OUTPUT INSERTED.id
+            VALUES (@sessionId, @status, @custPhone)
+          `);
 
           // جلب الأصناف
           const categories = await pool.request()

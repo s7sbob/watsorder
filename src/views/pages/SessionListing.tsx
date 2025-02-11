@@ -13,7 +13,11 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  AlertColor
+  AlertColor,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -90,6 +94,30 @@ const SessionListing = () => {
     } catch (error) {
       showAlert('Failed to create session.', 'error');
     }
+  };
+
+  // ============================
+  // إضافة منطق الـ QR Code
+  // ============================
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<SessionType | null>(null);
+
+  const handleShowQr = async (session: SessionType) => {
+    try {
+      // نفترض أن المسار التالي يرجع بيانات QR على شكل { qr: "some_data" }
+      const response = await axiosServices.get(`/api/sessions/${session.id}/qr`);
+      const qrData = response.data.qr;
+      setSelectedSession({ ...session, qrCode: qrData });
+      setQrDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching QR code:', error);
+      showAlert('Failed to fetch QR code.', 'error');
+    }
+  };
+
+  const handleCloseQrDialog = () => {
+    setQrDialogOpen(false);
+    setSelectedSession(null);
   };
 
   // إجراءات تشغيل/إيقاف البوت
@@ -200,11 +228,20 @@ const SessionListing = () => {
                   <Chip label={session.status} color="primary" />
                 </TableCell>
                 <TableCell align="right">
-                  {/* زر الإعدادات: عند الضغط ينتقل إلى صفحة الإعدادات الخاصة بالجلسة */}
                   <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color="primary">
                     <SettingsIcon />
                   </IconButton>
-                  {/* باقي الأزرار التي تبقى بجانب الجلسة */}
+                  {/* زر عرض QR Code يظهر فقط عندما تكون الحالة "Waiting for QR Code" */}
+                  {session.status === 'Waiting for QR Code' && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleShowQr(session)}
+                      sx={{ ml: 1 }}
+                    >
+                      Show QR Code
+                    </Button>
+                  )}
                   <Button
                     variant="contained"
                     color={session.botActive ? 'success' : 'warning'}
@@ -247,6 +284,29 @@ const SessionListing = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Dialog لعرض QR Code */}
+      <Dialog open={qrDialogOpen} onClose={handleCloseQrDialog}>
+        <DialogTitle>Scan QR Code</DialogTitle>
+        <DialogContent>
+          {selectedSession && selectedSession.qrCode ? (
+            <Box
+              component="img"
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                selectedSession.qrCode
+              )}`}
+              alt="QR Code"
+            />
+          ) : (
+            <div>Loading QR Code...</div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseQrDialog} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar
