@@ -10,12 +10,17 @@ import { store } from './store/Store';
 import Spinner from './views/spinner/Spinner';
 import './utils/i18n';
 import './_mockApis';
+import { UserProvider } from './context/UserContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
     <Suspense fallback={<Spinner />}>
       <BrowserRouter>
+      <UserProvider>
+
         <App />
+        </UserProvider>
+
       </BrowserRouter>
     </Suspense>
   </Provider>,

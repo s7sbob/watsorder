@@ -35,7 +35,7 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId }) => {
   const handleDelete = async (categoryId: number) => {
     if (!window.confirm('هل تريد حذف هذه الفئة؟')) return;
     try {
-      await axiosServices.delete(`/api/sessions/${sessionId}/category/${categoryId}`);
+      await axiosServices.post(`/api/sessions/${sessionId}/category/${categoryId}/delete`);
       fetchCategories();
     } catch (error) {
       console.error('Error deleting category', error);
@@ -50,7 +50,7 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId }) => {
   const handleUpdate = async () => {
     if (editingCategoryId === null) return;
     try {
-      await axiosServices.put(`/api/sessions/${sessionId}/category/${editingCategoryId}`, {
+      await axiosServices.post(`/api/sessions/${sessionId}/category/${editingCategoryId}/update`, {
         category_name: newCategoryName
       });
       setEditingCategoryId(null);

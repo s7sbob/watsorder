@@ -1,7 +1,6 @@
-// src/components/apps/user/UserTable.tsx
 import React from "react";
 import { Table, TableHead, TableRow, TableCell, TableBody, IconButton, Chip } from "@mui/material";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
+import { IconEdit, IconTrash, IconList } from "@tabler/icons-react";
 import CustomCheckbox from "src/components/forms/theme-elements/CustomCheckbox";
 import { User } from "src/context/UserContext";
 
@@ -13,6 +12,10 @@ interface UserTableProps {
   toggleSelectUser: (userId: number) => void;
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: number) => void;
+  isAdmin: boolean;
+
+  // دالة جديدة: عرض التفاصيل في حوار
+  onShowDetails: (user: User) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
@@ -23,6 +26,8 @@ const UserTable: React.FC<UserTableProps> = ({
   toggleSelectUser,
   onEditUser,
   onDeleteUser,
+  onShowDetails,
+  isAdmin
 }) => {
   return (
     <Table>
@@ -68,11 +73,21 @@ const UserTable: React.FC<UserTableProps> = ({
               )}
             </TableCell>
             <TableCell align="center">
+              {/* زر تعديل */}
               <IconButton color="success" onClick={() => onEditUser(user)}>
                 <IconEdit width={22} />
               </IconButton>
-              <IconButton color="error" onClick={() => onDeleteUser(user.id)}>
-                <IconTrash width={22} />
+
+              {/* زر حذف لو isAdmin */}
+              {isAdmin && (
+                <IconButton color="error" onClick={() => onDeleteUser(user.id)}>
+                  <IconTrash width={22} />
+                </IconButton>
+              )}
+
+              {/* زر تفاصيل لفتح Dialog */}
+              <IconButton color="info" onClick={() => onShowDetails(user)}>
+                <IconList width={22} />
               </IconButton>
             </TableCell>
           </TableRow>

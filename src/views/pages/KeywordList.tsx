@@ -100,7 +100,7 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
         formData.append('media', file)
       })
 
-      await axiosServices.put(`/api/sessions/${sessionId}/keyword/${editingId}`, formData, {
+      await axiosServices.post(`/api/sessions/${sessionId}/keyword/${editingId}/update`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -117,7 +117,7 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   const handleDelete = async (keywordId: number) => {
     if (!window.confirm('هل تريد حذف هذه الكلمة المفتاحية؟')) return
     try {
-      await axiosServices.delete(`/api/sessions/${sessionId}/keyword/${keywordId}`)
+      await axiosServices.post(`/api/sessions/${sessionId}/keyword/${keywordId}/delete`)
       fetchKeywords()
     } catch (error) {
       console.error('Error deleting keyword:', error)

@@ -6,6 +6,7 @@ import RTL from './layouts/full/shared/customizer/RTL';
 import ScrollToTop from './components/shared/ScrollToTop';
 import Router from './routes/Router';
 import { AppState } from './store/Store';
+import { UserProvider } from 'src/context/UserContext';
 
 function App() {
   const routing = useRoutes(Router);
@@ -14,10 +15,14 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
+            <UserProvider> {/* <-- ضعها هنا */}
+
       <RTL direction={customizer.activeDir}>
         <CssBaseline />
         <ScrollToTop>{routing}</ScrollToTop>
       </RTL>
+      </UserProvider>
+
     </ThemeProvider>
   );
 }

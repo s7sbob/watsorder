@@ -15,7 +15,7 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
 
   const handleGreetingUpdate = async () => {
     try {
-      await axiosServices.put(`/api/sessions/${sessionId}/greeting`, {
+      await axiosServices.post(`/api/sessions/${sessionId}/greeting/update`, {
         greetingMessage: greetingData.greetingMessage,
         greetingActive: greetingData.greetingActive
       });

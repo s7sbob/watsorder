@@ -8,8 +8,13 @@ import {
 
 const router = Router()
 
+// GET (بدون تغيير)
 router.get('/confirmed', authenticateToken, getConfirmedOrdersForUser)
-router.put('/:orderId/restaurant-confirm', authenticateToken, confirmOrderByRestaurant)
+
+// كان router.put('/:orderId/restaurant-confirm' => الآن router.post
+router.post('/:orderId/restaurant-confirm', authenticateToken, confirmOrderByRestaurant)
+
+// GET (بدون تغيير)
 router.get('/:orderId', authenticateToken, getOrderDetails)
 
 export default router

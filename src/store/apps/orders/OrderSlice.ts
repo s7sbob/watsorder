@@ -36,7 +36,7 @@ export const confirmOrderByRestaurant = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      await axios.put(`/api/orders/${orderId}/restaurant-confirm`, {
+      await axios.post(`/api/orders/${orderId}/restaurant-confirm`, {
         prepTime,
         deliveryFee,
         serviceFee,

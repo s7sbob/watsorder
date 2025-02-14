@@ -64,7 +64,7 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
   const handleDelete = async (productId: number) => {
     if (!window.confirm('هل تريد حذف هذا المنتج؟')) return
     try {
-      await axiosServices.delete(`/api/sessions/${sessionId}/product/${productId}`)
+      await axiosServices.post(`/api/sessions/${sessionId}/product/${productId}/delete`)
       fetchProducts()
     } catch (error) {
       console.error('Error deleting product', error)
@@ -84,7 +84,7 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
     if (editingProductId === null || editedCategoryId === null) return
 
     try {
-      await axiosServices.put(`/api/sessions/${sessionId}/product/${editingProductId}`, {
+      await axiosServices.post(`/api/sessions/${sessionId}/product/${editingProductId}/update`, {
         product_name: editedProductName,
         category_id: editedCategoryId,
         price: editedPrice ? parseFloat(editedPrice) : null

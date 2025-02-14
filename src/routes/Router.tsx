@@ -11,6 +11,7 @@ import About from 'src/views/pages/frontend-pages/About';
 import BlogPage from 'src/views/pages/frontend-pages/Blog';
 import Contact from 'src/views/pages/frontend-pages/Contact';
 import Portfolio from 'src/views/pages/frontend-pages/Portfolio';
+import FeatureManagement from 'src/views/pages/FeatureManagement.tsx';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
@@ -26,7 +27,7 @@ const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')
 const ConfirmedOrdersPage = Loadable(lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')))
 const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')))
 const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')))
-
+const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails'))); 
 /* --- UI Components, Form Elements, Forms, Pages, Charts, Tables, React Tables, Widgets --- */
 // تم حذف استيرادات هذه الأقسام من أجل الاختصار، لكن يجب تضمينها في ملفك كما هي في النسخة السابقة.
 
@@ -53,7 +54,11 @@ const Router = [
       { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
       { path: '/api-docs', element: <ApiDocumentation  /> },
       { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
-
+      { path: '/users/:id/details', element: <UserDetails /> },
+      {
+        path: '/admin/features',
+        element: <FeatureManagement />
+      },
       
 
       // ... باقي المسارات المحمية

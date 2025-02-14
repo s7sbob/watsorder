@@ -1,4 +1,3 @@
-// src/routes/sessionRoutes.ts
 import { Router } from 'express'
 import {
   fetchSessions,
@@ -18,7 +17,7 @@ import {
   updateBotStatus,
   logoutSession,
   loginSession,
-  updateMenuBotStatus, 
+  updateMenuBotStatus,
   broadcastMessageAPI,
   getKeywordsForSession,
   updateKeyword,
@@ -29,56 +28,91 @@ import { upload } from '../middleware/uploadMiddleware'
 
 const router = Router()
 
-// جلب الجلسات
+//----------------------------------
+// جلسات الواتساب
+//----------------------------------
+
+// [GET] جلب الجلسات
 router.get('/', authenticateToken, fetchSessions)
 
-// إنشاء جلسة جديدة
+// [POST] إنشاء جلسة جديدة
 router.post('/', authenticateToken, createSession)
 
-// إضافة فئة
-router.post('/:sessionId/category', authenticateToken, addCategory)
-// جلب الفئات
-router.get('/:sessionId/categories', authenticateToken, getCategoriesForSession)
-// تحديث فئة
-router.put('/:sessionId/category/:categoryId', authenticateToken, updateCategory)
-// حذف فئة
-router.delete('/:sessionId/category/:categoryId', authenticateToken, deleteCategory)
+// [POST] حذف جلسة (بدلًا من DELETE)
+router.post('/:id/delete', authenticateToken, deleteSession)
 
-// إضافة منتج
-router.post('/:sessionId/product', authenticateToken, addProduct)
-// جلب المنتجات
-router.get('/:sessionId/products', authenticateToken, getProductsForSession)
-// تحديث منتج
-router.put('/:sessionId/product/:productId', authenticateToken, updateProduct)
-// حذف منتج
-router.delete('/:sessionId/product/:productId', authenticateToken, deleteProduct)
+//----------------------------------
+// تحديثات مختلفة على الجلسة
+//----------------------------------
 
-// routes for Keywords
-router.post('/:sessionId/keyword', authenticateToken, upload.array('media', 10), addKeyword)
-router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession)
-router.put('/:sessionId/keyword/:keywordId', authenticateToken, upload.array('media', 10), updateKeyword)
-router.delete('/:sessionId/keyword/:keywordId', authenticateToken, deleteKeyword)
+// [POST] تحديث رسالة الترحيب (بدلًا من PUT)
+router.post('/:id/greeting/update', authenticateToken, updateGreeting)
 
-// جلب QR
+// [POST] تحديث حالة البوت (بدلًا من PUT)
+router.post('/:id/bot/update', authenticateToken, updateBotStatus)
+
+// [POST] تسجيل الخروج من جلسة (بدلًا من PUT)
+router.post('/:id/logout', authenticateToken, logoutSession)
+
+// [POST] تسجيل الدخول مجددًا (بدلًا من PUT)
+router.post('/:id/login', authenticateToken, loginSession)
+
+// [POST] تحديث حالة الـ Menu Bot (بدلًا من PUT)
+router.post('/:id/menu-bot/update', authenticateToken, updateMenuBotStatus)
+
+// جلب QR (GET عادي)
 router.get('/:id/qr', authenticateToken, getQrForSession)
-// تحديث Greeting
-router.put('/:id/greeting', authenticateToken, updateGreeting)
-// تحديث حالة البوت
-router.put('/:id/bot', authenticateToken, updateBotStatus)
-// تسجيل الخروج من جلسة
-router.put('/:id/logout', authenticateToken, logoutSession)
-// تسجيل الدخول مجددًا
-router.put('/:id/login', authenticateToken, loginSession)
 
+//----------------------------------
+// إرسال برودكاست (كان POST منذ البداية فلم نغيره)
 router.post('/:id/broadcast', authenticateToken, broadcastMessageAPI)
 
+//----------------------------------
+// الفئات (Categories)
+//----------------------------------
 
+// [POST] إضافة فئة
+router.post('/:sessionId/category', authenticateToken, addCategory)
 
-// حذف جلسة
-router.delete('/:id', authenticateToken, deleteSession)
+// [GET] جلب الفئات
+router.get('/:sessionId/categories', authenticateToken, getCategoriesForSession)
 
+// [POST] تعديل الفئة (بدلًا من PUT)
+router.post('/:sessionId/category/:categoryId/update', authenticateToken, updateCategory)
 
-router.put('/:id/menu-bot', authenticateToken, updateMenuBotStatus)
+// [POST] حذف الفئة (بدلًا من DELETE)
+router.post('/:sessionId/category/:categoryId/delete', authenticateToken, deleteCategory)
 
+//----------------------------------
+// المنتجات (Products)
+//----------------------------------
+
+// [POST] إضافة منتج
+router.post('/:sessionId/product', authenticateToken, addProduct)
+
+// [GET] جلب المنتجات
+router.get('/:sessionId/products', authenticateToken, getProductsForSession)
+
+// [POST] تعديل منتج (بدلًا من PUT)
+router.post('/:sessionId/product/:productId/update', authenticateToken, updateProduct)
+
+// [POST] حذف منتج (بدلًا من DELETE)
+router.post('/:sessionId/product/:productId/delete', authenticateToken, deleteProduct)
+
+//----------------------------------
+// الكلمات المفتاحية (Keywords)
+//----------------------------------
+
+// [POST] إضافة Keyword (كان POST بالفعل)
+router.post('/:sessionId/keyword', authenticateToken, upload.array('media', 10), addKeyword)
+
+// [GET] جلب الـ Keywords
+router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession)
+
+// [POST] تعديل Keyword (بدلًا من PUT)
+router.post('/:sessionId/keyword/:keywordId/update', authenticateToken, upload.array('media', 10), updateKeyword)
+
+// [POST] حذف Keyword (بدلًا من DELETE)
+router.post('/:sessionId/keyword/:keywordId/delete', authenticateToken, deleteKeyword)
 
 export default router

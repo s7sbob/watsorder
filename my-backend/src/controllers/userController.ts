@@ -24,6 +24,37 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
   }
 };
 
+// دالة لجلب سجل الاشتراك لمستخدم معيّن
+export const getSubscriptionLogs = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId } = req.params;
+
+  // يمكن السماح للـ admin فقط أو السماح للمستخدم نفسه
+  // هنا مثلاً admin فقط:
+  if (req.user.subscriptionType !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admin only.' });
+  }
+
+  try {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query(`
+        SELECT *
+        FROM SubscriptionLogs
+        WHERE userId = @userId
+        ORDER BY changedAt DESC
+      `);
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching subscription logs:', error);
+    return res.status(500).json({ message: 'Error fetching subscription logs.' });
+  }
+};
+
+
 // إنشاء مستخدم جديد
 export const createUser = async (req: Request, res: Response): Promise<Response> => {
   // تحقق: هل المستخدم admin؟

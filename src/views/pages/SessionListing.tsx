@@ -124,7 +124,7 @@ const SessionListing = () => {
   const handleToggleBot = async (session: SessionType) => {
     const newBotActive = !session.botActive;
     try {
-      await axiosServices.put(`/api/sessions/${session.id}/bot`, { botActive: newBotActive });
+      await axiosServices.post(`/api/sessions/${session.id}/bot/update`, { botActive: newBotActive });
       dispatch(
         updateSession({
           sessionId: session.id,
@@ -141,7 +141,7 @@ const SessionListing = () => {
   const handleToggleMenuBot = async (session: SessionType) => {
     const newMenuBotActive = !session.menuBotActive;
     try {
-      await axiosServices.put(`/api/sessions/${session.id}/menu-bot`, { menuBotActive: newMenuBotActive });
+      await axiosServices.post(`/api/sessions/${session.id}/menu-bot/update`, { menuBotActive: newMenuBotActive });
       dispatch(
         updateSession({
           sessionId: session.id,
@@ -161,7 +161,7 @@ const SessionListing = () => {
       return;
     }
     try {
-      await axiosServices.put(`/api/sessions/${session.id}/logout`);
+      await axiosServices.post(`/api/sessions/${session.id}/logout`);
       dispatch(
         updateSession({
           sessionId: session.id,
@@ -184,7 +184,7 @@ const SessionListing = () => {
       return;
     }
     try {
-      await axiosServices.delete(`/api/sessions/${sessionId}`);
+      await axiosServices.post(`/api/sessions/${sessionId}/delete`);
       showAlert('Session deleted successfully.', 'success');
       dispatch(fetchSessions());
     } catch (error) {
