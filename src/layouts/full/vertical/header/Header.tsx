@@ -1,10 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IconButton, Box, AppBar, useMediaQuery, Toolbar, styled, Stack } from '@mui/material';
 
 import { useSelector, useDispatch } from 'src/store/Store';
-import {
-  setDarkMode,
-} from 'src/store/customizer/CustomizerSlice';
-import {  IconMoon, IconSun } from '@tabler/icons-react';
+import { setDarkMode } from 'src/store/customizer/CustomizerSlice';
+import { IconMoon, IconSun } from '@tabler/icons-react';
 import Notifications from './Notification';
 import Profile from './Profile';
 import Language from './Language';
@@ -40,7 +39,6 @@ const Header = () => {
         {/* ------------------------------------------- */}
         {/* Toggle Button Sidebar */}
         {/* ------------------------------------------- */}
-
 
         {/* ------------------------------------------- */}
         {/* Search Dropdown */}

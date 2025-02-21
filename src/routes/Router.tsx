@@ -3,7 +3,7 @@
 import React, { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import Loadable from '../layouts/full/shared/loadable/Loadable';
-import RequireAuth from './RequireAuth';  // استيراد RequireAuth
+import RequireAuth from './RequireAuth'; // استيراد RequireAuth
 import Homepage from 'src/views/pages/frontend-pages/Homepage';
 import Landingpage from 'src/views/pages/landingpage/Landingpage';
 import BlogPost from 'src/views/apps/blog/BlogPost';
@@ -20,16 +20,15 @@ const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')))
 /* ****Pages***** */
 const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
 
-
 /* ****Apps***** */
-const UserList = Loadable(lazy(() => import('../views/admin/UserListing')))
-const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')))
-const ConfirmedOrdersPage = Loadable(lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')))
-const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')))
-const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')))
-const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails'))); 
-/* --- UI Components, Form Elements, Forms, Pages, Charts, Tables, React Tables, Widgets --- */
-// تم حذف استيرادات هذه الأقسام من أجل الاختصار، لكن يجب تضمينها في ملفك كما هي في النسخة السابقة.
+const UserList = Loadable(lazy(() => import('../views/admin/UserListing')));
+const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')));
+const ConfirmedOrdersPage = Loadable(
+  lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')),
+);
+const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')));
+const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')));
+const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails')));
 
 const PagePricing = Loadable(lazy(() => import('../views/pages/frontend-pages/Pricing')));
 
@@ -52,16 +51,14 @@ const Router = [
       { path: '/UserList', element: <UserList /> },
       { path: '/apps/sessions', element: <Sessions /> },
       { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
-      { path: '/api-docs', element: <ApiDocumentation  /> },
+      { path: '/api-docs', element: <ApiDocumentation /> },
       { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
       { path: '/users/:id/details', element: <UserDetails /> },
       {
         path: '/admin/features',
-        element: <FeatureManagement />
+        element: <FeatureManagement />,
       },
-      
 
-      // ... باقي المسارات المحمية
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

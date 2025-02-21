@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/frontend-pages/homepage/C2a.tsx
 import { Box, Grid, Typography, Container, Stack, Button } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -35,9 +36,7 @@ const C2a = () => {
                   Get Started Today
                 </Button>
               </Stack>
-              <Typography fontSize="14px">
-                One-time setup with no recurring fees.
-              </Typography>
+              <Typography fontSize="14px">One-time setup with no recurring fees.</Typography>
             </Grid>
           </Grid>
         </Container>

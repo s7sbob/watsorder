@@ -1,0 +1,347 @@
+USE [MyProjectDB]
+GO
+/****** Object:  Table [dbo].[Categories]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Categories](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[sessionId] [int] NOT NULL,
+	[category_name] [nvarchar](150) NOT NULL,
+	[category_internal_code] [nvarchar](50) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Features]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Features](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[featureKey] [nvarchar](100) NOT NULL,
+	[featureName] [nvarchar](100) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[featureKey] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Keywords]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Keywords](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[sessionId] [int] NOT NULL,
+	[keyword] [nvarchar](500) NOT NULL,
+	[replay_id] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[OrderItems]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OrderItems](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[orderId] [int] NOT NULL,
+	[productId] [int] NOT NULL,
+	[quantity] [int] NOT NULL,
+	[price] [decimal](18, 2) NULL,
+	[createdAt] [datetime] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Orders]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Orders](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[sessionId] [int] NOT NULL,
+	[status] [nvarchar](50) NOT NULL,
+	[deliveryAddress] [nvarchar](500) NULL,
+	[deliveryLat] [decimal](9, 6) NULL,
+	[deliveryLng] [decimal](9, 6) NULL,
+	[totalPrice] [decimal](18, 2) NULL,
+	[createdAt] [datetime] NOT NULL,
+	[updatedAt] [datetime] NOT NULL,
+	[tempProductId] [int] NULL,
+	[customerPhoneNumber] [nvarchar](50) NULL,
+	[deliveryFee] [decimal](18, 2) NULL,
+	[serviceFee] [decimal](18, 2) NULL,
+	[taxValue] [decimal](18, 2) NULL,
+	[prepTime] [int] NULL,
+	[finalConfirmed] [bit] NOT NULL,
+	[customerName] [nvarchar](100) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Products]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Products](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[sessionId] [int] NOT NULL,
+	[category_id] [int] NOT NULL,
+	[product_name] [nvarchar](100) NOT NULL,
+	[price] [decimal](18, 2) NULL,
+	[product_internal_code] [nvarchar](50) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[ReplayMedia]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[ReplayMedia](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[replayId] [int] NOT NULL,
+	[filePath] [nvarchar](400) NOT NULL,
+	[fileName] [nvarchar](200) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Replays]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Replays](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[replyText] [nvarchar](500) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Sessions]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Sessions](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[sessionIdentifier] [nvarchar](255) NOT NULL,
+	[userId] [int] NOT NULL,
+	[status] [nvarchar](50) NULL,
+	[category] [nvarchar](255) NULL,
+	[products] [nvarchar](max) NULL,
+	[keywords] [nvarchar](max) NULL,
+	[createdAt] [datetime] NULL,
+	[qrCode] [nvarchar](max) NULL,
+	[greetingMessage] [nvarchar](max) NULL,
+	[greetingActive] [bit] NULL,
+	[botActive] [bit] NOT NULL,
+	[phoneNumber] [nvarchar](20) NULL,
+	[menuBotActive] [bit] NOT NULL,
+	[otpActive] [bit] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[sessionIdentifier] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[SubscriptionLogs]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SubscriptionLogs](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[userId] [int] NOT NULL,
+	[oldSubscriptionType] [nvarchar](50) NULL,
+	[newSubscriptionType] [nvarchar](50) NOT NULL,
+	[changedBy] [int] NOT NULL,
+	[changedAt] [datetime] NULL,
+	[notes] [nvarchar](500) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[UserFeatures]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[UserFeatures](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[userId] [int] NOT NULL,
+	[featureId] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[startDate] [datetime] NOT NULL,
+	[endDate] [datetime] NULL,
+	[createdAt] [datetime] NULL,
+	[updatedAt] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Users]    Script Date: 2/20/2025 7:23:57 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Users](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[username] [nvarchar](100) NOT NULL,
+	[password] [nvarchar](255) NOT NULL,
+	[subscriptionType] [nvarchar](50) NOT NULL,
+	[createdAt] [datetime] NULL,
+	[name] [nvarchar](100) NULL,
+	[subscriptionStart] [nvarchar](100) NULL,
+	[subscriptionEnd] [nvarchar](100) NULL,
+	[maxSessions] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[username] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[OrderItems] ADD  DEFAULT ((1)) FOR [quantity]
+GO
+ALTER TABLE [dbo].[OrderItems] ADD  DEFAULT (getdate()) FOR [createdAt]
+GO
+ALTER TABLE [dbo].[Orders] ADD  DEFAULT (getdate()) FOR [createdAt]
+GO
+ALTER TABLE [dbo].[Orders] ADD  DEFAULT (getdate()) FOR [updatedAt]
+GO
+ALTER TABLE [dbo].[Orders] ADD  DEFAULT ((0)) FOR [finalConfirmed]
+GO
+ALTER TABLE [dbo].[Sessions] ADD  DEFAULT ('Waiting for QR Code') FOR [status]
+GO
+ALTER TABLE [dbo].[Sessions] ADD  DEFAULT (getdate()) FOR [createdAt]
+GO
+ALTER TABLE [dbo].[Sessions] ADD  DEFAULT ((0)) FOR [greetingActive]
+GO
+ALTER TABLE [dbo].[Sessions] ADD  DEFAULT ((0)) FOR [botActive]
+GO
+ALTER TABLE [dbo].[Sessions] ADD  CONSTRAINT [DF_Sessions_menuBotActive]  DEFAULT ((0)) FOR [menuBotActive]
+GO
+ALTER TABLE [dbo].[Sessions] ADD  DEFAULT ((0)) FOR [otpActive]
+GO
+ALTER TABLE [dbo].[SubscriptionLogs] ADD  DEFAULT (getdate()) FOR [changedAt]
+GO
+ALTER TABLE [dbo].[UserFeatures] ADD  DEFAULT ((1)) FOR [isActive]
+GO
+ALTER TABLE [dbo].[UserFeatures] ADD  DEFAULT (getdate()) FOR [createdAt]
+GO
+ALTER TABLE [dbo].[UserFeatures] ADD  DEFAULT (getdate()) FOR [updatedAt]
+GO
+ALTER TABLE [dbo].[Users] ADD  CONSTRAINT [DF_SubscriptionType]  DEFAULT ('free') FOR [subscriptionType]
+GO
+ALTER TABLE [dbo].[Users] ADD  DEFAULT (getdate()) FOR [createdAt]
+GO
+ALTER TABLE [dbo].[Users] ADD  DEFAULT ((1)) FOR [maxSessions]
+GO
+ALTER TABLE [dbo].[Categories]  WITH CHECK ADD  CONSTRAINT [FK_Categories_Sessions] FOREIGN KEY([sessionId])
+REFERENCES [dbo].[Sessions] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Categories] CHECK CONSTRAINT [FK_Categories_Sessions]
+GO
+ALTER TABLE [dbo].[Keywords]  WITH CHECK ADD  CONSTRAINT [FK_Keywords_Replay] FOREIGN KEY([replay_id])
+REFERENCES [dbo].[Replays] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Keywords] CHECK CONSTRAINT [FK_Keywords_Replay]
+GO
+ALTER TABLE [dbo].[Keywords]  WITH CHECK ADD  CONSTRAINT [FK_Keywords_Sessions] FOREIGN KEY([sessionId])
+REFERENCES [dbo].[Sessions] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Keywords] CHECK CONSTRAINT [FK_Keywords_Sessions]
+GO
+ALTER TABLE [dbo].[OrderItems]  WITH CHECK ADD  CONSTRAINT [FK_OrderItems_Orders] FOREIGN KEY([orderId])
+REFERENCES [dbo].[Orders] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[OrderItems] CHECK CONSTRAINT [FK_OrderItems_Orders]
+GO
+ALTER TABLE [dbo].[OrderItems]  WITH CHECK ADD  CONSTRAINT [FK_OrderItems_Products] FOREIGN KEY([productId])
+REFERENCES [dbo].[Products] ([id])
+GO
+ALTER TABLE [dbo].[OrderItems] CHECK CONSTRAINT [FK_OrderItems_Products]
+GO
+ALTER TABLE [dbo].[Orders]  WITH CHECK ADD  CONSTRAINT [FK_Orders_Sessions] FOREIGN KEY([sessionId])
+REFERENCES [dbo].[Sessions] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Orders] CHECK CONSTRAINT [FK_Orders_Sessions]
+GO
+ALTER TABLE [dbo].[Products]  WITH CHECK ADD  CONSTRAINT [FK_Products_Category] FOREIGN KEY([category_id])
+REFERENCES [dbo].[Categories] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Products] CHECK CONSTRAINT [FK_Products_Category]
+GO
+ALTER TABLE [dbo].[Sessions]  WITH CHECK ADD FOREIGN KEY([userId])
+REFERENCES [dbo].[Users] ([ID])
+GO
+ALTER TABLE [dbo].[Sessions]  WITH CHECK ADD  CONSTRAINT [FK_User_Sessions] FOREIGN KEY([userId])
+REFERENCES [dbo].[Users] ([ID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Sessions] CHECK CONSTRAINT [FK_User_Sessions]
+GO
+ALTER TABLE [dbo].[SubscriptionLogs]  WITH CHECK ADD  CONSTRAINT [FK_SubscriptionLogs_User] FOREIGN KEY([userId])
+REFERENCES [dbo].[Users] ([ID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[SubscriptionLogs] CHECK CONSTRAINT [FK_SubscriptionLogs_User]
+GO
+ALTER TABLE [dbo].[UserFeatures]  WITH CHECK ADD  CONSTRAINT [FK_UserFeatures_Feature] FOREIGN KEY([featureId])
+REFERENCES [dbo].[Features] ([id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[UserFeatures] CHECK CONSTRAINT [FK_UserFeatures_Feature]
+GO
+ALTER TABLE [dbo].[UserFeatures]  WITH CHECK ADD  CONSTRAINT [FK_UserFeatures_User] FOREIGN KEY([userId])
+REFERENCES [dbo].[Users] ([ID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[UserFeatures] CHECK CONSTRAINT [FK_UserFeatures_User]
+GO

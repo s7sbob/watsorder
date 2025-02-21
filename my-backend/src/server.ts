@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
   process.env.PRODUCTION_URL || '', // تحويل undefined إلى string فارغ
-  'http://localhost:3000'
+  'http://localhost:5173'
 ].filter(Boolean) as string[]; // إزالة أي قيم falsy (مثل string فارغ) وتحويل النوع
 
 

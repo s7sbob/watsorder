@@ -1,13 +1,12 @@
 import { Box, Stack, Typography, Grid, Container } from '@mui/material';
 import FeatureTitle from './FeatureTitle';
 
-import icon1 from 'src/assets/images/svgs/icon-briefcase.svg';
-import FeatureApp from 'src/assets/images/frontend-pages/homepage/feature-apps.png';
 import LogoIcon from 'src/assets/images/logos/logoIcon.svg';
-import Screen1 from 'src/assets/images/frontend-pages/homepage/screen1.png';
-import IconBubble from 'src/assets/images/svgs/icon-speech-bubble.svg';
-import IconFav from 'src/assets/images/svgs/icon-favorites.svg';
-
+import whatsappLogo from 'src/assets/images/frontend-pages/homepage/whatsapp-logo.png';
+import otpServices from 'src/assets/images/frontend-pages/homepage/otpservices.svg';
+import ApiIntegration from 'src/assets/images/frontend-pages/homepage/api-Integration.svg';
+import Automation from 'src/assets/images/frontend-pages/homepage/automation2.gif';
+import Deliver from 'src/assets/images/frontend-pages/homepage/Delivery.gif';
 const Features = () => {
   return (
     <Box pt={10} pb={10}>
@@ -20,34 +19,37 @@ const Features = () => {
               <Box px={4} py="65px">
                 <Stack direction="column" spacing={2} textAlign="center">
                   <Box textAlign="center">
-                    <img src={icon1} alt="icon1" width={40} height={40} />
+                    <img src={otpServices} alt="icon1" width={120} height={120} />
                   </Box>
                   <Typography variant="h6" fontWeight={700}>
-                    Light & Dark Color Schemes
+                    OTP Services{' '}
                   </Typography>
                   <Typography variant="body1">
-                    Choose your preferred visual style effortlessly.
+                    this service enables you to check for your Clients Phone numbers with just
+                    single click throught sending confirmation message .
                   </Typography>
                 </Stack>
               </Box>
             </Box>
             <Box textAlign="center" mb={3} bgcolor="secondary.light" borderRadius="24px">
               <Box px={4} py="50px">
+                <Box height="70px" paddingBottom={20}>
+                  <img src={Deliver} alt="icon1" width={250} height={100} />
+                </Box>
                 <Stack direction="column" spacing={2} textAlign="center">
                   <Typography variant="h6" fontWeight={700}>
-                    12+ Ready to Use Application Designs
+                    Boost your delivery services
                   </Typography>
                   <Typography variant="body1">
                     {' '}
-                    Instantly deployable designs for your applications.
+                    Enhance your delivery Services using our automated system that enables you to
+                    receive orders through Whats App system.
                   </Typography>
                 </Stack>
               </Box>
-              <Box height="70px">
-                <img src={FeatureApp} alt="icon1" width={250} height={70} />
-              </Box>
             </Box>
           </Grid>
+          {/* Our Services  */}
           <Grid
             item
             xs={12}
@@ -60,8 +62,8 @@ const Features = () => {
             }}
           >
             <Box textAlign="center" mb={3} bgcolor="primary.light" borderRadius="24px">
-              <Box pt="65px" pb="40px" px={5}>
-                <img src={LogoIcon} alt="logo" height="50" width="50" />
+              <Box pb="10px" px={5}>
+                <img src={LogoIcon} alt="logo" height="250" width="250" />
                 <Typography
                   variant="h2"
                   fontWeight="700"
@@ -69,27 +71,31 @@ const Features = () => {
                   sx={{
                     fontSize: {
                       lg: '40px',
-                      xs: '35px',
+                      xs: '30px',
                     },
                   }}
                 >
-                  New Demos
+                  Our Services
                 </Typography>
                 <Typography variant="body1" mt={2}>
-                  Brand new demos to help you build the perfect dashboard:{' '}
+                  receiving the orders through Whats App system: unique service that enables you to
+                  receive your orders easily throught{' '}
                   <Typography component="span" fontWeight={600}>
-                    Dark and Right-to-Left.
+                    Whats-App
+                  </Typography>
+                  <Typography component="span" fontWeight={600}>
+                    <Box mt={2} mb={2}>
+                      <img
+                        src={whatsappLogo}
+                        alt="icon1"
+                        width={5}
+                        height={5}
+                        style={{ width: '30%', height: 'auto' }}
+                      />
+                    </Box>
+                    .
                   </Typography>
                 </Typography>
-                <Box mt={5} mb={2}>
-                  <img
-                    src={Screen1}
-                    alt="icon1"
-                    width={405}
-                    height={245}
-                    style={{ width: '100%', height: 'auto' }}
-                  />
-                </Box>
               </Box>
             </Box>
           </Grid>
@@ -105,18 +111,20 @@ const Features = () => {
               },
             }}
           >
+            {/* Api integration services  */}
             <Box textAlign="center" mb={3} bgcolor="success.light" borderRadius="24px">
               <Box px={4} py="65px">
                 <Stack direction="column" spacing={2} textAlign="center">
                   <Box textAlign="center">
-                    <img src={IconBubble} alt="icon1" width={40} height={40} />
+                    <img src={ApiIntegration} alt="icon1" width={220} height={150} />
                   </Box>
                   <Typography variant="h6" fontWeight={700}>
-                    Code Improvements
+                    Api integrations services
                   </Typography>
                   <Typography variant="body1">
                     {' '}
-                    Benefit from continuous improvements and optimizations.
+                    this enables you to use our multible services and integrate with any external
+                    systems .
                   </Typography>
                 </Stack>
               </Box>
@@ -125,10 +133,10 @@ const Features = () => {
               <Box px={4} py="65px">
                 <Stack direction="column" spacing={2} textAlign="center">
                   <Box textAlign="center">
-                    <img src={IconFav} alt="icon1" width={40} height={40} />
+                    <img src={Automation} alt="icon1" width={250} height={150} />
                   </Box>
                   <Typography variant="h6" fontWeight={700}>
-                    50+ UI Components
+                    Automation services .
                   </Typography>
                   <Typography variant="body1">
                     {' '}

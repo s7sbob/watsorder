@@ -1,9 +1,7 @@
 // src/components/frontend-pages/homepage/Pricing.tsx
-import React from 'react';
-import { Box, Typography, Container, Grid } from '@mui/material';
-import PricingCard from './PricingCard'; // تأكد من إنشاء PricingCard مُعدل للخطط الثلاثة
-import PaymentMethods from './PaymentMethods';
 
+import { Box, Typography, Container, Grid } from '@mui/material';
+import PricingCard from './PricingCard';
 const Pricing = () => {
   return (
     <Box sx={{ py: { xs: 5, lg: 11 } }}>
@@ -23,9 +21,9 @@ const Pricing = () => {
           </Grid>
         </Grid>
 
-        <PricingCard /> {/* يُعرض هنا PricingCard مع ثلاث خطط أسعار: Regular، Premium، Ultimate */}
+        <PricingCard />
 
-        <PaymentMethods /> {/* يمكنك عرض طرق الدفع المتاحة */}
+        {/* <PaymentMethods /> */}
       </Container>
     </Box>
   );

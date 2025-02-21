@@ -8,7 +8,6 @@ const axiosServices = axios.create({
   },
 });
 
-// Interceptor لإضافة التوكين في كل طلب
 axiosServices.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token'); // جلب التوكين من localStorage
@@ -17,7 +16,7 @@ axiosServices.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Interceptor لمعالجة الردود
@@ -26,7 +25,7 @@ axiosServices.interceptors.response.use(
   (error) => {
     // معالجة الأخطاء وإرجاع رسالة خطأ واضحة
     return Promise.reject((error.response && error.response.data) || 'Wrong Services');
-  }
+  },
 );
 
 export default axiosServices;

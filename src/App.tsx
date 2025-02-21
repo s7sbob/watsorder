@@ -15,14 +15,12 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-            <UserProvider> {/* <-- ضعها هنا */}
-
-      <RTL direction={customizer.activeDir}>
-        <CssBaseline />
-        <ScrollToTop>{routing}</ScrollToTop>
-      </RTL>
+      <UserProvider>
+        <RTL direction={customizer.activeDir}>
+          <CssBaseline />
+          <ScrollToTop>{routing}</ScrollToTop>
+        </RTL>
       </UserProvider>
-
     </ThemeProvider>
   );
 }

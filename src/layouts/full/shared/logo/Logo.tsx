@@ -20,7 +20,7 @@ const Logo: FC = () => {
   const customizer = useSelector((state: AppState) => state.customizer);
   const LinkStyled = styled(Link)(() => ({
     height: customizer.TopbarHeight,
-    width: customizer.isCollapse ? '40px' : '180px',
+    width: customizer.isCollapse ? '20px' : '90px',
     overflow: 'hidden',
     display: 'block',
   }));
@@ -34,11 +34,7 @@ const Logo: FC = () => {
           alignItems: 'center',
         }}
       >
-        {customizer.activeMode === 'dark' ? (
-          <LogoLight />
-        ) : (
-          <LogoDark />
-        )}
+        {customizer.activeMode === 'dark' ? <LogoLight /> : <LogoDark />}
       </LinkStyled>
     );
   }
@@ -51,11 +47,7 @@ const Logo: FC = () => {
         alignItems: 'center',
       }}
     >
-      {customizer.activeMode === 'dark' ? (
-        <LogoDarkRTL />
-      ) : (
-        <LogoLightRTL />
-      )}
+      {customizer.activeMode === 'dark' ? <LogoDarkRTL /> : <LogoLightRTL />}
     </LinkStyled>
   );
 };

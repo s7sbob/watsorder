@@ -1,23 +1,27 @@
 // src/components/frontend-pages/homepage/PricingCard.tsx
-import React from 'react';
 import { Box, Grid, Typography, Button, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const plans = [
   {
-    title: 'Regular',
-    price: '$29/month',
-    features: ['Basic Order Management', 'Email Support', 'Limited Customization'],
+    title: 'Basic',
+    price: '700£/month\n7700£/year',
+    features: ['', 'Menu Bot', ' Automation', ''],
   },
   {
-    title: 'Premium',
-    price: '$59/month',
-    features: ['Advanced Order Management', 'Priority Support', 'More Customization Options'],
+    title: 'Standered',
+    price: '1000£/month\n11000£/year',
+    features: ['Menu Bot', ' Automation', 'Orders Api Integration', ''],
   },
   {
-    title: 'Ultimate',
-    price: '$99/month',
-    features: ['Full Order Automation', '24/7 Premium Support', 'Complete Customization', 'Analytics Dashboard'],
+    title: 'Otp Plan',
+    price: '500£/month\n5000£/year',
+    features: [' ', 'Otp Api', ' ', ' '],
+  },
+  {
+    title: 'Golden ',
+    price: '1500£/month\n15000£/year',
+    features: ['Menu Bot', ' Automation', 'Orders Api Integration', 'Otp Api'],
   },
 ];
 
@@ -32,7 +36,7 @@ const PricingCard = () => {
   return (
     <Grid container spacing={3} justifyContent="center">
       {plans.map((plan, index) => (
-        <Grid item xs={12} sm={6} md={4} key={index}>
+        <Grid item xs={12} sm={6} md={3} key={index}>
           <Card>
             <Typography variant="h5" fontWeight={700} gutterBottom>
               {plan.title}
@@ -43,11 +47,11 @@ const PricingCard = () => {
             <Box mb={2}>
               {plan.features.map((feature, i) => (
                 <Typography key={i} variant="body1">
-                  • {feature}
+                  <span style={{ color: 'white' }}>*</span> {feature}
                 </Typography>
               ))}
             </Box>
-            <Button variant="contained" color="primary">
+            <Button variant="contained" color="primary" onClick={() => {}}>
               Get Started
             </Button>
           </Card>
