@@ -23,24 +23,54 @@ import PageContainer from '../../components/container/PageContainer';
 
 // Icons
 import {
-  VpnKey,       // للمصادقة
-  Api,          // متعدد الاستخدام
-  Message,      // للـ OTP أو Sessions أو Keywords
-  ShoppingCart, // للطلبات
+  VpnKey,
+  Api,
+  Message,
+  ShoppingCart,
   Search,
   ExpandMore,
   ExpandLess,
   PlayArrow,
-  Person,       // للمستخدمين
-  VerifiedUser, // Features
-  AdminPanelSettings, // Admin Features
-  BugReport,    // Health check
+  Person,
+  VerifiedUser,
+  AdminPanelSettings,
+  BugReport,
 } from '@mui/icons-material';
 
+/* 
+  1) عرف واجهات تشرح شكل البيانات بالتفصيل
+*/
 
-// ================================
-// 1) تنسيق العناصر styled()
-// ================================
+// واجهة لهيكل response. (المفاتيح هي أكواد الحالة مثلاً 200, 201, 400,...)
+// يمكن أن تكون أي نوع (any) لو أردت
+interface EndpointResponse {
+  [statusCode: string]: any;
+}
+
+interface EndpointExample {
+  body: any;
+  response?: EndpointResponse; 
+}
+
+interface EndpointDoc {
+  id: string;
+  title: string;
+  method: string;
+  url: string;
+  description: string;
+  example: EndpointExample;
+}
+
+interface SectionDoc {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  endpoints: EndpointDoc[];
+}
+
+/*
+  2) عرف أي مكونات styled() أو متغيرات
+*/
 const SidebarWrapper = styled(Paper)(({ theme }) => ({
   height: '100%',
   padding: theme.spacing(2),
@@ -1100,54 +1130,49 @@ const apiSections = [
 // 3) مكوّن الصفحة الرئيسي
 // ================================
 const ApiDocumentation: React.FC = () => {
-  const [selectedSection, setSelectedSection] = useState('auth');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSection, setSelectedSection] = useState<string>('auth');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedEndpoint, setExpandedEndpoint] = useState<string | null>(null);
   const [testResponse, setTestResponse] = useState<any>(null);
 
-  // للبحث داخل عناوين المسارات
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
 
-  // فتح/غلق تفاصيل الـ Endpoint
   const handleEndpointExpand = (endpointId: string) => {
     setExpandedEndpoint(expandedEndpoint === endpointId ? null : endpointId);
-    setTestResponse(null); // افراغ أي رد سابق
+    setTestResponse(null);
   };
 
-  // بدلا من axios، نعرض الرد الثابت (example.response)
-  const handleTestEndpoint = (endpoint: any) => {
-    // سنعرض كـ JSON: كل الاستجابات المحتملة (status codes) الموضوعة
-    if (endpoint.example?.response) {
+  // لا نستخدم axios، بل فقط نعرض الرد الثابت
+  const handleTestEndpoint = (endpoint: EndpointDoc) => {
+    if (endpoint.example.response) {
       setTestResponse(endpoint.example.response);
     } else {
       setTestResponse({ message: 'No mock response provided.' });
     }
   };
 
-  // 1) فلترة الأقسام بناءً على searchQuery
+  // 1) فلترة الأقسام حسب البحث
   const filteredSections = apiSections
-    .map((section) => ({
-      ...section,
-      endpoints: section.endpoints.filter(
-        (endpoint) =>
-          endpoint.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          endpoint.url.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    }))
-    .filter((section) => section.endpoints.length > 0);
+  .map((section: SectionDoc) => ({
+    ...section,
+    endpoints: section.endpoints.filter((endpoint: EndpointDoc) =>
+      endpoint.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      endpoint.url.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+  }))
+  .filter((section: SectionDoc) => section.endpoints.length > 0);
 
-  // 2) عرض قسم واحد (المختار)
+  // 2) دالة لعرض القسم المختار
   const renderApiContent = () => {
     const currentSection = filteredSections.find((section) => section.id === selectedSection);
     if (!currentSection) return null;
 
-    return currentSection.endpoints.map((endpoint) => (
+    return currentSection.endpoints.map((endpoint: EndpointDoc) => (
       <ApiSection key={endpoint.id}>
         <CardContent>
           <EndpointChip label={`${endpoint.method} ${endpoint.url}`} methodtype={endpoint.method} />
-
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="h6" gutterBottom>
               {endpoint.title}
@@ -1163,13 +1188,11 @@ const ApiDocumentation: React.FC = () => {
                 {endpoint.description}
               </Typography>
 
-              {/* عرض جسم الطلب */}
               <Typography variant="subtitle2" gutterBottom>
                 Example Request Body:
               </Typography>
               <pre>{JSON.stringify(endpoint.example.body, null, 2)}</pre>
 
-              {/* زر التجربة */}
               <Button
                 variant="contained"
                 startIcon={<PlayArrow />}
@@ -1179,7 +1202,6 @@ const ApiDocumentation: React.FC = () => {
                 Test Endpoint
               </Button>
 
-              {/* الرد الثابت */}
               {testResponse && expandedEndpoint === endpoint.id && (
                 <Box mt={2}>
                   <Typography variant="subtitle2" gutterBottom>
@@ -1198,20 +1220,17 @@ const ApiDocumentation: React.FC = () => {
   return (
     <PageContainer title="توثيق واجهة البرمجة" description="API Documentation">
       <Grid container spacing={3}>
-        {/* الشريط الجانبي (Sidebar) */}
         <Grid item xs={12} md={3}>
           <SidebarWrapper>
             <SearchBox
               placeholder="ابحث في التوثيق..."
               variant="outlined"
               size="small"
-              InputProps={{
-                startAdornment: <Search />,
-              }}
+              InputProps={{ startAdornment: <Search /> }}
               onChange={handleSearch}
             />
             <List>
-              {filteredSections.map((section) => (
+              {filteredSections.map((section: SectionDoc) => (
                 <React.Fragment key={section.id}>
                   <ListItem disablePadding>
                     <ListItemButton
@@ -1229,7 +1248,6 @@ const ApiDocumentation: React.FC = () => {
           </SidebarWrapper>
         </Grid>
 
-        {/* المحتوى الأساسي */}
         <Grid item xs={12} md={9}>
           <Box sx={{ p: 2 }}>{renderApiContent()}</Box>
         </Grid>
