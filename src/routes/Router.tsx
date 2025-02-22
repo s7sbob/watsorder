@@ -51,7 +51,6 @@ const Router = [
       { path: '/UserList', element: <UserList /> },
       { path: '/apps/sessions', element: <Sessions /> },
       { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
-      { path: '/api-docs', element: <ApiDocumentation /> },
       { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
       { path: '/users/:id/details', element: <UserDetails /> },
       {
@@ -68,6 +67,8 @@ const Router = [
       { path: '/', element: <Navigate to="/frontend-pages/homepage" /> },
       { path: '/frontend-pages/homepage', element: <Homepage /> },
       { path: '/landingpage', element: <Landingpage /> },
+      { path: '/api-docs', element: <ApiDocumentation /> },
+
       { path: '/frontend-pages/about', element: <About /> },
       { path: '/frontend-pages/contact', element: <Contact /> },
       { path: '/frontend-pages/portfolio', element: <Portfolio /> },
