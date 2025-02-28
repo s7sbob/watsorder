@@ -39,7 +39,7 @@ const SessionManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('All')
 
-  // حوار "Confirm Payment" الذي يطلب إدخال تاريخ الانتهاء
+  // ======= حوار تأكيد الدفع مع Expire Date =======
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [newExpireDate, setNewExpireDate] = useState('')
@@ -58,7 +58,7 @@ const SessionManagement: React.FC = () => {
     fetchSessions()
   }, [])
 
-  // تصفية الجلسات بناءً على البحث وحالة الجلسة
+  // تصفية النتائج عند تغير البحث أو الفلتر
   useEffect(() => {
     let temp = sessions
     if (searchQuery) {
@@ -73,14 +73,13 @@ const SessionManagement: React.FC = () => {
     setFilteredSessions(temp)
   }, [searchQuery, statusFilter, sessions])
 
-  // عند الضغط على زر Confirm Payment (Force Confirm)
+  // ======= الدفع =========
   const handleForceConfirm = (session: Session) => {
     setSelectedSession(session)
     setNewExpireDate('')
     setOpenConfirmDialog(true)
   }
 
-  // إرسال تأكيد الدفع + تاريخ الانتهاء
   const handleConfirmPayment = async () => {
     if (!selectedSession || !newExpireDate) {
       alert('Please enter the expire date.')
@@ -99,7 +98,7 @@ const SessionManagement: React.FC = () => {
     }
   }
 
-  // زر رفض الدفع (Payment Rejected)
+  // زر رفض الدفع
   const handleRejectPayment = async (sessionId: number) => {
     if (!window.confirm('Are you sure you want to reject this payment?')) return
     try {
@@ -111,7 +110,7 @@ const SessionManagement: React.FC = () => {
     }
   }
 
-  // زر Renew لتجديد الاشتراك عند انتهاء الصلاحية
+  // زر تجديد الاشتراك
   const handleRenewSubscription = async (sessionId: number) => {
     const newExpire = prompt('Enter new expire date (YYYY-MM-DD):')
     if (!newExpire) return
@@ -125,23 +124,47 @@ const SessionManagement: React.FC = () => {
     }
   }
 
+  // ======= إيقاف الجلسة من قبل المدير (Force Pause) =======
+  const handleForcePause = async (sessionId: number) => {
+    if (!window.confirm('Are you sure you want to pause this session?')) return
+    try {
+      await axiosServices.post(`/api/sessions/${sessionId}/force-pause`)
+      fetchSessions()
+    } catch (error) {
+      console.error('Error pausing session:', error)
+      alert('Error pausing session.')
+    }
+  }
+
+  // ======= تشغيل الجلسة مجددًا (Force Start) =======
+  const handleForceStart = async (sessionId: number) => {
+    if (!window.confirm('Are you sure you want to start this session again?')) return
+    try {
+      await axiosServices.post(`/api/sessions/${sessionId}/force-start`)
+      fetchSessions()
+    } catch (error) {
+      console.error('Error starting session:', error)
+      alert('Error starting session.')
+    }
+  }
+
   return (
     <Box p={3}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant='h4' gutterBottom>
         Session Management (Manager)
       </Typography>
 
-      {/* شريط البحث وخيارات التصفية */}
-      <Box display="flex" alignItems="center" mb={2} gap={2}>
+      {/* شريط البحث */}
+      <Box display='flex' alignItems='center' mb={2} gap={2}>
         <TextField
-          label="Search by Client Name or Plan"
-          variant="outlined"
-          size="small"
+          label='Search by Client Name or Plan'
+          variant='outlined'
+          size='small'
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: (
-              <InputAdornment position="start">
+              <InputAdornment position='start'>
                 <SearchIcon />
               </InputAdornment>
             )
@@ -149,20 +172,21 @@ const SessionManagement: React.FC = () => {
         />
         <TextField
           select
-          label="Filter by Status"
-          variant="outlined"
-          size="small"
+          label='Filter by Status'
+          variant='outlined'
+          size='small'
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <MenuItem value="All">All</MenuItem>
-          <MenuItem value="Paid">Paid</MenuItem>
-          <MenuItem value="Ready">Ready</MenuItem>
-          <MenuItem value="Connected">Connected</MenuItem>
-          <MenuItem value="Expired">Expired</MenuItem>
-          <MenuItem value="Terminated">Terminated</MenuItem>
-          <MenuItem value="Payment Rejected">Payment Rejected</MenuItem>
-          {/* أي حالات أخرى تريدها */}
+          <MenuItem value='All'>All</MenuItem>
+          <MenuItem value='Waiting for Payment'>Waiting for Payment</MenuItem>
+          <MenuItem value='Paid'>Paid</MenuItem>
+          <MenuItem value='Ready'>Ready</MenuItem>
+          <MenuItem value='Connected'>Connected</MenuItem>
+          <MenuItem value='Expired'>Expired</MenuItem>
+          <MenuItem value='Terminated'>Terminated</MenuItem>
+          <MenuItem value='Payment Rejected'>Payment Rejected</MenuItem>
+          <MenuItem value='Stopped by Admin'>Stopped by Admin</MenuItem>
         </TextField>
       </Box>
 
@@ -176,7 +200,7 @@ const SessionManagement: React.FC = () => {
               <TableCell>Plan</TableCell>
               <TableCell>Expire Date</TableCell>
               <TableCell>Phone</TableCell>
-              <TableCell align="center">Actions</TableCell>
+              <TableCell align='center'>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -196,6 +220,8 @@ const SessionManagement: React.FC = () => {
                         ? 'error'
                         : session.status === 'Payment Rejected'
                         ? 'error'
+                        : session.status === 'Stopped by Admin'
+                        ? 'error'
                         : 'default'
                     }
                   />
@@ -203,39 +229,64 @@ const SessionManagement: React.FC = () => {
                 <TableCell>{session.planType || 'Not Chosen'}</TableCell>
                 <TableCell>{session.expireDate || 'N/A'}</TableCell>
                 <TableCell>{session.phoneNumber || 'N/A'}</TableCell>
-                <TableCell align="center">
-                  {session.status === 'Paid' && (
+                <TableCell align='center'>
+                  {/* التأكيد أو الرفض عند Waiting for Payment أو Paid */}
+                  {(session.status === 'Waiting for Payment' || session.status === 'Paid') && (
                     <>
                       <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
+                        variant='contained'
+                        color='primary'
+                        size='small'
                         onClick={() => handleForceConfirm(session)}
+                        style={{ marginRight: 8 }}
                       >
                         Confirm Payment
                       </Button>
                       <Button
-                        variant="outlined"
-                        color="error"
-                        size="small"
+                        variant='outlined'
+                        color='error'
+                        size='small'
                         onClick={() => handleRejectPayment(session.id)}
-                        style={{ marginLeft: 8 }}
                       >
                         Reject Payment
                       </Button>
                     </>
                   )}
+
+                  {/* التجديد عند Expired */}
                   {session.status === 'Expired' && (
                     <Button
-                      variant="outlined"
-                      color="secondary"
-                      size="small"
+                      variant='outlined'
+                      color='secondary'
+                      size='small'
                       onClick={() => handleRenewSubscription(session.id)}
                     >
                       Renew
                     </Button>
                   )}
-                  {/* يمكن إضافة أكشنات أخرى لباقي الحالات */}
+
+                  {/* زر Force Pause / Force Start */}
+                  {session.status === 'Stopped by Admin' ? (
+                    <Button
+                      variant='contained'
+                      color='success'
+                      size='small'
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleForceStart(session.id)}
+                    >
+                      Force Start
+                    </Button>
+                  ) : (
+                    <Button
+                      variant='contained'
+                      color='warning'
+                      size='small'
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleForcePause(session.id)}
+                    >
+                      Force Pause
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -243,13 +294,13 @@ const SessionManagement: React.FC = () => {
         </Table>
       </TableContainer>
 
-      {/* Dialog لطلب إدخال expire date عند تأكيد الدفع */}
-      <Dialog open={openConfirmDialog} onClose={() => setOpenConfirmDialog(false)} maxWidth="sm" fullWidth>
+      {/* حوار تأكيد الدفع (إدخال Expire Date) */}
+      <Dialog open={openConfirmDialog} onClose={() => setOpenConfirmDialog(false)} maxWidth='sm' fullWidth>
         <DialogTitle>Confirm Payment & Set Expire Date</DialogTitle>
         <DialogContent>
           <TextField
-            label="Expire Date (YYYY-MM-DD)"
-            type="date"
+            label='Expire Date (YYYY-MM-DD)'
+            type='date'
             fullWidth
             value={newExpireDate}
             onChange={(e) => setNewExpireDate(e.target.value)}
@@ -258,10 +309,10 @@ const SessionManagement: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenConfirmDialog(false)} color="inherit">
+          <Button onClick={() => setOpenConfirmDialog(false)} color='inherit'>
             Cancel
           </Button>
-          <Button onClick={handleConfirmPayment} variant="contained" color="primary">
+          <Button onClick={handleConfirmPayment} variant='contained' color='primary'>
             Confirm
           </Button>
         </DialogActions>

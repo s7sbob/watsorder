@@ -33,13 +33,12 @@ import { useNavigate } from 'react-router'
 import PricingCard from 'src/components/frontend-pages/shared/pricing/PricingCard'
 import PaymentInstructions from 'src/views/pages/PaymentInstructions'
 
-// نفس الصفحة المعتادة مع تعديلات تلبي الطلبات
 const SessionListing = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const sessions = useSelector((state) => state.sessionReducer.sessions) as SessionType[]
 
-  // Snackbar
+  // ============== Snackbar ==============
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState('')
   const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success')
@@ -53,7 +52,7 @@ const SessionListing = () => {
     setSnackbarOpen(false)
   }
 
-  // Socket.io
+  // ============== Socket: استقبال التحديثات ==============
   useEffect(() => {
     socket.on('sessionUpdate', (data: { sessionId: number; status: string; qrCode?: string }) => {
       dispatch(
@@ -68,7 +67,7 @@ const SessionListing = () => {
     }
   }, [dispatch])
 
-  // جلب الجلسات
+  // ============== جلب الجلسات عند التحميل ==============
   useEffect(() => {
     dispatch(fetchSessions())
   }, [dispatch])
@@ -82,18 +81,17 @@ const SessionListing = () => {
     setPlanDialogOpen(true)
   }
 
-  // هذه الدالة خاصة بـ "جلسة جديدة"
+  // عندما يختار المستخدم خطة لجلسة جديدة
   const handlePlanChosenForNewSession = (plan: string) => {
     setSelectedPlan(plan)
     setPlanDialogOpen(false)
     setPaymentDialogOpen(true)
   }
 
+  // عند الضغط "I have paid" لإنشاء جلسة جديدة
   const handlePaymentDoneForNewSession = async () => {
     if (!selectedPlan) return
-
     try {
-      // استدعاء الراوت الخاص بإنشاء جلسة جديدة مدفوعة
       await axiosServices.post('/api/sessions/create-paid-session', {
         planType: selectedPlan
       })
@@ -102,8 +100,6 @@ const SessionListing = () => {
 
       setPaymentDialogOpen(false)
       setSelectedPlan(null)
-
-      // إعادة جلب الجلسات
       dispatch(fetchSessions())
     } catch (error) {
       console.error('Error creating paid session:', error)
@@ -111,34 +107,32 @@ const SessionListing = () => {
     }
   }
 
-  // ============== إعادة الدفع لجلسة موجودة (Payment Rejected) أو (Expired) ==============
-  // نحتاج state للاحتفاظ بالجلسة التي ننوي إعادة الدفع أو التجديد لها
+  // ============== Buy Again / Renew لجلسة موجودة ==============
   const [reactivateDialogOpen, setReactivateDialogOpen] = useState(false)
   const [reactivatePaymentDialogOpen, setReactivatePaymentDialogOpen] = useState(false)
   const [reactivateSession, setReactivateSession] = useState<SessionType | null>(null)
   const [reactivateSelectedPlan, setReactivateSelectedPlan] = useState<string | null>(null)
 
+  // "Buy Again" لجلسة حالتها Payment Rejected
   const handleBuyAgain = (session: SessionType) => {
-    // فتح حوار اختيار الخطة لإعادة المحاولة على نفس الجلسة
     setReactivateSession(session)
     setReactivateDialogOpen(true)
   }
 
+  // "Renew" لجلسة حالتها Expired
   const handleRenew = (session: SessionType) => {
-    // نفس الفكرة
     setReactivateSession(session)
     setReactivateDialogOpen(true)
   }
 
-  // عندما يختار خطة جديدة لجلسة موجودة
+  // بعد اختيار الخطة لجلسة قائمة
   const handlePlanChosenForExistingSession = (plan: string) => {
     setReactivateSelectedPlan(plan)
     setReactivateDialogOpen(false)
-    // فتح نافذة الدفع
     setReactivatePaymentDialogOpen(true)
   }
 
-  // عند الضغط "I have paid" لجلسة موجودة
+  // عند الضغط "I have paid" لجلسة قائمة
   const handlePaymentDoneForExistingSession = async () => {
     if (!reactivateSession || !reactivateSelectedPlan) return
     const sessionId = reactivateSession.id
@@ -149,12 +143,11 @@ const SessionListing = () => {
       await axiosServices.post(`/api/sessions/${sessionId}/choose-plan`, {
         planType
       })
-      // 2) بعد الدفع => نطلب إرسال الجلسة للمدير => تصبح "Paid"
+      // 2) بعد الدفع => ترسل للمدير => تصبح "Paid"
       await axiosServices.post(`/api/sessions/${sessionId}/send-to-manager`)
 
       showAlert(`Session #${sessionId} is now Paid. Awaiting manager confirmation.`, 'success')
 
-      // إغلاق النوافذ وإفراغ الـ states
       setReactivateSession(null)
       setReactivateSelectedPlan(null)
       setReactivatePaymentDialogOpen(false)
@@ -259,15 +252,17 @@ const SessionListing = () => {
           </TableHead>
           <TableBody>
             {sessions.map((session) => {
+              // حالات مختلفة للاختصار
               const isExpired = session.status === 'Expired'
               const isRejected = session.status === 'Payment Rejected'
               const isPaid = session.status === 'Paid'
               const isReady = session.status === 'Ready'
               const isTerminated = session.status === 'Terminated'
+              const isStoppedByAdmin = session.status === 'Stopped by Admin'
 
-              // لو الجلسة Expired نريد تعطيل (blur) جميع الأزرار ماعدا زر "Renew"
-              // أسهل طريقة: إما بالـ CSS أو منع النقر. هنا سنستخدم خاصية `disabled` أو `sx={{ filter: 'blur(2px)' }}`.
-              const actionsDisabled = isExpired
+              // لو الجلسة Expired نعطل باقي الأزرار باستثناء زر "Renew"
+              // ولو الجلسة Stopped by Admin نعطل باقي الأزرار باستثناء دلالتها
+              const actionsDisabled = isExpired || isStoppedByAdmin
 
               return (
                 <TableRow key={session.id}>
@@ -283,37 +278,27 @@ const SessionListing = () => {
                           ? 'success'
                           : isPaid
                           ? 'warning'
-                          : isRejected
-                          ? 'error'
-                          : isExpired
+                          : isRejected || isExpired || isStoppedByAdmin
                           ? 'error'
                           : 'primary'
                       }
                     />
                   </TableCell>
                   <TableCell align='right'>
+                    {/* 1) لو الجلسة Expired */}
                     {isExpired ? (
                       // زر "Renew"
                       <Box>
-                        <Button
-                          variant='contained'
-                          color='info'
-                          onClick={() => handleRenew(session)}
-                        >
+                        <Button variant='contained' color='info' onClick={() => handleRenew(session)}>
                           Renew
                         </Button>
                       </Box>
-                    ) : isRejected ? (
-                      // زر "Buy Again"
+                    ) : /* 2) لو الجلسة Payment Rejected */
+                    isRejected ? (
                       <Box>
-                        <Button
-                          variant='contained'
-                          color='secondary'
-                          onClick={() => handleBuyAgain(session)}
-                        >
+                        <Button variant='contained' color='secondary' onClick={() => handleBuyAgain(session)}>
                           Buy Again
                         </Button>
-                        {/* زر Delete (اختياري) */}
                         <IconButton
                           aria-label='delete'
                           color='error'
@@ -323,16 +308,29 @@ const SessionListing = () => {
                           <DeleteIcon />
                         </IconButton>
                       </Box>
-                    ) : isPaid ? (
-                      // لو الحالة Paid => Awaiting Manager Confirmation
+                    ) : /* 3) لو الجلسة Paid => Awaiting Manager Confirmation */
+                    isPaid ? (
                       <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
                         <Chip label='Awaiting Manager Confirmation' color='warning' />
                         <IconButton aria-label='delete' color='error' onClick={() => handleDeleteSession(session.id)}>
                           <DeleteIcon />
                         </IconButton>
                       </Box>
+                    ) : /* 4) لو الجلسة Stopped by Admin */
+                    isStoppedByAdmin ? (
+                      <Box>
+                        <Chip label='Stopped by Admin' color='error' />
+                        <IconButton
+                          aria-label='delete'
+                          color='error'
+                          onClick={() => handleDeleteSession(session.id)}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
                     ) : (
-                      // حالات أخرى (Ready, Waiting for QR Code, ...)
+                      // 5) الحالات الأخرى (Ready, Waiting for QR Code, ...)
                       <Box
                         sx={{
                           display: 'inline-flex',
@@ -387,7 +385,7 @@ const SessionListing = () => {
         </Table>
       </TableContainer>
 
-      {/* Dialog لاختيار الخطة (New Session) */}
+      {/* Dialog لاختيار الخطة (جلسة جديدة) */}
       <Dialog open={planDialogOpen} onClose={() => setPlanDialogOpen(false)} maxWidth='md' fullWidth>
         <DialogTitle>Choose Your Plan (New Session)</DialogTitle>
         <DialogContent>
@@ -400,7 +398,7 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog للدفع (New Session) */}
+      {/* Dialog للدفع (جلسة جديدة) */}
       <Dialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} maxWidth='sm' fullWidth>
         <DialogTitle>Payment Instructions (New Session)</DialogTitle>
         <DialogContent>
@@ -416,11 +414,10 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog لاختيار الخطة (لجلسة موجودة: BuyAgain أو Renew) */}
+      {/* Dialog لاختيار الخطة (لجلسة قائمة: BuyAgain أو Renew) */}
       <Dialog open={reactivateDialogOpen} onClose={() => setReactivateDialogOpen(false)} maxWidth='md' fullWidth>
         <DialogTitle>Choose a Plan</DialogTitle>
         <DialogContent>
-          {/* عند اختيار الخطة, نستدعي handlePlanChosenForExistingSession */}
           <PricingCard onPlanChosen={handlePlanChosenForExistingSession} />
         </DialogContent>
         <DialogActions>

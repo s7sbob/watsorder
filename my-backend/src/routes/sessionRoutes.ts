@@ -28,7 +28,9 @@ import {
   sendToManager,
   confirmPaymentWithExpire,
   createPaidSession,
-  rejectPayment
+  rejectPayment,
+  forcePauseSession,
+  forceStartSession
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
 import { upload } from '../middleware/uploadMiddleware'
@@ -131,6 +133,8 @@ router.post('/:id/send-to-manager', authenticateToken, sendToManager);
 router.post('/:id/confirm-payment-with-expire', authenticateToken, confirmPaymentWithExpire);
 router.post('/create-paid-session', authenticateToken, createPaidSession);
 router.post('/:id/reject-payment', authenticateToken, rejectPayment);
+router.post('/:id/force-pause', authenticateToken, forcePauseSession)
+router.post('/:id/force-start', authenticateToken, forceStartSession)
 
 
 
