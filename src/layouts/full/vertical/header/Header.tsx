@@ -1,15 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { IconButton, Box, AppBar, useMediaQuery, Toolbar, styled, Stack } from '@mui/material';
-
+import MenuIcon from '@mui/icons-material/Menu';
 import { useSelector, useDispatch } from 'src/store/Store';
-import { setDarkMode } from 'src/store/customizer/CustomizerSlice';
+import { setDarkMode, toggleMobileSidebar } from 'src/store/customizer/CustomizerSlice';
 import { IconMoon, IconSun } from '@tabler/icons-react';
 import Notifications from './Notification';
 import Profile from './Profile';
 import Language from './Language';
 import { AppState } from 'src/store/Store';
-// import Navigation from './Navigation';
-// import MobileRightSidebar from './MobileRightSidebar';
 
 const Header = () => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
@@ -27,6 +25,7 @@ const Header = () => {
       minHeight: customizer.TopbarHeight,
     },
   }));
+
   const ToolbarStyled = styled(Toolbar)(({ theme }) => ({
     width: '100%',
     color: theme.palette.text.secondary,
@@ -36,14 +35,24 @@ const Header = () => {
     <AppBarStyled position="sticky" color="default">
       <ToolbarStyled>
         {/* ------------------------------------------- */}
-        {/* Toggle Button Sidebar */}
+        {/* زر قائمة الـ sidebar للأجهزة المحمولة */}
         {/* ------------------------------------------- */}
+        {!lgUp && (
+          <IconButton
+            size="large"
+            color="inherit"
+            onClick={() => dispatch(toggleMobileSidebar())}
+          >
+            <MenuIcon />
+          </IconButton>
+        )}
 
         {/* ------------------------------------------- */}
-        {/* Search Dropdown */}
+        {/* محتويات أخرى في الهيدر */}
         {/* ------------------------------------------- */}
         {lgUp ? (
           <>
+            {/* يمكنك تفعيل Navigation هنا للأجهزة الكبيرة إن رغبت */}
             {/* <Navigation /> */}
           </>
         ) : null}
@@ -51,11 +60,6 @@ const Header = () => {
         <Box flexGrow={1} />
         <Stack spacing={1} direction="row" alignItems="center">
           <Language />
-          {/* ------------------------------------------- */}
-          {/* Ecommerce Dropdown */}
-          {/* ------------------------------------------- */}
-          {/* ------------------------------------------- */}
-          {/* End Ecommerce Dropdown */}
           {/* ------------------------------------------- */}
           <IconButton size="large" color="inherit">
             {customizer.activeMode === 'light' ? (
@@ -65,10 +69,6 @@ const Header = () => {
             )}
           </IconButton>
           <Notifications />
-          {/* ------------------------------------------- */}
-          {/* Toggle Right Sidebar for mobile */}
-          {/* ------------------------------------------- */}
-          {/* {lgDown ? <MobileRightSidebar /> : null} */}
           <Profile />
         </Stack>
       </ToolbarStyled>
