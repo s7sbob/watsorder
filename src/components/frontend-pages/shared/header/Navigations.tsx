@@ -10,21 +10,21 @@ import { useLocation } from 'react-router-dom';
 export const NavLinks = [
   {
     title: 'About Us',
-    to: '/frontend-pages/about',
+    to: '#',
   },
   {
     title: 'Blog',
-    to: '/frontend-pages/blog',
+    to: '#',
   },
   {
     title: 'Portfolio',
     new: true,
-    to: '/frontend-pages/portfolio',
+    to: '#',
   },
 
   {
     title: 'Dashboard',
-    to: '/',
+    to: '#',
   },
   {
     title: 'Pricing',
@@ -32,7 +32,7 @@ export const NavLinks = [
   },
   {
     title: 'Contact',
-    to: '/frontend-pages/contact',
+    to: '#',
   },
 ];
 

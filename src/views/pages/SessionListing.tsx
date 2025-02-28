@@ -1,4 +1,5 @@
 // src/pages/SessionListing.tsx
+
 import { useEffect, useState } from 'react';
 import {
   Box,
@@ -28,6 +29,10 @@ import axiosServices from 'src/utils/axios';
 import socket from 'src/socket';
 import { useNavigate } from 'react-router';
 
+// نستورد مكونات النافذة المنبثقة
+import PricingCard from 'src/components/frontend-pages/shared/pricing/PricingCard';
+import PaymentInstructions from 'src/views/pages/PaymentInstructions';
+
 const SessionListing = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -56,20 +61,16 @@ const SessionListing = () => {
     setSnackbarOpen(false);
   };
 
-  // Socket.io للاستماع لتحديثات الجلسات
+  // استقبال تحديثات الجلسات عبر Socket.io
   useEffect(() => {
     socket.on('sessionUpdate', (data: { sessionId: number; status: string; qrCode?: string }) => {
       dispatch(
         updateSession({
           sessionId: data.sessionId,
-          changes: {
-            status: data.status,
-            qrCode: data.qrCode
-          }
+          changes: { status: data.status, qrCode: data.qrCode }
         })
       );
     });
-
     return () => {
       socket.off('sessionUpdate');
     };
@@ -96,15 +97,12 @@ const SessionListing = () => {
     }
   };
 
-  // ============================
-  // إضافة منطق الـ QR Code
-  // ============================
+  // منطق الـ QR Code
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionType | null>(null);
 
   const handleShowQr = async (session: SessionType) => {
     try {
-      // نفترض أن المسار التالي يرجع بيانات QR على شكل { qr: "some_data" }
       const response = await axiosServices.get(`/api/sessions/${session.id}/qr`);
       const qrData = response.data.qr;
       setSelectedSession({ ...session, qrCode: qrData });
@@ -120,17 +118,12 @@ const SessionListing = () => {
     setSelectedSession(null);
   };
 
-  // إجراءات تشغيل/إيقاف البوت
+  // تفعيل/إيقاف البوت
   const handleToggleBot = async (session: SessionType) => {
     const newBotActive = !session.botActive;
     try {
       await axiosServices.post(`/api/sessions/${session.id}/bot/update`, { botActive: newBotActive });
-      dispatch(
-        updateSession({
-          sessionId: session.id,
-          changes: { botActive: newBotActive }
-        })
-      );
+      dispatch(updateSession({ sessionId: session.id, changes: { botActive: newBotActive } }));
       showAlert(`Bot is now ${newBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info');
     } catch (error) {
       console.error('Error toggling bot:', error);
@@ -138,16 +131,12 @@ const SessionListing = () => {
     }
   };
 
+  // تفعيل/إيقاف المنيو بوت
   const handleToggleMenuBot = async (session: SessionType) => {
     const newMenuBotActive = !session.menuBotActive;
     try {
       await axiosServices.post(`/api/sessions/${session.id}/menu-bot/update`, { menuBotActive: newMenuBotActive });
-      dispatch(
-        updateSession({
-          sessionId: session.id,
-          changes: { menuBotActive: newMenuBotActive }
-        })
-      );
+      dispatch(updateSession({ sessionId: session.id, changes: { menuBotActive: newMenuBotActive } }));
       showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info');
     } catch (error) {
       console.error('Error toggling menu bot:', error);
@@ -155,22 +144,12 @@ const SessionListing = () => {
     }
   };
 
-  // تسجيل خروج الجلسة
+  // تسجيل الخروج
   const handleLogoutSession = async (session: SessionType) => {
-    if (!window.confirm(`Are you sure you want to logout from session ID: ${session.id}?`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to logout from session ID: ${session.id}?`)) return;
     try {
       await axiosServices.post(`/api/sessions/${session.id}/logout`);
-      dispatch(
-        updateSession({
-          sessionId: session.id,
-          changes: {
-            status: 'Terminated',
-            qrCode: undefined
-          }
-        })
-      );
+      dispatch(updateSession({ sessionId: session.id, changes: { status: 'Terminated', qrCode: undefined } }));
       showAlert(`Session ${session.id} has been logged out.`, 'info');
     } catch (error) {
       console.error('Error logging out session:', error);
@@ -178,11 +157,9 @@ const SessionListing = () => {
     }
   };
 
-  // حذف الجلسة
+  // حذف الجلسة (زر الحذف يبقى مفعل دائماً)
   const handleDeleteSession = async (sessionId: number) => {
-    if (!window.confirm(`Are you sure you want to delete the session with ID: ${sessionId}?`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to delete the session with ID: ${sessionId}?`)) return;
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/delete`);
       showAlert('Session deleted successfully.', 'success');
@@ -193,22 +170,56 @@ const SessionListing = () => {
     }
   };
 
+  // ============================
+  // Dialog لاختيار الخطة (PricingCard)
+  // ============================
+  const [openPlanDialog, setOpenPlanDialog] = useState(false);
+  const [planSession, setPlanSession] = useState<SessionType | null>(null);
+
+  const handleChoosePlanClick = (session: SessionType) => {
+    setPlanSession(session);
+    setOpenPlanDialog(true);
+  };
+
+  // بعد اختيار الخطة من PricingCard: تحديث الحالة إلى "Waiting for Payment"
+  const handlePlanChosen = (sessionId: number) => {
+    dispatch(updateSession({ sessionId, changes: { status: 'Waiting for Payment' } }));
+    setOpenPlanDialog(false);
+    showAlert(`Plan chosen for session #${sessionId}. Now waiting for payment.`, 'info');
+  };
+
+  // ============================
+  // Dialog لصفحة الدفع (PaymentInstructions)
+  // ============================
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [paymentSession, setPaymentSession] = useState<SessionType | null>(null);
+
+  const handlePaymentInstructionsClick = (session: SessionType) => {
+    setPaymentSession(session);
+    setOpenPaymentDialog(true);
+  };
+
+  // عند الضغط على "I have paid – Send to the Manager"
+  const handlePaymentDone = async () => {
+    if (!paymentSession) return;
+    try {
+      await axiosServices.post(`/api/sessions/${paymentSession.id}/send-to-manager`);
+      dispatch(updateSession({ sessionId: paymentSession.id, changes: { status: 'Paid' } }));
+      setOpenPaymentDialog(false);
+      showAlert(`Session ${paymentSession.id} marked as Paid. Manager will now confirm it.`, 'info');
+    } catch (error) {
+      console.error('Error sending session to manager:', error);
+      showAlert('Error sending session to manager.', 'error');
+    }
+  };
+
+  // في حالة "Paid" للعميل لا يُعرض زر التأكيد، بل يتم عرض مؤشر "Awaiting Manager Confirmation"
   return (
     <Box mt={4}>
-      {/* أزرار إنشاء الجلسة وتوثيق الـ API */}
       <Button variant="contained" color="primary" onClick={handleCreateSession} sx={{ mt: 2 }}>
         Create Session
       </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ mt: 2, ml: 2 }}
-        onClick={() => navigate('/api-docs')}
-      >
-        Open API Documentation
-      </Button>
 
-      {/* جدول الجلسات */}
       <TableContainer sx={{ mt: 4 }}>
         <Table>
           <TableHead>
@@ -225,59 +236,139 @@ const SessionListing = () => {
                 <TableCell>{session.id}</TableCell>
                 <TableCell>{session.phoneNumber || 'N/A'}</TableCell>
                 <TableCell>
-                  <Chip label={session.status} color="primary" />
+                  <Chip
+                    label={session.status}
+                    color={
+                      session.status === 'Ready'
+                        ? 'success'
+                        : session.status === 'Waiting for Payment'
+                        ? 'warning'
+                        : session.status === 'Paid'
+                        ? 'warning'
+                        : 'primary'
+                    }
+                  />
                 </TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color="primary">
-                    <SettingsIcon />
-                  </IconButton>
-                  {/* زر عرض QR Code يظهر فقط عندما تكون الحالة "Waiting for QR Code" */}
-                  {session.status === 'Waiting for QR Code' && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => handleShowQr(session)}
-                      sx={{ ml: 1 }}
-                    >
-                      Show QR Code
-                    </Button>
+                  {session.status === 'Waiting for Plan' ? (
+                    <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                      <Box
+                        sx={{
+                          filter: 'blur(3px) brightness(0.7)',
+                          pointerEvents: 'none',
+                          display: 'inline-flex',
+                          gap: 1,
+                          alignItems: 'center'
+                        }}
+                      >
+                        <IconButton color="primary">
+                          <SettingsIcon />
+                        </IconButton>
+                        <Button variant="outlined" size="small">
+                          Show QR Code
+                        </Button>
+                        <Button variant="contained" color="warning" size="small">
+                          Bot ON
+                        </Button>
+                        <Button variant="contained" color="warning" size="small">
+                          Menu Bot ON
+                        </Button>
+                        <Button variant="outlined" size="small">
+                          Logout
+                        </Button>
+                        <IconButton aria-label="delete" color="error" onClick={() => handleDeleteSession(session.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                      <Box sx={{ textAlign: 'center', mt: 1 }}>
+                        <Button variant="contained" color="secondary" onClick={() => handleChoosePlanClick(session)}>
+                          Choose Plan
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : session.status === 'Waiting for Payment' ? (
+                    <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                      <Box
+                        sx={{
+                          filter: 'blur(3px) brightness(0.7)',
+                          pointerEvents: 'none',
+                          display: 'inline-flex',
+                          gap: 1,
+                          alignItems: 'center'
+                        }}
+                      >
+                        <IconButton color="primary">
+                          <SettingsIcon />
+                        </IconButton>
+                        <Button variant="outlined" size="small">
+                          Show QR Code
+                        </Button>
+                        <Button variant="contained" color="warning" size="small">
+                          Bot ON
+                        </Button>
+                        <Button variant="contained" color="warning" size="small">
+                          Menu Bot ON
+                        </Button>
+                        <Button variant="outlined" size="small">
+                          Logout
+                        </Button>
+                        <IconButton aria-label="delete" color="error" onClick={() => handleDeleteSession(session.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                      <Box sx={{ textAlign: 'center', mt: 1 }}>
+                        <Button variant="contained" color="primary" onClick={() => handlePaymentInstructionsClick(session)}>
+                          Payment Instructions
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : session.status === 'Paid' ? (
+                    // هنا لا يُعرض زر "Confirm Session" للعميل، بل مؤشر بأنه "Awaiting Manager Confirmation"
+                    <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
+                      <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color="primary">
+                        <SettingsIcon />
+                      </IconButton>
+                      <Chip label="Awaiting Manager Confirmation" color="warning" />
+                      <IconButton aria-label="delete" color="error" onClick={() => handleDeleteSession(session.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
+                      <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color="primary">
+                        <SettingsIcon />
+                      </IconButton>
+                      {session.status === 'Waiting for QR Code' && (
+                        <Button variant="outlined" size="small" onClick={() => handleShowQr(session)}>
+                          Show QR Code
+                        </Button>
+                      )}
+                      <Button
+                        variant="contained"
+                        color={session.botActive ? 'success' : 'warning'}
+                        size="small"
+                        onClick={() => handleToggleBot(session)}
+                      >
+                        {session.botActive ? 'Bot OFF' : 'Bot ON'}
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color={session.menuBotActive ? 'success' : 'warning'}
+                        size="small"
+                        onClick={() => handleToggleMenuBot(session)}
+                      >
+                        {session.menuBotActive ? 'Menu Bot OFF' : 'Menu Bot ON'}
+                      </Button>
+                      {session.status !== 'Terminated' && (
+                        <Button variant="outlined" size="small" onClick={() => handleLogoutSession(session)}>
+                          Logout
+                        </Button>
+                      )}
+                      <IconButton aria-label="delete" color="error" onClick={() => handleDeleteSession(session.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   )}
-                  <Button
-                    variant="contained"
-                    color={session.botActive ? 'success' : 'warning'}
-                    size="small"
-                    onClick={() => handleToggleBot(session)}
-                    sx={{ ml: 1 }}
-                  >
-                    {session.botActive ? 'Bot OFF' : 'Bot ON'}
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color={session.menuBotActive ? 'success' : 'warning'}
-                    size="small"
-                    onClick={() => handleToggleMenuBot(session)}
-                    sx={{ ml: 1 }}
-                  >
-                    {session.menuBotActive ? 'Menu Bot OFF' : 'Menu Bot ON'}
-                  </Button>
-                  {session.status !== 'Terminated' && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => handleLogoutSession(session)}
-                      sx={{ ml: 1 }}
-                    >
-                      Logout
-                    </Button>
-                  )}
-                  <IconButton
-                    aria-label="delete"
-                    color="error"
-                    onClick={() => handleDeleteSession(session.id)}
-                    sx={{ ml: 1 }}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -292,9 +383,7 @@ const SessionListing = () => {
           {selectedSession && selectedSession.qrCode ? (
             <Box
               component="img"
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                selectedSession.qrCode
-              )}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(selectedSession.qrCode)}`}
               alt="QR Code"
             />
           ) : (
@@ -303,6 +392,36 @@ const SessionListing = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseQrDialog} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog لعرض صفحة اختيار الخطة (PricingCard) */}
+      <Dialog open={openPlanDialog} onClose={() => setOpenPlanDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Choose Your Plan</DialogTitle>
+        <DialogContent>
+          {planSession && (
+            <PricingCard sessionId={planSession.id} onPlanChosen={handlePlanChosen} />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPlanDialog(false)} color="inherit">
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog لعرض صفحة الدفع (PaymentInstructions) */}
+      <Dialog open={openPaymentDialog} onClose={() => setOpenPaymentDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Payment Instructions</DialogTitle>
+        <DialogContent>
+          {paymentSession && (
+            <PaymentInstructions onDone={handlePaymentDone} />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPaymentDialog(false)} color="inherit">
             Close
           </Button>
         </DialogActions>

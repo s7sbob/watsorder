@@ -8,8 +8,8 @@ import Notifications from './Notification';
 import Profile from './Profile';
 import Language from './Language';
 import { AppState } from 'src/store/Store';
-import Navigation from './Navigation';
-import MobileRightSidebar from './MobileRightSidebar';
+// import Navigation from './Navigation';
+// import MobileRightSidebar from './MobileRightSidebar';
 
 const Header = () => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
@@ -45,7 +45,7 @@ const Header = () => {
         {/* ------------------------------------------- */}
         {lgUp ? (
           <>
-            <Navigation />
+            {/* <Navigation /> */}
           </>
         ) : null}
 
@@ -69,7 +69,7 @@ const Header = () => {
           {/* ------------------------------------------- */}
           {/* Toggle Right Sidebar for mobile */}
           {/* ------------------------------------------- */}
-          {lgDown ? <MobileRightSidebar /> : null}
+          {/* {lgDown ? <MobileRightSidebar /> : null} */}
           <Profile />
         </Stack>
       </ToolbarStyled>

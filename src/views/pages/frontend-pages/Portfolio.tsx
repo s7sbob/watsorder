@@ -1,5 +1,4 @@
 import PageContainer from 'src/components/container/PageContainer';
-import HeaderAlert from '../../../components/frontend-pages/shared/header/HeaderAlert';
 import HpHeader from '../../../components/frontend-pages/shared/header/HpHeader';
 import C2a from '../../../components/frontend-pages/shared/c2a';
 import Footer from '../../../components/frontend-pages/shared/footer';
@@ -11,7 +10,6 @@ import { Box, Container } from '@mui/material';
 const PricingPage = () => {
   return (
     <PageContainer title="Portfolio" description="this is Portfolio">
-      <HeaderAlert />
       <HpHeader />
       <Banner />
       <Box my={3}>

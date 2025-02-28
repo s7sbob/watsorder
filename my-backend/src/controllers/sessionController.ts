@@ -29,79 +29,210 @@ async function checkSessionOwnership(pool: sql.ConnectionPool, sessionId: number
 
 // جلب الجلسات بناءً على المستخدم
 export const fetchSessions = async (req: Request, res: Response) => {
-  const userId = req.user && typeof req.user !== 'string' ? req.user.id : null
-
-  if (!userId) {
-    return res.status(401).json({ message: 'User not authorized.' })
+  // التأكد من وجود بيانات المستخدم من التوكن
+  const user = req.user && typeof req.user !== 'string' ? req.user : null;
+  if (!user) {
+    return res.status(401).json({ message: 'User not authorized.' });
   }
 
   try {
-    const pool = await getConnection()
-
-    // حتى لو كان Admin، حسب كلامك لا تريد أن يرى جلسات الآخرين.
-    // بالتالي نجلب فقط الجلسات المملوكة لهذا الuserId
-    const result = await pool.request()
-      .input('userId', sql.Int, userId)
-      .query(`SELECT * FROM Sessions WHERE userId = @userId`)
-    return res.status(200).json(result.recordset)
+    const pool = await getConnection();
+    let query = '';
+    
+    // إذا كان المستخدم admin، فاجلب جميع الجلسات
+    if (user.subscriptionType === 'admin') {
+      query = `SELECT * FROM Sessions`;
+    } else {
+      // وإلا جلب الجلسات الخاصة بالمستخدم فقط
+      query = `SELECT * FROM Sessions WHERE userId = @userId`;
+    }
+    
+    const request = pool.request();
+    if (user.subscriptionType !== 'admin') {
+      request.input('userId', sql.Int, user.id);
+    }
+    
+    const result = await request.query(query);
+    return res.status(200).json(result.recordset);
   } catch (error) {
-    console.error(error)
-    return res.status(500).json({ message: 'Error fetching sessions' })
+    console.error('Error fetching sessions:', error);
+    return res.status(500).json({ message: 'Error fetching sessions' });
   }
-}
+};
 
 // إنشاء جلسة جديدة
 export const createSession = async (req: Request, res: Response) => {
-  const user = req.user && typeof req.user !== 'string' ? req.user : null
+  const user = req.user && typeof req.user !== 'string' ? req.user : null;
 
   if (!user || !user.id || !user.subscriptionType) {
-    return res.status(401).json({ message: 'User not authorized.' })
+    return res.status(401).json({ message: 'User not authorized.' });
   }
 
   try {
-    const pool = await getConnection()
+    const pool = await getConnection();
 
-    const sessionCountResult = await pool.request()
-      .input('userId', sql.Int, user.id)
-      .query('SELECT COUNT(*) as sessionCount FROM Sessions WHERE userId = @userId')
-    const sessionCount = sessionCountResult.recordset[0].sessionCount
+    // حالة الجلسة الجديدة تُحدد كـ "Waiting for Plan"
+    const sessionIdentifier = `${user.id}.${user.subscriptionType}.${Date.now()}`;
 
-    const maxSessionsResult = await pool.request()
-      .input('userId', sql.Int, user.id)
-      .query('SELECT maxSessions FROM Users WHERE ID = @userId')
-    const maxSessions = maxSessionsResult.recordset[0]?.maxSessions || 0
-
-    if (sessionCount >= maxSessions) {
-      return res.status(400).json({ message: 'Maximum session limit reached.' })
-    }
-
-    const { status, greetingMessage, greetingActive } = req.body
-    const sessionIdentifier = `${user.id}.${user.subscriptionType}.${Date.now()}`
-
+    // تعديل الاستعلام ليضيف عمود clientName
     const insertSessionResult = await pool.request()
       .input('userId', sql.Int, user.id)
       .input('sessionIdentifier', sql.NVarChar, sessionIdentifier)
-      .input('status', sql.NVarChar, status || 'Inactive')
-      .input('greetingMessage', sql.NVarChar(sql.MAX), greetingMessage || null)
-      .input('greetingActive', sql.Bit, greetingActive ? 1 : 0)
+      .input('status', sql.NVarChar, 'Waiting for Plan')
+      .input('greetingMessage', sql.NVarChar(sql.MAX), req.body.greetingMessage || null)
+      .input('greetingActive', sql.Bit, req.body.greetingActive ? 1 : 0)
+      .input('clientName', sql.NVarChar, user.name) // إضافة اسم العميل
       .query(`
         INSERT INTO Sessions 
-          (userId, sessionIdentifier, status, greetingMessage, greetingActive)
+          (userId, sessionIdentifier, status, greetingMessage, greetingActive, clientName)
         OUTPUT INSERTED.id
         VALUES 
-          (@userId, @sessionIdentifier, @status, @greetingMessage, @greetingActive)
-      `)
+          (@userId, @sessionIdentifier, @status, @greetingMessage, @greetingActive, @clientName)
+      `);
 
-    const newSessionId = insertSessionResult.recordset[0].id
+    const newSessionId = insertSessionResult.recordset[0].id;
 
-    await createWhatsAppClientForSession(newSessionId, sessionIdentifier)
-
-    return res.status(201).json({ message: 'Session created successfully.' })
+    // لا نقوم بتهيئة عميل الواتساب حتى يتم اختيار الخطة ودفع المبلغ.
+    return res.status(201).json({ message: 'Session created successfully in Waiting for Plan state.', sessionId: newSessionId });
   } catch (error) {
-    console.error('Error creating session:', error)
-    return res.status(500).json({ message: 'Error creating session.' })
+    console.error('Error creating session:', error);
+    return res.status(500).json({ message: 'Error creating session.' });
   }
-}
+};
+
+
+
+
+
+
+export const choosePlan = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10);
+  const { planType } = req.body;
+  if (!planType) {
+    return res.status(400).json({ message: 'Plan type is required.' });
+  }
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('planType', sql.NVarChar, planType)
+      .query(`
+        UPDATE Sessions
+        SET status = 'Waiting for Payment',
+            planType = @planType
+        WHERE id = @sessionId
+      `);
+    return res.status(200).json({ message: 'Plan chosen, waiting for payment.' });
+  } catch (error) {
+    console.error('Error choosing plan:', error);
+    return res.status(500).json({ message: 'Error choosing plan.' });
+  }
+};
+
+export const sendToManager = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10);
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        UPDATE Sessions
+        SET status = 'Paid'
+        WHERE id = @sessionId
+      `);
+    return res.status(200).json({ message: 'Session marked as Paid. Manager will confirm it.' });
+  } catch (error) {
+    console.error('Error sending session to manager:', error);
+    return res.status(500).json({ message: 'Error sending session to manager.' });
+  }
+};
+
+export const confirmPayment = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10);
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        UPDATE Sessions
+        SET status = 'Ready'
+        WHERE id = @sessionId
+      `);
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId`);
+    if (result.recordset.length > 0) {
+      const sessionIdentifier = result.recordset[0].sessionIdentifier;
+      await createWhatsAppClientForSession(sessionId, sessionIdentifier);
+    }
+    return res.status(200).json({ message: 'Payment confirmed, session is now ready.' });
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    return res.status(500).json({ message: 'Error confirming payment.' });
+  }
+};
+
+
+export const confirmPaymentWithExpire = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10);
+  const { newExpireDate } = req.body;
+  if (!newExpireDate) {
+    return res.status(400).json({ message: 'New expire date is required.' });
+  }
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('newExpireDate', sql.DateTime, new Date(newExpireDate))
+      .query(`
+        UPDATE Sessions
+        SET status = 'Ready',
+            expireDate = @newExpireDate
+        WHERE id = @sessionId
+      `);
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId`);
+    if (result.recordset.length > 0) {
+      const sessionIdentifier = result.recordset[0].sessionIdentifier;
+      await createWhatsAppClientForSession(sessionId, sessionIdentifier);
+    }
+    return res.status(200).json({ message: 'Payment confirmed and expire date set. Session is now ready.' });
+  } catch (error) {
+    console.error('Error confirming payment with expire date:', error);
+    return res.status(500).json({ message: 'Error confirming payment with expire date.' });
+  }
+};
+
+
+
+export const renewSubscription = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10);
+  const { newExpireDate } = req.body;
+  if (!newExpireDate) {
+    return res.status(400).json({ message: 'New expire date is required.' });
+  }
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('newExpireDate', sql.DateTime, new Date(newExpireDate))
+      .query(`
+        UPDATE Sessions
+        SET status = 'Ready',
+            expireDate = @newExpireDate
+        WHERE id = @sessionId
+      `);
+    return res.status(200).json({ message: 'Subscription renewed, session is now ready.' });
+  } catch (error) {
+    console.error('Error renewing subscription:', error);
+    return res.status(500).json({ message: 'Error renewing subscription.' });
+  }
+};
+
+
+
+
 
 // تحديث حالة البوت (botActive)
 export const updateBotStatus = async (req: Request, res: Response) => {

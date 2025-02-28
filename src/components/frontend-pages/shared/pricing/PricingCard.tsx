@@ -1,27 +1,38 @@
-// src/components/frontend-pages/homepage/PricingCard.tsx
+// src/components/frontend-pages/shared/pricing/PricingCard.tsx
 import { Box, Grid, Typography, Button, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import axiosServices from 'src/utils/axios';
+import { useNavigate } from 'react-router-dom';
+
+interface PricingCardProps {
+  sessionId: number;
+  onPlanChosen: (sessionId: number) => void;
+}
 
 const plans = [
   {
     title: 'Basic',
     price: '700£/month\n7700£/year',
-    features: ['', 'Menu Bot', ' Automation', ''],
+    features: ['', 'Menu Bot', 'Automation', ''],
+    planType: 'Basic'
   },
   {
     title: 'Standered',
     price: '1000£/month\n11000£/year',
-    features: ['Menu Bot', ' Automation', 'Orders Api Integration', ''],
+    features: ['Menu Bot', 'Automation', 'Orders Api Integration', ''],
+    planType: 'Standered'
   },
   {
     title: 'Otp Plan',
     price: '500£/month\n5000£/year',
-    features: [' ', 'Otp Api', ' ', ' '],
+    features: ['', 'Otp Api', '', ''],
+    planType: 'Otp Plan'
   },
   {
-    title: 'Golden ',
+    title: 'Golden',
     price: '1500£/month\n15000£/year',
-    features: ['Menu Bot', ' Automation', 'Orders Api Integration', 'Otp Api'],
+    features: ['Menu Bot', 'Automation', 'Orders Api Integration', 'Otp Api'],
+    planType: 'Golden'
   },
 ];
 
@@ -32,7 +43,26 @@ const Card = styled(Paper)(({ theme }) => ({
   boxShadow: theme.shadows[3],
 }));
 
-const PricingCard = () => {
+const PricingCard: React.FC<PricingCardProps> = ({ sessionId, onPlanChosen }) => {
+  const navigate = useNavigate();
+
+  // دالة لاستدعاء API اختيار الخطة باستخدام sessionId الممرر
+  const handleGetStarted = async (planType: string) => {
+    try {
+      // افترض أن مدة الاشتراك سنوية؛ قم بتعديل التاريخ كما تريد
+      await axiosServices.post(`/api/sessions/${sessionId}/choose-plan`, {
+        planType,
+      });
+      // بعد اختيار الخطة، يتم استدعاء onPlanChosen لتحديث الحالة في الصفحة الأم
+      onPlanChosen(sessionId);
+      // يمكنك التوجيه أيضًا لصفحة تعليمات الدفع إذا رغبت:
+      // navigate('/payment-instructions');
+    } catch (error) {
+      console.error('Error choosing plan:', error);
+      alert('Error choosing plan.');
+    }
+  };
+
   return (
     <Grid container spacing={3} justifyContent="center">
       {plans.map((plan, index) => (
@@ -51,7 +81,11 @@ const PricingCard = () => {
                 </Typography>
               ))}
             </Box>
-            <Button variant="contained" color="primary" onClick={() => {}}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleGetStarted(plan.planType)}
+            >
               Get Started
             </Button>
           </Card>

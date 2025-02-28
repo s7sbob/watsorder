@@ -29,6 +29,8 @@ const ConfirmedOrdersPage = Loadable(
 const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')));
 const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')));
 const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails')));
+const SessionManagement = Loadable(React.lazy(() => import('../views/pages/SessionManagement')));
+const PaymentInstructions = Loadable(React.lazy(() => import('../views/pages/PaymentInstructions')));
 
 const PagePricing = Loadable(lazy(() => import('../views/pages/frontend-pages/Pricing')));
 
@@ -57,6 +59,9 @@ const Router = [
         path: '/admin/features',
         element: <FeatureManagement />,
       },
+      { path: '/api-docs', element: <ApiDocumentation /> },
+      { path: '/sessions/manage', element: <SessionManagement /> },
+      { path: '/payment-instructions', element: <PaymentInstructions /> },
 
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
@@ -67,7 +72,6 @@ const Router = [
       { path: '/', element: <Navigate to="/frontend-pages/homepage" /> },
       { path: '/frontend-pages/homepage', element: <Homepage /> },
       { path: '/landingpage', element: <Landingpage /> },
-      { path: '/api-docs', element: <ApiDocumentation /> },
 
       { path: '/frontend-pages/about', element: <About /> },
       { path: '/frontend-pages/contact', element: <Contact /> },

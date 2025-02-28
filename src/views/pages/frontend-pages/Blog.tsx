@@ -1,5 +1,4 @@
 import PageContainer from 'src/components/container/PageContainer';
-import HeaderAlert from '../../../components/frontend-pages/shared/header/HeaderAlert';
 import HpHeader from '../../../components/frontend-pages/shared/header/HpHeader';
 import C2a from '../../../components/frontend-pages/shared/c2a';
 import Footer from '../../../components/frontend-pages/shared/footer';
@@ -12,7 +11,6 @@ const BlogPage = () => {
   return (
     <>
       <PageContainer title="Blog" description="this is Blog">
-        <HeaderAlert />
         <HpHeader />
         <Banner />
         <Container maxWidth="lg" sx={{ mt: 5 }}>

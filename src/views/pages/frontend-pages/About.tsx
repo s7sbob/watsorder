@@ -1,5 +1,4 @@
 import PageContainer from 'src/components/container/PageContainer';
-import HeaderAlert from '../../../components/frontend-pages/shared/header/HeaderAlert';
 import HpHeader from '../../../components/frontend-pages/shared/header/HpHeader';
 import Leadership from '../../../components/frontend-pages/shared/leadership';
 import Reviews from '../../../components/frontend-pages/shared/reviews';
@@ -14,7 +13,6 @@ import ScrollToTop from '../../../components/frontend-pages/shared/scroll-to-top
 const About = () => {
   return (
     <PageContainer title="About" description="this is About">
-      <HeaderAlert />
       <HpHeader />
       <Banner />
       <Process />

@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import bodyParser from 'body-parser';
+import './cron/expireSessions';
 
 import { initializeExistingSessions } from './controllers/sessionController';
 
@@ -17,7 +18,6 @@ import otpRoutes from './routes/otpRoutes';
 import bulkImportRoutes from './routes/bulkImportRoutes';
 import orderListingRoutes from './routes/orderListingRoutes';
 import featureRoutes from './routes/featureRoutes';
-import './cron/cronJobs';
 import featureAdminRoutes from './routes/featureAdminRoutes';
 
 dotenv.config();
