@@ -1,0 +1,1211 @@
+openapi: "3.0.0"
+info:
+  title: "My Project API"
+  version: "1.0.0"
+  description: >
+    وثائق API للمشروع الخاص بك والتي تشمل endpoints للتسجيل والدخول وإدارة الطلبات
+    والجلسات، وإرسال OTP، وإدارة المستخدمين، والاستيراد بالجملة وغيرها. يمكن للعملاء
+    والمطورين تجربة واختبار الواجهات بسهولة من خلال هذا الملف.
+servers:
+  - url: "https://api.watsorder.com"
+    description: "WatsOrder Server"
+tags:
+  - name: "Auth"
+    description: "Endpoints المصممة لتسجيل الدخول والتسجيل"
+  - name: "BulkImport"
+    description: "Endpoints استيراد البيانات بالجملة"
+  - name: "Orders"
+    description: "Endpoints الخاصة بالطلبات"
+  - name: "OTP"
+    description: "Endpoints إرسال OTP عبر واتساب"
+  - name: "Sessions"
+    description: "Endpoints إدارة الجلسات والتعامل مع بوت الواتساب"
+  - name: "Users"
+    description: "Endpoints إدارة المستخدمين والاشتراكات"
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: "تسجيل مستخدم جديد"
+      description: "تسجيل مستخدم جديد باستخدام username و password وخيارات الاشتراك والاسم."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                subscriptionType:
+                  type: string
+                  example: free
+                name:
+                  type: string
+      responses:
+        "201":
+          description: "تم التسجيل بنجاح"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "400":
+          description: "حقول مفقودة أو اسم المستخدم موجود بالفعل"
+        "500":
+          description: "خطأ في الخادم"
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: "تسجيل الدخول"
+      description: "تسجيل الدخول وإرجاع توكن JWT عند النجاح."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: "تم تسجيل الدخول بنجاح"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+        "400":
+          description: "حقول مفقودة أو بيانات غير صحيحة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/bulk-import/{sessionId}:
+    post:
+      tags: [BulkImport]
+      summary: "إدخال أصناف ومنتجات بالجملة"
+      description: "إدخال بيانات الأصناف والمنتجات في جلسة محددة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      category_name:
+                        type: string
+                      category_internal_code:
+                        type: string
+                products:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      product_name:
+                        type: string
+                      category_id:
+                        type: integer
+                      price:
+                        type: number
+                      product_internal_code:
+                        type: string
+      responses:
+        "201":
+          description: "تم الإدخال بنجاح"
+        "400":
+          description: "رقم الجلسة غير صالح أو بيانات ناقصة"
+        "403":
+          description: "غير مصرح"
+        "500":
+          description: "خطأ في الخادم"
+  /api/orders/new:
+    get:
+      tags: [Orders]
+      summary: "عرض الطلبات الجديدة للمستخدم"
+      description: "جلب الطلبات غير المؤكدة للمستخدم الحالي."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة الطلبات الجديدة"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "401":
+          description: "غير مصرح"
+        "500":
+          description: "خطأ في الخادم"
+  /api/orders/all:
+    get:
+      tags: [Orders]
+      summary: "عرض جميع الطلبات للمستخدم"
+      description: "جلب كافة الطلبات المرتبطة بالمستخدم الحالي."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة الطلبات"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "401":
+          description: "غير مصرح"
+        "500":
+          description: "خطأ في الخادم"
+  /api/orders/confirmed:
+    get:
+      tags: [Orders]
+      summary: "عرض الطلبات المؤكدة للمستخدم"
+      description: "جلب الطلبات المؤكدة للمستخدم الحالي."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة الطلبات المؤكدة"
+        "401":
+          description: "غير مصرح"
+        "500":
+          description: "خطأ في الخادم"
+  /api/orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: "عرض تفاصيل الطلب"
+      description: "جلب تفاصيل الطلب المحدد عبر معرف الطلب."
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تفاصيل الطلب"
+        "400":
+          description: "رقم الطلب غير صالح"
+        "404":
+          description: "الطلب غير موجود"
+        "500":
+          description: "خطأ في الخادم"
+  /api/orders/{orderId}/restaurant-confirm:
+    post:
+      tags: [Orders]
+      summary: "تأكيد الطلب من قبل المطعم"
+      description: "يستخدمه مدير النظام (admin) لتأكيد الطلب وإرسال إشعار للعميل."
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prepTime:
+                  type: integer
+                deliveryFee:
+                  type: number
+                taxValue:
+                  type: number
+      responses:
+        "200":
+          description: "تم تأكيد الطلب وإرسال الإشعار"
+        "400":
+          description: "رقم الطلب غير صالح"
+        "403":
+          description: "غير مصرح (admin فقط)"
+        "404":
+          description: "الطلب غير موجود"
+        "500":
+          description: "خطأ في الخادم"
+  /api/otp/send:
+    post:
+      tags: [OTP]
+      summary: "إرسال OTP عبر واتساب"
+      description: "إرسال رمز التحقق OTP إلى رقم الهاتف المحدد عبر واتساب."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: integer
+                phoneNumber:
+                  type: string
+      responses:
+        "200":
+          description: "تم إرسال OTP بنجاح"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  otpCode:
+                    type: string
+        "400":
+          description: "الحقول مفقودة"
+        "404":
+          description: "الجلسة أو عميل واتساب غير موجود"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions:
+    get:
+      tags: [Sessions]
+      summary: "جلب الجلسات"
+      description: "عرض الجلسات الخاصة بالمستخدم الحالي (أو جميع الجلسات إذا كان admin)."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة الجلسات"
+        "401":
+          description: "غير مصرح"
+        "500":
+          description: "خطأ في الخادم"
+    post:
+      tags: [Sessions]
+      summary: "إنشاء جلسة جديدة"
+      description: "إنشاء جلسة واتساب جديدة بحالة 'Waiting for Plan'."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                greetingMessage:
+                  type: string
+                greetingActive:
+                  type: boolean
+      responses:
+        "201":
+          description: "تم إنشاء الجلسة بنجاح"
+        "401":
+          description: "غير مصرح"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/delete:
+    post:
+      tags: [Sessions]
+      summary: "حذف جلسة"
+      description: "حذف جلسة محددة وتنظيف الملفات ذات الصلة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم حذف الجلسة بنجاح"
+        "400":
+          description: "معرّف الجلسة غير صالح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/greeting/update:
+    post:
+      tags: [Sessions]
+      summary: "تحديث رسالة الترحيب"
+      description: "تحديث رسالة الترحيب وحالة تفعيلها لجلسة معينة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                greetingMessage:
+                  type: string
+                greetingActive:
+                  type: boolean
+      responses:
+        "200":
+          description: "تم تحديث رسالة الترحيب بنجاح"
+        "400":
+          description: "خطأ في الطلب"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/bot/update:
+    post:
+      tags: [Sessions]
+      summary: "تحديث حالة البوت"
+      description: "تفعيل أو تعطيل البوت في جلسة معينة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                botActive:
+                  type: boolean
+      responses:
+        "200":
+          description: "تم تحديث حالة البوت بنجاح"
+        "400":
+          description: "معرّف جلسة غير صالح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/logout:
+    post:
+      tags: [Sessions]
+      summary: "تسجيل الخروج من الجلسة"
+      description: "تسجيل الخروج من جلسة معينة وإزالة الملفات المرتبطة بها."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم تسجيل الخروج بنجاح"
+        "400":
+          description: "معرّف جلسة غير صالح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/login:
+    post:
+      tags: [Sessions]
+      summary: "تسجيل الدخول مجدداً"
+      description: "تهيئة جلسة موجودة مجدداً للحصول على رمز QR جديد."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم تهيئة تسجيل الدخول، يرجى مسح رمز QR"
+        "400":
+          description: "معرّف جلسة غير صالح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/menu-bot/update:
+    post:
+      tags: [Sessions]
+      summary: "تحديث حالة الـ Menu Bot"
+      description: "تفعيل أو تعطيل الـ Menu Bot في جلسة معينة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                menuBotActive:
+                  type: boolean
+      responses:
+        "200":
+          description: "تم تحديث حالة الـ Menu Bot بنجاح"
+        "400":
+          description: "معرّف جلسة غير صالح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/qr:
+    get:
+      tags: [Sessions]
+      summary: "جلب رمز QR للجلسة"
+      description: "استرجاع رمز QR المرتبط بجلسة معينة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم استرجاع رمز QR"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/broadcast:
+    post:
+      tags: [Sessions]
+      summary: "إرسال برودكاست"
+      description: "إرسال رسالة برودكاست إلى مجموعة من أرقام الهاتف مع إمكانية إرسال ميديا."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumbers:
+                  type: array
+                  items:
+                    type: string
+                message:
+                  type: string
+                randomNumbers:
+                  type: array
+                  items:
+                    type: number
+                media:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      mimetype:
+                        type: string
+                      base64:
+                        type: string
+                      filename:
+                        type: string
+      responses:
+        "200":
+          description: "تم بدء البث بنجاح"
+        "400":
+          description: "بيانات غير صالحة أو الحالة غير Connected"
+        "404":
+          description: "الجلسة أو عميل واتساب غير موجود"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/category:
+    post:
+      tags: [Sessions]
+      summary: "إضافة فئة"
+      description: "إضافة فئة جديدة لجلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_name:
+                  type: string
+      responses:
+        "201":
+          description: "تم إضافة الفئة بنجاح"
+        "400":
+          description: "فئة مطلوبة"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/categories:
+    get:
+      tags: [Sessions]
+      summary: "جلب الفئات للجلسة"
+      description: "استرجاع جميع الفئات المرتبطة بجلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة الفئات"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/category/{categoryId}/update:
+    post:
+      tags: [Sessions]
+      summary: "تحديث الفئة"
+      description: "تحديث اسم فئة محددة لجلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_name:
+                  type: string
+      responses:
+        "200":
+          description: "تم تحديث الفئة بنجاح"
+        "400":
+          description: "فئة مطلوبة"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/category/{categoryId}/delete:
+    post:
+      tags: [Sessions]
+      summary: "حذف الفئة"
+      description: "حذف فئة من جلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم حذف الفئة بنجاح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/product:
+    post:
+      tags: [Sessions]
+      summary: "إضافة منتج"
+      description: "إضافة منتج جديد لجلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_name:
+                  type: string
+                category_id:
+                  type: integer
+                price:
+                  type: number
+      responses:
+        "201":
+          description: "تم إضافة المنتج بنجاح"
+        "400":
+          description: "الحقول المطلوبة ناقصة"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/products:
+    get:
+      tags: [Sessions]
+      summary: "جلب المنتجات للجلسة"
+      description: "استرجاع جميع المنتجات المرتبطة بجلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة المنتجات"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/product/{productId}/update:
+    post:
+      tags: [Sessions]
+      summary: "تحديث منتج"
+      description: "تحديث بيانات منتج معين لجلسة محددة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_name:
+                  type: string
+                category_id:
+                  type: integer
+                price:
+                  type: number
+      responses:
+        "200":
+          description: "تم تحديث المنتج بنجاح"
+        "400":
+          description: "الحقول المطلوبة ناقصة"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/product/{productId}/delete:
+    post:
+      tags: [Sessions]
+      summary: "حذف منتج"
+      description: "حذف منتج من جلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم حذف المنتج بنجاح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/keyword:
+    post:
+      tags: [Sessions]
+      summary: "إضافة كلمة مفتاحية"
+      description: "إضافة كلمة مفتاحية جديدة مع الرد والنصوص المرفقة (ويمكن رفع ميديا)."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                keyword:
+                  type: string
+                replyText:
+                  type: string
+                media:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: "تمت إضافة الكلمة المفتاحية بنجاح"
+        "400":
+          description: "الحقول المطلوبة ناقصة"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/keywords:
+    get:
+      tags: [Sessions]
+      summary: "جلب الكلمات المفتاحية للجلسة"
+      description: "استرجاع جميع الكلمات المفتاحية والملفات المرفقة لجلسة معينة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة الكلمات المفتاحية"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/keyword/{keywordId}/update:
+    post:
+      tags: [Sessions]
+      summary: "تحديث كلمة مفتاحية"
+      description: "تحديث نص الكلمة المفتاحية والرد والملفات المرفقة."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: keywordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                newKeyword:
+                  type: string
+                newReplyText:
+                  type: string
+                media:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: "تم تحديث الكلمة المفتاحية بنجاح"
+        "400":
+          description: "الحقول المطلوبة ناقصة"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الكلمة المفتاحية أو الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{sessionId}/keyword/{keywordId}/delete:
+    post:
+      tags: [Sessions]
+      summary: "حذف كلمة مفتاحية"
+      description: "حذف كلمة مفتاحية مع الرد والملفات المرفقة (إذا لم يعد مستخدمة)."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: keywordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم حذف الكلمة المفتاحية بنجاح"
+        "403":
+          description: "غير مصرح"
+        "404":
+          description: "الكلمة المفتاحية أو الجلسة غير موجودة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/choose-plan:
+    post:
+      tags: [Sessions]
+      summary: "اختيار خطة"
+      description: "اختيار خطة لجلسة معينة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                planType:
+                  type: string
+      responses:
+        "200":
+          description: "تم اختيار الخطة، في انتظار الدفع"
+        "400":
+          description: "نوع الخطة مطلوب"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/confirm-payment:
+    post:
+      tags: [Sessions]
+      summary: "تأكيد الدفع"
+      description: "تأكيد الدفع وتحويل الجلسة إلى الحالة Ready."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم تأكيد الدفع، والجلسة جاهزة"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/renew-subscription:
+    post:
+      tags: [Sessions]
+      summary: "تجديد الاشتراك"
+      description: "تجديد الاشتراك بتعيين تاريخ انتهاء جديد."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newExpireDate:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: "تم تجديد الاشتراك والجلسة جاهزة"
+        "400":
+          description: "تاريخ الانتهاء الجديد مطلوب"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/send-to-manager:
+    post:
+      tags: [Sessions]
+      summary: "إرسال للجهاز الإداري"
+      description: "تغيير حالة الجلسة إلى Paid وإرسالها للتأكيد من المدير."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم تحديث حالة الجلسة وإرسالها للمدير"
+        "500":
+          description: "خطأ في الخادم"
+  /api/sessions/{id}/confirm-payment-with-expire:
+    post:
+      tags: [Sessions]
+      summary: "تأكيد الدفع مع تحديد تاريخ انتهاء"
+      description: "تأكيد الدفع وتعيين تاريخ انتهاء جديد للجلسة."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newExpireDate:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: "تم تأكيد الدفع وتعيين تاريخ انتهاء، والجلسة جاهزة"
+        "400":
+          description: "تاريخ الانتهاء الجديد مطلوب"
+        "500":
+          description: "خطأ في الخادم"
+  /api/users:
+    get:
+      tags: [Users]
+      summary: "جلب جميع المستخدمين"
+      description: "عرض قائمة بجميع المستخدمين (للمدير فقط)."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة المستخدمين"
+        "403":
+          description: "غير مصرح (admin فقط)"
+        "500":
+          description: "خطأ في الخادم"
+    post:
+      tags: [Users]
+      summary: "إنشاء مستخدم جديد"
+      description: "إنشاء مستخدم جديد (للمدير فقط)."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+                subscriptionStart:
+                  type: string
+                subscriptionEnd:
+                  type: string
+                subscriptionType:
+                  type: string
+      responses:
+        "201":
+          description: "تم إنشاء المستخدم بنجاح"
+        "400":
+          description: "حقول مطلوبة ناقصة"
+        "403":
+          description: "غير مصرح (admin فقط)"
+        "500":
+          description: "خطأ في الخادم"
+  /api/users/{id}/update:
+    post:
+      tags: [Users]
+      summary: "تحديث بيانات المستخدم"
+      description: "تحديث بيانات مستخدم محدد (للمدير فقط)."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                name:
+                  type: string
+                password:
+                  type: string
+                subscriptionStart:
+                  type: string
+                subscriptionEnd:
+                  type: string
+                subscriptionType:
+                  type: string
+      responses:
+        "200":
+          description: "تم تحديث بيانات المستخدم بنجاح"
+        "403":
+          description: "غير مصرح (admin فقط)"
+        "500":
+          description: "خطأ في الخادم"
+  /api/users/{id}/delete:
+    post:
+      tags: [Users]
+      summary: "حذف مستخدم"
+      description: "حذف مستخدم (للمدير فقط)."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "تم حذف المستخدم بنجاح"
+        "403":
+          description: "غير مصرح (admin فقط)"
+        "500":
+          description: "خطأ في الخادم"
+  /api/users/{userId}/logs:
+    get:
+      tags: [Users]
+      summary: "جلب سجلات الاشتراك للمستخدم"
+      description: "عرض سجلات الاشتراك لمستخدم محدد (للمدير فقط)."
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "قائمة سجلات الاشتراك"
+        "403":
+          description: "غير مصرح (admin فقط)"
+        "500":
+          description: "خطأ في الخادم"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

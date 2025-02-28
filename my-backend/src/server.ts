@@ -6,6 +6,9 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import bodyParser from 'body-parser';
 import './cron/expireSessions';
+import fs from 'fs';
+import yaml from 'js-yaml';
+import swaggerUi from 'swagger-ui-express';
 
 import { initializeExistingSessions } from './controllers/sessionController';
 
@@ -25,15 +28,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = [
-  process.env.PRODUCTION_URL || '', // تحويل undefined إلى string فارغ
-  'http://localhost:5173'
-].filter(Boolean) as string[]; // إزالة أي قيم falsy (مثل string فارغ) وتحويل النوع
-
-
-// إعداد CORS للسيرفر
+// إعداد CORS للسيرفر ليقبل من أي نطاق (بما في ذلك Postman والأدوات الأخرى)
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: true, // يقبل أي مصدر
   methods: ['GET', 'POST'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -66,6 +63,16 @@ app.use('/api/admin/features', featureAdminRoutes);
 // خدمة الملفات الثابتة
 app.use('/keywords-images', express.static('keywords-images'));
 
+// إعداد Swagger UI لعرض توثيق API
+try {
+  const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as Record<string, any>;
+  console.log('Swagger document loaded successfully.');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { explorer: true }));
+} catch (error) {
+  console.error('Error loading swagger.yaml:', error);
+}
+
+
 // نقطة فحص الصحة
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'OK' });
@@ -74,13 +81,10 @@ app.get('/health', (_req, res) => {
 // إنشاء HTTP server
 const httpServer = createServer(app);
 
-
-
-
-// إعداد Socket.io مع نفس النطاقات
+// إعداد Socket.io مع السماح لجميع المصادر
 export const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins, // الآن ستكون مصفوفة strings فقط
+    origin: true, // يقبل أي مصدر
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -104,7 +108,6 @@ initializeExistingSessions()
 // بدء التشغيل
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
-  console.log('Allowed origins:', allowedOrigins);
 });
 
 // معالجة الأخطاء غير الملتقطة

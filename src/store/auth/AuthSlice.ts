@@ -1,32 +1,24 @@
-// src/store/auth/AuthSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface AuthState {
   token: string | null;
-  subscriptionType: string | null;
 }
 
 const initialState: AuthState = {
-  token: sessionStorage.getItem('token') || null,
-  subscriptionType: sessionStorage.getItem('subscriptionType') || null,
+  token: sessionStorage.getItem('token') || null, // استخدام sessionStorage
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // هنا نستقبل معاً التوكن والـ subscriptionType من عملية تسجيل الدخول
-    setToken(state, action: PayloadAction<{ token: string; subscriptionType: string }>) {
-      state.token = action.payload.token;
-      state.subscriptionType = action.payload.subscriptionType;
-      sessionStorage.setItem('token', action.payload.token);
-      sessionStorage.setItem('subscriptionType', action.payload.subscriptionType);
+    setToken(state, action: PayloadAction<string>) {
+      state.token = action.payload;
+      sessionStorage.setItem('token', action.payload); // حفظ التوكن في sessionStorage
     },
     clearToken(state) {
       state.token = null;
-      state.subscriptionType = null;
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('subscriptionType');
+      sessionStorage.removeItem('token'); // إزالة التوكن من sessionStorage
     },
   },
 });
