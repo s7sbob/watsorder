@@ -1,5 +1,5 @@
 // src/components/frontend-pages/homepage/FAQ.tsx
-import { Box, Grid, Typography, Container, Link, Divider, Stack } from '@mui/material';
+import { Box, Grid, Typography, Container, Link } from '@mui/material';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -21,7 +21,7 @@ const FAQ = () => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState<string | false>(false);
 
-  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+  const handleChange = (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
   };
 

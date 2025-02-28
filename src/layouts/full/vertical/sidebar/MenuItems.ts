@@ -20,7 +20,6 @@ import {
   IconShoppingCart,    // لOrders Dashboard
   IconFileCheck,       // لـ Confirmed Orders
   IconUserCircle,      // لـ Subuser Management
-  IconUserPlus,        // لـ Add Sub-User
   IconChartDonut3,     // لـ Sessions Dashboard
 } from '@tabler/icons-react';
 

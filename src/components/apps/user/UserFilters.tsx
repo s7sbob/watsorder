@@ -12,7 +12,7 @@ interface UserFiltersProps {
   onAddUser: () => void;
 }
 
-const UserFilters: React.FC<UserFiltersProps> = ({ searchTerm, setSearchTerm, activeTab, setActiveTab, onAddUser }) => {
+const UserFilters: React.FC<UserFiltersProps> = ({ searchTerm, setSearchTerm,  setActiveTab, onAddUser }) => {
   return (
     <>
       <Grid container spacing={3} mb={3}>

@@ -1,7 +1,7 @@
 // src/components/frontend-pages/homepage/Pricing.tsx
 
 import { Box, Typography, Container, Grid } from '@mui/material';
-import PricingCard from './PricingCard';
+// import PricingCard from './PricingCard';
 const Pricing = () => {
   return (
     <Box sx={{ py: { xs: 5, lg: 11 } }}>
@@ -21,7 +21,7 @@ const Pricing = () => {
           </Grid>
         </Grid>
 
-        <PricingCard />
+        {/* <PricingCard /> */}
 
         {/* <PaymentMethods /> */}
       </Container>

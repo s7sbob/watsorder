@@ -1,6 +1,6 @@
 // src/components/orders/OrdersColumn.tsx
 import React from 'react';
-import { Box, Typography, Paper } from '@mui/material';
+import {  Typography, Paper } from '@mui/material';
 import OrderCard from './OrderCard';
 import { OrderType } from 'src/types/apps/order';
 

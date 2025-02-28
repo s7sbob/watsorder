@@ -2,7 +2,6 @@
 import { Box, Grid, Typography, Button, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import axiosServices from 'src/utils/axios';
-import { useNavigate } from 'react-router-dom';
 
 interface PricingCardProps {
   sessionId: number;
@@ -44,7 +43,6 @@ const Card = styled(Paper)(({ theme }) => ({
 }));
 
 const PricingCard: React.FC<PricingCardProps> = ({ sessionId, onPlanChosen }) => {
-  const navigate = useNavigate();
 
   // دالة لاستدعاء API اختيار الخطة باستخدام sessionId الممرر
   const handleGetStarted = async (planType: string) => {

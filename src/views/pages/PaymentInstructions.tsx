@@ -2,14 +2,12 @@
 
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 
 interface PaymentInstructionsProps {
   onDone: () => void;
 }
 
 const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({ onDone }) => {
-  const navigate = useNavigate();
 
   return (
     <Box sx={{ p: 4 }}>

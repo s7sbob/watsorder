@@ -5,7 +5,7 @@ import { getConnection } from '../config/db';
 import * as sql from 'mssql';
 
 // 1) جلب كل الميزات العامة
-export const getAllFeatures = async (req: Request, res: Response) => {
+export const getAllFeatures = async (_req: Request, res: Response) => {
   try {
     // (تحقق إن كنت تريد السماح فقط للـ admin)
     const pool = await getConnection();

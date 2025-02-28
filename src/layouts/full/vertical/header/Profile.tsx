@@ -7,19 +7,16 @@ import {
   Menu,
   Avatar,
   Typography,
-  Divider,
   Button,
   IconButton,
   Stack
 } from '@mui/material';
-import * as dropdownData from './data';
 import LogoutButton from './LogoutButton'; // تأكد من مسار الاستيراد الصحيح
 
 
 import { IconMail } from '@tabler/icons-react';
 
 import ProfileImg from 'src/assets/images/profile/user-1.jpg';
-import unlimitedImg from 'src/assets/images/backgrounds/unlimited-bg.png';
 
 const Profile = () => {
   const [anchorEl2, setAnchorEl2] = useState(null);
