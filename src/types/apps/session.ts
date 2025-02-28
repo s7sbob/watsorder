@@ -1,5 +1,7 @@
 // src/types/apps/session.ts
 export interface SessionType {
+  expireDate: string;
+  planType: string;
   menuBotActive: any;
   id: number; // المعرف الفريد للجلسة
   sessionIdentifier: string; // معرّف الجلسة الفريد (مثل username.subscriptionType.sessionId)

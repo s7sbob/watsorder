@@ -26,7 +26,9 @@ import {
   confirmPayment,
   renewSubscription,
   sendToManager,
-  confirmPaymentWithExpire
+  confirmPaymentWithExpire,
+  createPaidSession,
+  rejectPayment
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
 import { upload } from '../middleware/uploadMiddleware'
@@ -127,6 +129,10 @@ router.post('/:id/confirm-payment', authenticateToken, confirmPayment);
 router.post('/:id/renew-subscription', authenticateToken, renewSubscription);
 router.post('/:id/send-to-manager', authenticateToken, sendToManager);
 router.post('/:id/confirm-payment-with-expire', authenticateToken, confirmPaymentWithExpire);
+router.post('/create-paid-session', authenticateToken, createPaidSession);
+router.post('/:id/reject-payment', authenticateToken, rejectPayment);
+
+
 
 
 export default router

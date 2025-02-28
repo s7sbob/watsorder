@@ -1,5 +1,6 @@
 // src/views/pages/SessionManagement.tsx
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -18,95 +19,111 @@ import {
   TextField,
   MenuItem,
   InputAdornment
-} from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
-import axiosServices from 'src/utils/axios';
+} from '@mui/material'
+import { Search as SearchIcon } from '@mui/icons-material'
+import axiosServices from 'src/utils/axios'
 
 interface Session {
-  id: number;
-  sessionIdentifier: string;
-  clientName: string; // تم استبدال userId بـ clientName
-  status: string;
-  subscriptionType: string;
-  expireDate: string | null;
-  phoneNumber: string | null;
+  id: number
+  sessionIdentifier: string
+  clientName: string
+  status: string
+  planType: string
+  expireDate: string | null
+  phoneNumber: string | null
 }
 
 const SessionManagement: React.FC = () => {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [filteredSessions, setFilteredSessions] = useState<Session[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('All')
 
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [newExpireDate, setNewExpireDate] = useState('');
+  // حوار "Confirm Payment" الذي يطلب إدخال تاريخ الانتهاء
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null)
+  const [newExpireDate, setNewExpireDate] = useState('')
 
   const fetchSessions = async () => {
     try {
-      const response = await axiosServices.get('/api/sessions');
-      // نتوقع من الـ API أن يُعيد لكل جلسة الخاصية clientName
-      setSessions(response.data);
-      setFilteredSessions(response.data);
+      const response = await axiosServices.get('/api/sessions')
+      setSessions(response.data)
+      setFilteredSessions(response.data)
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      console.error('Error fetching sessions:', error)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchSessions();
-  }, []);
+    fetchSessions()
+  }, [])
 
-  // دالة لتصفية الجلسات بناءً على البحث وحالة الجلسة
+  // تصفية الجلسات بناءً على البحث وحالة الجلسة
   useEffect(() => {
-    let temp = sessions;
+    let temp = sessions
     if (searchQuery) {
       temp = temp.filter(session =>
         session.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.subscriptionType.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+        (session.planType || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
     }
     if (statusFilter !== 'All') {
-      temp = temp.filter(session => session.status === statusFilter);
+      temp = temp.filter(session => session.status === statusFilter)
     }
-    setFilteredSessions(temp);
-  }, [searchQuery, statusFilter, sessions]);
+    setFilteredSessions(temp)
+  }, [searchQuery, statusFilter, sessions])
 
-  // عند الضغط على زر "Confirm Payment" (Force Confirm)
+  // عند الضغط على زر Confirm Payment (Force Confirm)
   const handleForceConfirm = (session: Session) => {
-    setSelectedSession(session);
-    setNewExpireDate(''); // إعادة تعيين القيمة
-    setOpenConfirmDialog(true);
-  };
+    setSelectedSession(session)
+    setNewExpireDate('')
+    setOpenConfirmDialog(true)
+  }
 
-  // عند تأكيد الدفع مع إدخال expire date
+  // إرسال تأكيد الدفع + تاريخ الانتهاء
   const handleConfirmPayment = async () => {
     if (!selectedSession || !newExpireDate) {
-      alert('Please enter the expire date.');
-      return;
+      alert('Please enter the expire date.')
+      return
     }
     try {
-      await axiosServices.post(`/api/sessions/${selectedSession.id}/confirm-payment-with-expire`, { newExpireDate });
-      setOpenConfirmDialog(false);
-      setSelectedSession(null);
-      fetchSessions();
+      await axiosServices.post(`/api/sessions/${selectedSession.id}/confirm-payment-with-expire`, {
+        newExpireDate
+      })
+      setOpenConfirmDialog(false)
+      setSelectedSession(null)
+      fetchSessions()
     } catch (error) {
-      console.error('Error confirming payment with expire date:', error);
-      alert('Error confirming payment.');
+      console.error('Error confirming payment with expire date:', error)
+      alert('Error confirming payment.')
     }
-  };
+  }
+
+  // زر رفض الدفع (Payment Rejected)
+  const handleRejectPayment = async (sessionId: number) => {
+    if (!window.confirm('Are you sure you want to reject this payment?')) return
+    try {
+      await axiosServices.post(`/api/sessions/${sessionId}/reject-payment`)
+      fetchSessions()
+    } catch (error) {
+      console.error('Error rejecting payment:', error)
+      alert('Error rejecting payment.')
+    }
+  }
 
   // زر Renew لتجديد الاشتراك عند انتهاء الصلاحية
   const handleRenewSubscription = async (sessionId: number) => {
-    const newExpire = prompt("Enter new expire date (YYYY-MM-DD):");
-    if (!newExpire) return;
+    const newExpire = prompt('Enter new expire date (YYYY-MM-DD):')
+    if (!newExpire) return
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/renew-subscription`, { newExpireDate: newExpire });
-      fetchSessions();
+      await axiosServices.post(`/api/sessions/${sessionId}/renew-subscription`, {
+        newExpireDate: newExpire
+      })
+      fetchSessions()
     } catch (error) {
-      console.error('Error renewing subscription:', error);
+      console.error('Error renewing subscription:', error)
     }
-  };
+  }
 
   return (
     <Box p={3}>
@@ -139,12 +156,13 @@ const SessionManagement: React.FC = () => {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <MenuItem value="All">All</MenuItem>
-          <MenuItem value="Waiting for Payment">Waiting for Payment</MenuItem>
           <MenuItem value="Paid">Paid</MenuItem>
           <MenuItem value="Ready">Ready</MenuItem>
           <MenuItem value="Connected">Connected</MenuItem>
           <MenuItem value="Expired">Expired</MenuItem>
-          <MenuItem value="Waiting for QR Code">Waiting for QR Code</MenuItem>
+          <MenuItem value="Terminated">Terminated</MenuItem>
+          <MenuItem value="Payment Rejected">Payment Rejected</MenuItem>
+          {/* أي حالات أخرى تريدها */}
         </TextField>
       </Box>
 
@@ -172,29 +190,40 @@ const SessionManagement: React.FC = () => {
                     color={
                       session.status === 'Ready'
                         ? 'success'
-                        : session.status === 'Waiting for Payment'
-                        ? 'warning'
                         : session.status === 'Paid'
                         ? 'warning'
                         : session.status === 'Expired'
+                        ? 'error'
+                        : session.status === 'Payment Rejected'
                         ? 'error'
                         : 'default'
                     }
                   />
                 </TableCell>
-                <TableCell>{session.subscriptionType || 'Not Chosen'}</TableCell>
+                <TableCell>{session.planType || 'Not Chosen'}</TableCell>
                 <TableCell>{session.expireDate || 'N/A'}</TableCell>
                 <TableCell>{session.phoneNumber || 'N/A'}</TableCell>
                 <TableCell align="center">
-                  {(session.status === 'Waiting for Payment' || session.status === 'Paid') && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={() => handleForceConfirm(session)}
-                    >
-                      Confirm Payment
-                    </Button>
+                  {session.status === 'Paid' && (
+                    <>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={() => handleForceConfirm(session)}
+                      >
+                        Confirm Payment
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={() => handleRejectPayment(session.id)}
+                        style={{ marginLeft: 8 }}
+                      >
+                        Reject Payment
+                      </Button>
+                    </>
                   )}
                   {session.status === 'Expired' && (
                     <Button
@@ -206,6 +235,7 @@ const SessionManagement: React.FC = () => {
                       Renew
                     </Button>
                   )}
+                  {/* يمكن إضافة أكشنات أخرى لباقي الحالات */}
                 </TableCell>
               </TableRow>
             ))}
@@ -237,7 +267,7 @@ const SessionManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  );
-};
+  )
+}
 
-export default SessionManagement;
+export default SessionManagement

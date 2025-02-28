@@ -100,6 +100,52 @@ export const createSession = async (req: Request, res: Response) => {
   }
 };
 
+export const createPaidSession = async (req: Request, res: Response) => {
+  const user = req.user && typeof req.user !== 'string' ? req.user : null
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized.' })
+  }
+
+  const { planType } = req.body
+  if (!planType) {
+    return res.status(400).json({ message: 'Plan type is required.' })
+  }
+
+  try {
+    const pool = await getConnection()
+
+    // سنفترض أننا نصنفها كـ Paid مباشرة، 
+    // أو "Waiting for Manager Confirmation" إن أردت.
+    const status = 'Paid'
+
+    const sessionIdentifier = `${user.id}.${user.subscriptionType}.${Date.now()}`
+
+    const insertSessionResult = await pool.request()
+      .input('userId', sql.Int, user.id)
+      .input('sessionIdentifier', sql.NVarChar, sessionIdentifier)
+      .input('status', sql.NVarChar, status)
+      .input('planType', sql.NVarChar, planType)
+      .input('clientName', sql.NVarChar, user.name)
+      .query(`
+        INSERT INTO Sessions
+          (userId, sessionIdentifier, status, planType, clientName)
+        OUTPUT INSERTED.*
+        VALUES
+          (@userId, @sessionIdentifier, @status, @planType, @clientName)
+      `)
+
+    const newSession = insertSessionResult.recordset[0]
+
+    // نعيد البيانات للعميل
+    return res.status(201).json({
+      message: 'Session created with Paid status.',
+      session: newSession
+    })
+  } catch (error) {
+    console.error('Error creating paid session:', error)
+    return res.status(500).json({ message: 'Error creating paid session.' })
+  }
+}
 
 
 
@@ -171,6 +217,32 @@ export const confirmPayment = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error confirming payment.' });
   }
 };
+
+
+export const rejectPayment = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10)
+  try {
+    const pool = await getConnection()
+    
+    // يكفي التحقق من ملكية الجلسة أو أن المستخدم مدير
+    // checkSessionOwnership(pool, sessionId, req.user) 
+    // أو فقط السماح لمن هو admin
+
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        UPDATE Sessions
+        SET status = 'Payment Rejected'
+        WHERE id = @sessionId
+      `)
+
+    return res.status(200).json({ message: 'Payment rejected successfully.' })
+  } catch (error) {
+    console.error('Error rejecting payment:', error)
+    return res.status(500).json({ message: 'Error rejecting payment.' })
+  }
+}
+
 
 
 export const confirmPaymentWithExpire = async (req: Request, res: Response) => {
