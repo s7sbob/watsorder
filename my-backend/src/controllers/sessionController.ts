@@ -502,6 +502,38 @@ export const updateGreeting = async (req: Request, res: Response) => {
   }
 }
 
+
+
+export const getGreeting = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10)
+  try {
+    const pool = await getConnection()
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT greetingMessage, greetingActive
+        FROM Sessions
+        WHERE id = @sessionId
+      `)
+
+    if (!result.recordset.length) {
+      return res.status(404).json({ message: 'Session not found.' })
+    }
+
+    const row = result.recordset[0]
+    return res.status(200).json({
+      greetingMessage: row.greetingMessage || '',
+      greetingActive: row.greetingActive === true
+    })
+  } catch (error) {
+    console.error('Error fetching greeting:', error)
+    return res.status(500).json({ message: 'Error fetching greeting.' })
+  }
+}
+
+
+
+
 // استرجاع رمز QR لجلسة معينة
 export const getQrForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)

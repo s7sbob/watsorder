@@ -30,7 +30,8 @@ import {
   createPaidSession,
   rejectPayment,
   forcePauseSession,
-  forceStartSession
+  forceStartSession,
+  getGreeting
 } from '../controllers/sessionController'
 import { authenticateToken } from '../middleware/authMiddleware'
 import { upload } from '../middleware/uploadMiddleware'
@@ -123,6 +124,9 @@ router.post('/:sessionId/keyword/:keywordId/update', authenticateToken, upload.a
 
 // [POST] حذف Keyword (بدلًا من DELETE)
 router.post('/:sessionId/keyword/:keywordId/delete', authenticateToken, deleteKeyword)
+
+
+router.get('/:id/greeting', authenticateToken, getGreeting)
 
 
 // المسارات الجديدة للتعديل على حالة الجلسة:

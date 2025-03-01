@@ -574,7 +574,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
       // ======================================================
       // 3) منطق الـ Greeting (لو لم تكن الرسالة Keyword ولا MenuBot)
       // ======================================================
-      if (greetingActive && greetingMessage) {
+      if (greetingActive) {
         // تأكّد أن الرسالة ليست من أوامر menuBot
         const isCommand =
           [
@@ -586,7 +586,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           upperText.startsWith('CATEGORY_') ||
           upperText.startsWith('PRODUCT_') ||
           upperText.startsWith('REMOVEPRODUCT_')
-
+      
         if (!isCommand) {
           // تأكد أنه لا يوجد طلب مفتوح في حالة الـ greeting
           const existingOrder = await pool.request()
@@ -605,15 +605,82 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   'AWAITING_NAME'
                 )
             `)
-
+      
           if (existingOrder.recordset.length === 0) {
-            // أرسل الـ Greeting
-            await client.sendMessage(msg.from, greetingMessage)
-            return
-          }
+            // ==============================
+            // منطق الساعة (GreetingLog)
+            // ==============================
+            // لو لم يمر أكثر من ساعة => لا نرسل الترحيب
+            const now = new Date()
+      
+            // 1) ابحث عن سجل في GreetingLog
+            const greetingLogRow = await pool.request()
+              .input('sessionId', sql.Int, sessionId)
+              .input('custPhone', sql.NVarChar, customerPhone)
+              .query(`
+                SELECT lastSentAt
+                FROM GreetingLog
+                WHERE sessionId = @sessionId
+                  AND phoneNumber = @custPhone
+              `)
+      
+            let canSend = false
+            if (!greetingLogRow.recordset.length) {
+              // ليس هناك سجل => أوّل مرة يرسل => نرسل الآن
+              canSend = true
+            } else {
+              // تحقق من مرور ساعة
+              const lastSent = new Date(greetingLogRow.recordset[0].lastSentAt)
+              const diffMs = now.getTime() - lastSent.getTime()
+              const diffMinutes = diffMs / 1000 / 60
+              if (diffMinutes >= 60) {
+                canSend = true
+              }
+            }
+      
+            if (canSend) {
+              // يمكنك إضافة سطر ثابت للترحيب:
+              const fixedLine = `*لعمل طلب جديد:*\nwa.me/${phoneNumber}?text=NEWORDER\n\n`   
+              if(!greetingMessage){
+                const finalGreeting =  fixedLine
+                await client.sendMessage(msg.from, finalGreeting)
+
+              }
+              else {
+                const finalGreeting = greetingMessage + fixedLine
+                await client.sendMessage(msg.from, finalGreeting)
+
+              }
+      
+      
+              // حدّث جدول GreetingLog
+              if (!greetingLogRow.recordset.length) {
+                // INSERT
+                await pool.request()
+                  .input('sessionId', sql.Int, sessionId)
+                  .input('custPhone', sql.NVarChar, customerPhone)
+                  .input('now', sql.DateTime, now)
+                  .query(`
+                    INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
+                    VALUES (@sessionId, @custPhone, @now)
+                  `)
+              } else {
+                // UPDATE
+                await pool.request()
+                  .input('sessionId', sql.Int, sessionId)
+                  .input('custPhone', sql.NVarChar, customerPhone)
+                  .input('now', sql.DateTime, now)
+                  .query(`
+                    UPDATE GreetingLog
+                    SET lastSentAt = @now
+                    WHERE sessionId = @sessionId
+                      AND phoneNumber = @custPhone
+                  `)
+              }
+            } // if (canSend)
+          } // if no existing order
         }
       }
-
       // في حال لم ينطبق أي من الشروط السابقة، لا نفعل شيئًا
     } catch (error) {
       console.error('Error handling menuBot message:', error)
