@@ -227,7 +227,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
 
-          let catMsg = bold('أقسامنا المتاحة:') + '\n'
+          let catMsg = bold('برجاء اختيار القسم') + '\n'
           catMsg += '===========================\n'
           for (const cat of categories.recordset) {
             catMsg += bold(cat.category_name) + '\n'
@@ -293,7 +293,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
 
-          let prodMsg = bold('برجاء اختيار المنتج:') + '\n'
+          let prodMsg = bold('برجاء إختيار المنتج') + '\n'
           prodMsg += '===========================\n'
           for (const p of productsData.recordset) {
             prodMsg += bold(`${p.product_name} (${p.price}ج)`) + '\n'
@@ -332,7 +332,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               WHERE id = @orderId
             `)
 
-          await client.sendMessage(msg.from, bold('كمية هذا المنتج؟'))
+          await client.sendMessage(msg.from, bold('برجاء إرسال الكمية'))
           return
         }
 
@@ -450,7 +450,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               WHERE id = @orderId
             `)
 
-          await client.sendMessage(msg.from, bold('من فضلك اكتب اسمك ثلاثي أو الاسم الذى سيُسجل بالطلب.'))
+          await client.sendMessage(msg.from, bold('من فضلك قم بإرسال اسم صاحب الطلب'))
           return
         }
 
@@ -543,144 +543,246 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   WHERE id = @orderId
                 `)
 
-              await client.sendMessage(msg.from, bold('برجاء إرسال الموقع (Location).'))
-              return
-            }
+                await client.sendMessage(
+                  msg.from,
+                  bold("برجاء إرسال الموقع (Location).") +
+                    "\n\n" +
+                    bold("أو لتأكيد الطلب بدون إرسال الموقع:") +
+                    "\n" +
+                    `wa.me/${phoneNumber}?text=SKIP_LOCATION`
+                )
+                return
+              }
 
             // ----- [AWAITING_LOCATION] -----
-            if (status === 'AWAITING_LOCATION' && msg.type === 'location' && msg.location) {
-              const { latitude, longitude } = msg.location
-              await pool.request()
-                .input('orderId', sql.Int, orderId)
-                .input('lat', sql.Decimal(9,6), latitude)
-                .input('lng', sql.Decimal(9,6), longitude)
-                .input('status', sql.NVarChar, 'CONFIRMED')
-                .query(`
-                  UPDATE Orders
-                  SET deliveryLat = @lat,
-                      deliveryLng = @lng,
-                      status = @status
-                  WHERE id = @orderId
-                `)
-
-              await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
-              io.emit('newOrder', { orderId: orderId })
-              return
+            if (status === 'AWAITING_LOCATION') {
+              const upperText = msg.body.trim().toUpperCase()
+        
+              // (جديد) إذا المستخدم أرسل SKIP_LOCATION => نؤكد الطلب بدون موقع
+              if (upperText === 'SKIP_LOCATION') {
+                // نؤكد الطلب كأننا استلمنا الموقع
+                await pool.request()
+                  .input('orderId', sql.Int, orderId)
+                  .input('status', sql.NVarChar, 'CONFIRMED')
+                  .query(`
+                    UPDATE Orders
+                    SET status = @status
+                    WHERE id = @orderId
+                  `)
+        
+                await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'))
+                io.emit('newOrder', { orderId: orderId })
+                return
+              }
+              // (إن كانت الرسالة من نوع location)
+              else if (msg.type === 'location' && msg.location) {
+                const { latitude, longitude } = msg.location
+                await pool.request()
+                  .input('orderId', sql.Int, orderId)
+                  .input('lat', sql.Decimal(9,6), latitude)
+                  .input('lng', sql.Decimal(9,6), longitude)
+                  .input('status', sql.NVarChar, 'CONFIRMED')
+                  .query(`
+                    UPDATE Orders
+                    SET deliveryLat = @lat,
+                        deliveryLng = @lng,
+                        status = @status
+                    WHERE id = @orderId
+                  `)
+        
+                await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
+                io.emit('newOrder', { orderId: orderId })
+                return
+              }
+              // خلاف ذلك => أي نص عشوائي هنا، نذكّره بالاختيارين
+              else {
+                await client.sendMessage(
+                  msg.from,
+                  bold("من فضلك أرسل الموقع أو اضغط على الرابط للتخطي:") + 
+                  "\n" + 
+                  `wa.me/${phoneNumber}?text=SKIP_LOCATION`
+                )
+                return
+              }
             }
           }
         }
       }
 
+
       // ======================================================
-      // 3) منطق الـ Greeting (لو لم تكن الرسالة Keyword ولا MenuBot)
+      // 3) فحص هل النص الحالي هو أحد أوامر المنيو بوت (لتجنب إرسال التكرار)
       // ======================================================
-      if (greetingActive) {
-        // تأكّد أن الرسالة ليست من أوامر menuBot
-        const isCommand =
-          [
-            'NEWORDER',
-            'SHOWCATEGORIES',
-            'VIEWCART',
-            'CARTCONFIRM'
-          ].some(cmd => upperText === cmd) ||
-          upperText.startsWith('CATEGORY_') ||
-          upperText.startsWith('PRODUCT_') ||
-          upperText.startsWith('REMOVEPRODUCT_')
-      
-        if (!isCommand) {
-          // تأكد أنه لا يوجد طلب مفتوح في حالة الـ greeting
-          const existingOrder = await pool.request()
+
+
+      const isCommand =
+        [
+          'NEWORDER',
+          'SHOWCATEGORIES',
+          'VIEWCART',
+          'CARTCONFIRM'
+        ].some(cmd => upperText === cmd) ||
+        upperText.startsWith('CATEGORY_') ||
+        upperText.startsWith('PRODUCT_') ||
+        upperText.startsWith('REMOVEPRODUCT_')
+
+      // ======================================================
+      // 4) التحقق إن كان هناك طلب مفتوح بالفعل
+      // ======================================================
+      const existingOrder = await pool.request()
+        .input('sessionId', sql.Int, sessionId)
+        .input('custPhone', sql.NVarChar, customerPhone)
+        .query(`
+          SELECT TOP 1 id 
+          FROM Orders 
+          WHERE sessionId = @sessionId 
+            AND customerPhoneNumber = @custPhone
+            AND status IN (
+              'IN_CART',
+              'AWAITING_ADDRESS',
+              'AWAITING_LOCATION',
+              'AWAITING_QUANTITY',
+              'AWAITING_NAME'
+            )
+        `)
+
+      // === (جديد) ===
+      // ======================================================
+      // (A) إرسال رسالة توضيح المنيو بوت (الثابتة) كل ساعة
+      //    طالما menuBotActive = true + لا يوجد طلب مفتوح
+      // ======================================================
+      if (menuBotActive && existingOrder.recordset.length === 0) {
+        // نميّز سجل GreetingLog بإضافة لاحقة (phoneNumber + '-menubot')
+        const specialPhoneForMenuBot = customerPhone + '-menubot'
+        const now = new Date()
+
+        // ابحث عن آخر إرسال لمساعد المنيو
+        const menuBotLogRow = await pool.request()
+          .input('sessionId', sql.Int, sessionId)
+          .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
+          .query(`
+            SELECT lastSentAt
+            FROM GreetingLog
+            WHERE sessionId = @sessionId
+              AND phoneNumber = @specialPhone
+          `)
+
+        let canSendMenuBot = false
+        if (!menuBotLogRow.recordset.length) {
+          // لم يُرسل سابقًا => نرسله الآن
+          canSendMenuBot = true
+        } else {
+          // تحقق هل مرّ أكثر من ساعة؟
+          const lastSent = new Date(menuBotLogRow.recordset[0].lastSentAt)
+          const diffMs = now.getTime() - lastSent.getTime()
+          const diffMinutes = diffMs / 1000 / 60
+          if (diffMinutes >= 60) {
+            canSendMenuBot = true
+          }
+        }
+
+        if (canSendMenuBot && !isCommand) {
+          // رسالة الإرشادات الخاصة بالمنيو بوت
+          const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الارسال
+
+*لتسجيل طلب جديد*
+wa.me/${phoneNumber}?text=NEWORDER
+`
+          await client.sendMessage(msg.from, menuBotGuide)
+
+          // حدّث أو أضف سجل في GreetingLog
+          if (!menuBotLogRow.recordset.length) {
+            // INSERT
+            await pool.request()
+              .input('sessionId', sql.Int, sessionId)
+              .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
+              .input('now', sql.DateTime, now)
+              .query(`
+                INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
+                VALUES (@sessionId, @specialPhone, @now)
+              `)
+          } else {
+            // UPDATE
+            await pool.request()
+              .input('sessionId', sql.Int, sessionId)
+              .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
+              .input('now', sql.DateTime, now)
+              .query(`
+                UPDATE GreetingLog
+                SET lastSentAt = @now
+                WHERE sessionId = @sessionId
+                  AND phoneNumber = @specialPhone
+              `)
+          }
+        }
+      }
+
+      // ======================================================
+      // (B) منطق الـ Greeting العادي إن كان مفعلًا
+      // ======================================================
+      if (greetingActive && !isCommand) {
+        // لا نرسل الترحيب إذا لدى المستخدم طلب مفتوح
+        if (existingOrder.recordset.length === 0) {
+          const now = new Date()
+          // 1) ابحث عن سجل في GreetingLog (بدون اللاحقة هنا)
+          const greetingLogRow = await pool.request()
             .input('sessionId', sql.Int, sessionId)
             .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
-              SELECT TOP 1 id 
-              FROM Orders 
-              WHERE sessionId = @sessionId 
-                AND customerPhoneNumber = @custPhone
-                AND status IN (
-                  'IN_CART',
-                  'AWAITING_ADDRESS',
-                  'AWAITING_LOCATION',
-                  'AWAITING_QUANTITY',
-                  'AWAITING_NAME'
-                )
+              SELECT lastSentAt
+              FROM GreetingLog
+              WHERE sessionId = @sessionId
+                AND phoneNumber = @custPhone
             `)
-      
-          if (existingOrder.recordset.length === 0) {
-            // ==============================
-            // منطق الساعة (GreetingLog)
-            // ==============================
-            // لو لم يمر أكثر من ساعة => لا نرسل الترحيب
-            const now = new Date()
-      
-            // 1) ابحث عن سجل في GreetingLog
-            const greetingLogRow = await pool.request()
-              .input('sessionId', sql.Int, sessionId)
-              .input('custPhone', sql.NVarChar, customerPhone)
-              .query(`
-                SELECT lastSentAt
-                FROM GreetingLog
-                WHERE sessionId = @sessionId
-                  AND phoneNumber = @custPhone
-              `)
-      
-            let canSend = false
-            if (!greetingLogRow.recordset.length) {
-              // ليس هناك سجل => أوّل مرة يرسل => نرسل الآن
-              canSend = true
-            } else {
-              // تحقق من مرور ساعة
-              const lastSent = new Date(greetingLogRow.recordset[0].lastSentAt)
-              const diffMs = now.getTime() - lastSent.getTime()
-              const diffMinutes = diffMs / 1000 / 60
-              if (diffMinutes >= 60) {
-                canSend = true
-              }
+
+          let canSendGreeting = false
+          if (!greetingLogRow.recordset.length) {
+            // أول مرة => نرسل الآن
+            canSendGreeting = true
+          } else {
+            // تحقق من مرور ساعة
+            const lastSent = new Date(greetingLogRow.recordset[0].lastSentAt)
+            const diffMs = now.getTime() - lastSent.getTime()
+            const diffMinutes = diffMs / 1000 / 60
+            if (diffMinutes >= 60) {
+              canSendGreeting = true
             }
-      
-            if (canSend) {
-              // يمكنك إضافة سطر ثابت للترحيب:
-              const fixedLine = `*لعمل طلب جديد:*\nwa.me/${phoneNumber}?text=NEWORDER\n\n`   
-              if(!greetingMessage){
-                const finalGreeting =  fixedLine
-                await client.sendMessage(msg.from, finalGreeting)
+          }
 
-              }
-              else {
-                const finalGreeting = greetingMessage + fixedLine
-                await client.sendMessage(msg.from, finalGreeting)
-
-              }
-      
-      
-              // حدّث جدول GreetingLog
-              if (!greetingLogRow.recordset.length) {
-                // INSERT
-                await pool.request()
-                  .input('sessionId', sql.Int, sessionId)
-                  .input('custPhone', sql.NVarChar, customerPhone)
-                  .input('now', sql.DateTime, now)
-                  .query(`
-                    INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
-                    VALUES (@sessionId, @custPhone, @now)
-                  `)
-              } else {
-                // UPDATE
-                await pool.request()
-                  .input('sessionId', sql.Int, sessionId)
-                  .input('custPhone', sql.NVarChar, customerPhone)
-                  .input('now', sql.DateTime, now)
-                  .query(`
-                    UPDATE GreetingLog
-                    SET lastSentAt = @now
-                    WHERE sessionId = @sessionId
-                      AND phoneNumber = @custPhone
-                  `)
-              }
-            } // if (canSend)
-          } // if no existing order
+          if (canSendGreeting) {
+            // إرسال الرسالة الترحيبية إن وُجدت
+            if (greetingMessage) {
+              // أرسل رسالة الترحيب المخصصة
+              await client.sendMessage(msg.from, greetingMessage)
+            }
+            // حدّث/أضف سجل GreetingLog
+            if (!greetingLogRow.recordset.length) {
+              // INSERT
+              await pool.request()
+                .input('sessionId', sql.Int, sessionId)
+                .input('custPhone', sql.NVarChar, customerPhone)
+                .input('now', sql.DateTime, now)
+                .query(`
+                  INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
+                  VALUES (@sessionId, @custPhone, @now)
+                `)
+            } else {
+              // UPDATE
+              await pool.request()
+                .input('sessionId', sql.Int, sessionId)
+                .input('custPhone', sql.NVarChar, customerPhone)
+                .input('now', sql.DateTime, now)
+                .query(`
+                  UPDATE GreetingLog
+                  SET lastSentAt = @now
+                  WHERE sessionId = @sessionId
+                    AND phoneNumber = @custPhone
+                `)
+            }
+          }
         }
       }
+
       // في حال لم ينطبق أي من الشروط السابقة، لا نفعل شيئًا
     } catch (error) {
       console.error('Error handling menuBot message:', error)

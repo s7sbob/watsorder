@@ -172,7 +172,7 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     for (const it of itemsRes.recordset) {
       const linePrice = (it.price || 0) * it.quantity
       total += linePrice
-      itemsMessage += `(${it.quantity}) ${it.product_name}   = ${linePrice}\n`
+      itemsMessage += `*(${it.quantity})* ${it.product_name}   = *${linePrice}*`
     }
 
     const finalTotal = total + (deliveryFee || 0) + (taxValue || 0)
@@ -180,19 +180,18 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     const invoiceNumber = orderRow.id
     const now = new Date().toLocaleString('ar-EG')
 
-    const msgText = `
-تم إستلام الطلب من: ${orderRow.customerName || 'عميل'}
-وهو الآن فى مرحلة التجهيز
-الوقت المتوقع للإنتهاء: ${prepTime || 30} دقيقة
-رقم الفاتورة : ${invoiceNumber}
-التاريخ : ${now}
-=======================
-${itemsMessage}
-=======================
-قيمة التوصيل: ${deliveryFee || 0}
-=======================
-الإجمالى : ${finalTotal}
-`
+    const msgText = 
+    `*تم إستلام الطلب*\n` +
+    `*وهو الآن فى مرحلة التجهيز*\n` +
+    `*الوقت المتوقع للإنتهاء:* ${prepTime || 30} دقيقة\n` +
+    `*رقم الفاتورة:* ${invoiceNumber}\n` +
+    `*التاريخ:* ${now}\n` +
+    `=======================\n` +
+    `${itemsMessage}\n` +
+    `=======================\n` +
+    `*قيمة التوصيل:* ${deliveryFee || 0}\n` +
+    `=======================\n` +
+    `*الإجمالى:* ${finalTotal}\n`;
 
     // إرسال الرسالة عبر واتساب
     const client = whatsappClients[orderRow.sessionId]

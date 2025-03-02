@@ -1,5 +1,4 @@
 // src/layouts/sidebar/SidebarItems.tsx
-import React from 'react'
 import { useLocation } from 'react-router'
 import { Box, List, useMediaQuery } from '@mui/material'
 import { useSelector, useDispatch } from 'src/store/Store'
