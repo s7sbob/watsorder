@@ -83,7 +83,7 @@ export const loginUser = async (req: Request, res: Response): Promise<Response> 
         maxSessions: user.maxSessions,
       },
       process.env.JWT_SECRET as string,
-      { expiresIn: '1h' }
+      { expiresIn: '24h' }
     );
 
     return res.status(200).json({ message: 'تم تسجيل الدخول بنجاح', token });
