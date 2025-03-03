@@ -5,7 +5,6 @@ import { getConnection } from '../config/db'
 import * as sql from 'mssql'
 import { whatsappClients } from './whatsappClients'
 
-
 // ===================================================================
 // دوال مساعدة
 // ===================================================================
@@ -14,16 +13,12 @@ import { whatsappClients } from './whatsappClients'
 // أو السماح للمالك (الجلسة) بتأكيده. اختر ما يناسبك.
 // هنا نفترض: Admin فقط من يقوم بـ confirmOrderByRestaurant
 
-// هذه الدالة تساعدنا في التحقق من ملكية الطلب. 
-// سنجلب الـ sessionOwner من جدول Sessions.
-
 // ===================================================================
 // الدوال الرئيسية
 // ===================================================================
 
 export const getConfirmedOrdersForUser = async (req: Request, res: Response) => {
   try {
-    // استخراج userId من التوكن
     const userId = req.user && typeof req.user !== 'string' ? req.user.id : null
     if (!userId) {
       return res.status(401).json({ message: 'User not authorized.' })
@@ -31,9 +26,6 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
 
     const pool = await getConnection()
 
-    // جلب جلسات هذا المستخدم
-    // (لو أردت admin يرى جميع الطلبات المؤكدة، يمكنك تعديل الشرط لو كان admin => ignore userId.)
-    // حالياً: حتى admin لا يرى جلسات الآخرين (حسب كلامك).
     const sessionsResult = await pool.request()
       .input('userId', sql.Int, userId)
       .query(`
@@ -42,7 +34,7 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
         WHERE userId = @userId
       `)
     if (!sessionsResult.recordset.length) {
-      return res.status(200).json([]) // لا توجد جلسات
+      return res.status(200).json([])
     }
 
     const sessionIds = sessionsResult.recordset.map((row: any) => row.id) as number[]
@@ -50,7 +42,6 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
       return res.status(200).json([])
     }
 
-    // جلب الطلبات المؤكدة لتلك الجلسات
     const inClause = sessionIds.join(',')
     const ordersQuery = `
       SELECT o.*,
@@ -64,7 +55,6 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
 
     const ordersResult = await pool.request().query(ordersQuery)
 
-    // جلب عناصر الطلبات
     const orderIds = ordersResult.recordset.map((r: any) => r.id)
     if (!orderIds.length) {
       return res.status(200).json([])
@@ -79,7 +69,6 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
     `
     const itemsResult = await pool.request().query(itemsQuery)
 
-    // تنظيم بيانات الطلبات مع عناصرها
     const ordersData = ordersResult.recordset.map((ord: any) => {
       const orderItems = itemsResult.recordset.filter((it: any) => it.orderId === ord.id)
       return {
@@ -117,7 +106,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid order ID.' })
     }
 
-    // نفترض أنه لا يسمح إلا للـadmin بفعل هذا:
     if (!req.user || req.user.subscriptionType !== 'admin') {
       return res.status(403).json({ message: 'Forbidden: Admin only can confirm orders.' })
     }
@@ -125,9 +113,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     const { prepTime, deliveryFee, taxValue } = req.body
     const pool = await getConnection()
 
-    // جلب الطلب من قاعدة البيانات
-    // (لا حاجة لفحص ملكية لأننا قلنا admin فقط, 
-    //  لكن إن أردت السماح أيضاً للمالك, يمكنك استخدام checkOrderOwnership)
     const orderRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
@@ -142,7 +127,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     }
     const orderRow = orderRes.recordset[0]
 
-    // تحديث معلومات الطلب
     await pool.request()
       .input('orderId', sql.Int, orderId)
       .input('prepTime', sql.Int, prepTime || null)
@@ -157,7 +141,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
         WHERE id = @orderId
       `)
 
-    // جلب عناصر الطلب لتفصيل الرسالة
     const itemsRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
@@ -176,7 +159,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     }
 
     const finalTotal = total + (deliveryFee || 0) + (taxValue || 0)
-
     const invoiceNumber = orderRow.id
     const now = new Date().toLocaleString('ar-EG')
 
@@ -193,7 +175,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     `=======================\n` +
     `*الإجمالى:* ${finalTotal}\n`;
 
-    // إرسال الرسالة عبر واتساب
     const client = whatsappClients[orderRow.sessionId]
     if (!client) {
       return res.status(200).json({
@@ -210,7 +191,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error confirming order by restaurant.' })
   }
 }
-
 
 export const getOrderDetails = async (req: Request, res: Response) => {
   const orderId = parseInt(req.params.orderId, 10)
@@ -231,7 +211,6 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     }
     const order = orderRes.recordset[0]
 
-    // تحقق الملكية:
     if (!req.user) {
       return res.status(401).json({ message: 'No user payload found.' })
     }
@@ -239,7 +218,6 @@ export const getOrderDetails = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Forbidden: You do not own this order.' })
     }
 
-    // بعد التحقق:
     const itemsRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`

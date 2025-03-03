@@ -14,6 +14,65 @@ interface WhatsAppClientMap {
 
 export const whatsappClients: WhatsAppClientMap = {}
 
+// خريطة لتخزين مؤقتات الطلبات المفتوحة
+const orderTimeoutMap: { [orderId: number]: NodeJS.Timeout } = {};
+
+/**
+ * دالة جدولة حذف الطلب في حال عدم اتخاذ إجراء خلال 5 دقائق
+ */
+const scheduleOrderTimeout = async (
+  orderId: number,
+  sessionId: number,
+  client: Client,
+  customerPhone: string
+) => {
+  const delay = 5 * 60 * 1000; // 5 دقائق بالمللي ثانية
+  const timeout = setTimeout(async () => {
+    try {
+      const pool = await getConnection();
+      const orderRes = await pool.request()
+        .input('orderId', sql.Int, orderId)
+        .query(`SELECT status FROM Orders WHERE id = @orderId`);
+      
+      if (orderRes.recordset.length) {
+        const currentStatus = orderRes.recordset[0].status;
+        // إذا كان الطلب في حالة انتظار (قبل التأكيد النهائي)
+        if (['IN_CART', 'AWAITING_QUANTITY', 'AWAITING_NAME', 'AWAITING_ADDRESS', 'AWAITING_LOCATION'].includes(currentStatus)) {
+          // حذف الطلب من قاعدة البيانات
+          await pool.request()
+            .input('orderId', sql.Int, orderId)
+            .query(`DELETE FROM Orders WHERE id = @orderId`);
+          
+          // إرسال رسالة إعلام للعميل
+          const chatId = `${customerPhone}@c.us`;
+          const notificationMsg = `تم الغاء طلبك لعدم الاستكمال
+*يمكنك الان بدأ طلب جديد*
+wa.me/201210970675?text=NEWORDER`;
+          await client.sendMessage(chatId, notificationMsg);
+          console.log(`Order ${orderId} deleted due to inactivity.`);
+        }
+      }
+    } catch (error) {
+      console.error(`Error in order timeout for order ${orderId}:`, error);
+    } finally {
+      delete orderTimeoutMap[orderId];
+    }
+  }, delay);
+
+  orderTimeoutMap[orderId] = timeout;
+};
+
+/**
+ * دالة لإلغاء المؤقت الخاص بالطلب
+ */
+const clearOrderTimeout = (orderId: number) => {
+  if (orderTimeoutMap[orderId]) {
+    clearTimeout(orderTimeoutMap[orderId]);
+    delete orderTimeoutMap[orderId];
+    console.log(`Timeout for order ${orderId} cleared.`);
+  }
+};
+
 /**
  * إنشاء عميل واتساب جديد لجلسة معيّنة
  */
@@ -204,15 +263,19 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           }
 
           // إنشاء طلب جديد
-          await pool.request()
-          .input('sessionId', sql.Int, sessionId)
-          .input('status', sql.NVarChar, 'IN_CART')
-          .input('custPhone', sql.NVarChar, customerPhone)
-          .query(`
-            INSERT INTO Orders (sessionId, status, customerPhoneNumber)
-            OUTPUT INSERTED.id
-            VALUES (@sessionId, @status, @custPhone)
-          `);
+          const orderInsertResult = await pool.request()
+            .input('sessionId', sql.Int, sessionId)
+            .input('status', sql.NVarChar, 'IN_CART')
+            .input('custPhone', sql.NVarChar, customerPhone)
+            .query(`
+              INSERT INTO Orders (sessionId, status, customerPhoneNumber)
+              OUTPUT INSERTED.id
+              VALUES (@sessionId, @status, @custPhone)
+            `);
+
+          const orderId = orderInsertResult.recordset[0].id;
+          // جدولة حذف الطلب إذا لم يقم العميل بأي إجراء خلال 5 دقائق
+          scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
 
           // جلب الأصناف
           const categories = await pool.request()
@@ -331,6 +394,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   status = @status
               WHERE id = @orderId
             `)
+          
+          // إعادة جدولة المؤقت بعد الانتقال لمرحلة انتظار الكمية
+          clearOrderTimeout(orderId);
+          scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
 
           await client.sendMessage(msg.from, bold('برجاء إرسال الكمية'))
           return
@@ -450,6 +517,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               WHERE id = @orderId
             `)
 
+          // إعادة جدولة المؤقت بعد الانتقال لمرحلة انتظار الاسم
+          clearOrderTimeout(orderId);
+          scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
+
           await client.sendMessage(msg.from, bold('من فضلك قم بإرسال اسم صاحب الطلب'))
           return
         }
@@ -501,6 +572,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   WHERE id = @orderId
                 `)
 
+              // إعادة جدولة المؤقت بعد إضافة الكمية
+              clearOrderTimeout(orderId);
+              scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
+
               let addedMsg = bold('تم إضافة المنتج للسلة.') + '\n'
               addedMsg += '===========================\n'
               addedMsg += bold('عرض السلة:')+'\n'
@@ -525,6 +600,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   WHERE id = @orderId
                 `)
 
+              // إعادة جدولة المؤقت بعد إضافة الاسم
+              clearOrderTimeout(orderId);
+              scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
+
               await client.sendMessage(msg.from, bold('برجاء إدخال العنوان.'))
               return
             }
@@ -543,6 +622,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   WHERE id = @orderId
                 `)
 
+                // إعادة جدولة المؤقت بعد إدخال العنوان
+                clearOrderTimeout(orderId);
+                scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
+
                 await client.sendMessage(
                   msg.from,
                   bold("برجاء إرسال الموقع (Location).") +
@@ -556,11 +639,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
             // ----- [AWAITING_LOCATION] -----
             if (status === 'AWAITING_LOCATION') {
-              const upperText = msg.body.trim().toUpperCase()
+              const upperTextLocation = msg.body.trim().toUpperCase()
         
               // (جديد) إذا المستخدم أرسل SKIP_LOCATION => نؤكد الطلب بدون موقع
-              if (upperText === 'SKIP_LOCATION') {
-                // نؤكد الطلب كأننا استلمنا الموقع
+              if (upperTextLocation === 'SKIP_LOCATION') {
                 await pool.request()
                   .input('orderId', sql.Int, orderId)
                   .input('status', sql.NVarChar, 'CONFIRMED')
@@ -570,6 +652,9 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                     WHERE id = @orderId
                   `)
         
+                // إلغاء المؤقت لأنه تم تأكيد الطلب
+                clearOrderTimeout(orderId);
+
                 await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'))
                 io.emit('newOrder', { orderId: orderId })
                 return
@@ -590,11 +675,13 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                     WHERE id = @orderId
                   `)
         
+                // إلغاء المؤقت لأنه تم تأكيد الطلب
+                clearOrderTimeout(orderId);
+
                 await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
                 io.emit('newOrder', { orderId: orderId })
                 return
               }
-              // خلاف ذلك => أي نص عشوائي هنا، نذكّره بالاختيارين
               else {
                 await client.sendMessage(
                   msg.from,
@@ -609,11 +696,9 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         }
       }
 
-
       // ======================================================
       // 3) فحص هل النص الحالي هو أحد أوامر المنيو بوت (لتجنب إرسال التكرار)
       // ======================================================
-
 
       const isCommand =
         [
@@ -652,11 +737,9 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
       //    طالما menuBotActive = true + لا يوجد طلب مفتوح
       // ======================================================
       if (menuBotActive && existingOrder.recordset.length === 0) {
-        // نميّز سجل GreetingLog بإضافة لاحقة (phoneNumber + '-menubot')
         const specialPhoneForMenuBot = customerPhone + '-menubot'
         const now = new Date()
 
-        // ابحث عن آخر إرسال لمساعد المنيو
         const menuBotLogRow = await pool.request()
           .input('sessionId', sql.Int, sessionId)
           .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
@@ -669,10 +752,8 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
         let canSendMenuBot = false
         if (!menuBotLogRow.recordset.length) {
-          // لم يُرسل سابقًا => نرسله الآن
           canSendMenuBot = true
         } else {
-          // تحقق هل مرّ أكثر من ساعة؟
           const lastSent = new Date(menuBotLogRow.recordset[0].lastSentAt)
           const diffMs = now.getTime() - lastSent.getTime()
           const diffMinutes = diffMs / 1000 / 60
@@ -682,7 +763,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         }
 
         if (canSendMenuBot && !isCommand) {
-          // رسالة الإرشادات الخاصة بالمنيو بوت
           const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الارسال
 
 *لتسجيل طلب جديد*
@@ -690,9 +770,7 @@ wa.me/${phoneNumber}?text=NEWORDER
 `
           await client.sendMessage(msg.from, menuBotGuide)
 
-          // حدّث أو أضف سجل في GreetingLog
           if (!menuBotLogRow.recordset.length) {
-            // INSERT
             await pool.request()
               .input('sessionId', sql.Int, sessionId)
               .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
@@ -702,7 +780,6 @@ wa.me/${phoneNumber}?text=NEWORDER
                 VALUES (@sessionId, @specialPhone, @now)
               `)
           } else {
-            // UPDATE
             await pool.request()
               .input('sessionId', sql.Int, sessionId)
               .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
@@ -721,10 +798,8 @@ wa.me/${phoneNumber}?text=NEWORDER
       // (B) منطق الـ Greeting العادي إن كان مفعلًا
       // ======================================================
       if (greetingActive && !isCommand) {
-        // لا نرسل الترحيب إذا لدى المستخدم طلب مفتوح
         if (existingOrder.recordset.length === 0) {
           const now = new Date()
-          // 1) ابحث عن سجل في GreetingLog (بدون اللاحقة هنا)
           const greetingLogRow = await pool.request()
             .input('sessionId', sql.Int, sessionId)
             .input('custPhone', sql.NVarChar, customerPhone)
@@ -737,10 +812,8 @@ wa.me/${phoneNumber}?text=NEWORDER
 
           let canSendGreeting = false
           if (!greetingLogRow.recordset.length) {
-            // أول مرة => نرسل الآن
             canSendGreeting = true
           } else {
-            // تحقق من مرور ساعة
             const lastSent = new Date(greetingLogRow.recordset[0].lastSentAt)
             const diffMs = now.getTime() - lastSent.getTime()
             const diffMinutes = diffMs / 1000 / 60
@@ -750,14 +823,10 @@ wa.me/${phoneNumber}?text=NEWORDER
           }
 
           if (canSendGreeting) {
-            // إرسال الرسالة الترحيبية إن وُجدت
             if (greetingMessage) {
-              // أرسل رسالة الترحيب المخصصة
               await client.sendMessage(msg.from, greetingMessage)
             }
-            // حدّث/أضف سجل GreetingLog
             if (!greetingLogRow.recordset.length) {
-              // INSERT
               await pool.request()
                 .input('sessionId', sql.Int, sessionId)
                 .input('custPhone', sql.NVarChar, customerPhone)
@@ -767,7 +836,6 @@ wa.me/${phoneNumber}?text=NEWORDER
                   VALUES (@sessionId, @custPhone, @now)
                 `)
             } else {
-              // UPDATE
               await pool.request()
                 .input('sessionId', sql.Int, sessionId)
                 .input('custPhone', sql.NVarChar, customerPhone)
@@ -783,7 +851,6 @@ wa.me/${phoneNumber}?text=NEWORDER
         }
       }
 
-      // في حال لم ينطبق أي من الشروط السابقة، لا نفعل شيئًا
     } catch (error) {
       console.error('Error handling menuBot message:', error)
     }
@@ -833,7 +900,6 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
       if (media && Array.isArray(media) && media.length > 0) {
         for (const singleMedia of media) {
           const mediaMsg = new MessageMedia(singleMedia.mimetype, singleMedia.base64, singleMedia.filename)
-          // يمكنك تعديل الكابشن كما تريد
           await sendMessageWithDelay(client, phoneNumber, '* *', randomDelay, mediaMsg)
         }
         if (message && message.trim()) {
