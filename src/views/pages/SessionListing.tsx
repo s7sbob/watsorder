@@ -18,7 +18,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  TextField
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -32,6 +33,50 @@ import { useNavigate } from 'react-router'
 // مكونات الخطة والدفع
 import PricingCard from 'src/components/frontend-pages/shared/pricing/PricingCard'
 import PaymentInstructions from 'src/views/pages/PaymentInstructions'
+
+// مكون لتحرير رقم الواتساب البديل داخل جدول الجلسات
+interface AlternateWhatsAppEditorProps {
+  session: SessionType
+  onUpdate: (sessionId: number, newAlternate: string) => void
+  onAlert: (message: string, severity: AlertColor) => void
+}
+
+const AlternateWhatsAppEditor: React.FC<AlternateWhatsAppEditorProps> = ({ session, onUpdate, onAlert }) => {
+  const [value, setValue] = useState(session.alternateWhatsAppNumber || '')
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const handleUpdate = async () => {
+    setIsUpdating(true)
+    try {
+      await axiosServices.post(`/api/sessions/${session.id}/alternate-whatsapp`, {
+        alternateWhatsAppNumber: value
+      })
+      onUpdate(session.id, value)
+      onAlert('تم تحديث الرقم بنجاح', 'success')
+    } catch (error) {
+      console.error('Error updating alternate WhatsApp number', error)
+      onAlert('حدث خطأ أثناء تحديث الرقم', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <TextField
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        size="small"
+        variant="outlined"
+        placeholder="أدخل الرقم"
+        sx={{ width: '150px' }}
+      />
+      <Button onClick={handleUpdate} variant="contained" size="small" disabled={isUpdating} sx={{ ml: 1 }}>
+        Save
+      </Button>
+    </Box>
+  )
+}
 
 const SessionListing = () => {
   const navigate = useNavigate()
@@ -214,7 +259,7 @@ const SessionListing = () => {
       showAlert(`Session ${session.id} has been logged out.`, 'info')
     } catch (error) {
       console.error('Error logging out session:', error)
-      showAlert('An error occurred while logging out.', 'error')
+      showAlert('An error occurred while logging out the session.', 'error')
     }
   }
 
@@ -228,6 +273,11 @@ const SessionListing = () => {
       console.error('Error deleting session:', error)
       showAlert('An error occurred while deleting the session.', 'error')
     }
+  }
+
+  // دالة تحديث رقم الـ alternate في الـ redux state بعد نجاح التعديل
+  const handleAlternateUpdate = (sessionId: number, newAlternate: string) => {
+    dispatch(updateSession({ sessionId, changes: { alternateWhatsAppNumber: newAlternate } }))
   }
 
   // ============== رندر الجدول ==============
@@ -246,6 +296,7 @@ const SessionListing = () => {
               <TableCell>Plan</TableCell>
               <TableCell>Expire Date</TableCell>
               <TableCell>Phone Number</TableCell>
+              <TableCell>Alternate WhatsApp</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align='right'>Actions</TableCell>
             </TableRow>
@@ -270,6 +321,13 @@ const SessionListing = () => {
                   <TableCell>{session.planType || 'N/A'}</TableCell>
                   <TableCell>{session.expireDate || 'N/A'}</TableCell>
                   <TableCell>{session.phoneNumber || 'N/A'}</TableCell>
+                  <TableCell>
+                    <AlternateWhatsAppEditor
+                      session={session}
+                      onUpdate={handleAlternateUpdate}
+                      onAlert={showAlert}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={session.status}
@@ -366,7 +424,7 @@ const SessionListing = () => {
                           {session.menuBotActive ? 'Menu Bot OFF' : 'Menu Bot ON'}
                         </Button>
                         {/* Logout */}
-                        {!isTerminated && (
+                        {session.status !== 'Terminated' && (
                           <Button variant='outlined' size='small' onClick={() => handleLogoutSession(session)}>
                             Logout
                           </Button>

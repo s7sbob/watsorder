@@ -1,5 +1,6 @@
 // src/types/apps/session.ts
 export interface SessionType {
+  alternateWhatsAppNumber: any;
   expireDate: string;
   planType: string;
   menuBotActive: any;

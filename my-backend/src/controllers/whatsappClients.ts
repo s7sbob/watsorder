@@ -654,9 +654,57 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         
                 // إلغاء المؤقت لأنه تم تأكيد الطلب
                 clearOrderTimeout(orderId);
-
+        
                 await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'))
                 io.emit('newOrder', { orderId: orderId })
+        
+                // إرسال رسالة تفصيلية للرقم البديل
+                const sessionData = await pool.request()
+                  .input('sessionId', sql.Int, sessionId)
+                  .query(`
+                    SELECT alternateWhatsAppNumber
+                    FROM Sessions
+                    WHERE id = @sessionId
+                  `)
+                if (sessionData.recordset.length && sessionData.recordset[0].alternateWhatsAppNumber) {
+                  const altNumber = sessionData.recordset[0].alternateWhatsAppNumber;
+                  const altRecipient = altNumber + '@c.us';
+                  // استعلام تفاصيل الطلب
+                  const orderDetailsQuery = await pool.request()
+                    .input('orderId', sql.Int, orderId)
+                    .query(`
+                      SELECT o.id, o.customerName, o.customerPhoneNumber, o.deliveryAddress, o.totalPrice, o.createdAt
+                      FROM Orders o
+                      WHERE o.id = @orderId
+                    `);
+                  let orderDetailsMsg = '';
+                  if (orderDetailsQuery.recordset.length) {
+                    const order = orderDetailsQuery.recordset[0];
+                    const orderItemsQuery = await pool.request()
+                      .input('orderId', sql.Int, orderId)
+                      .query(`
+                        SELECT oi.quantity, p.product_name, p.price
+                        FROM OrderItems oi
+                        JOIN Products p ON p.id = oi.productId
+                        WHERE oi.orderId = @orderId
+                      `);
+                    orderDetailsMsg = `تم استلام طلب جديد.
+رقم الطلب: ${order.id}
+اسم العميل: ${order.customerName || 'غير متوفر'}
+رقم العميل: ${order.customerPhoneNumber || 'غير متوفر'}
+العنوان: ${order.deliveryAddress || 'غير متوفر'}
+الإجمالي: ${order.totalPrice || 0}
+التفاصيل:\n`;
+                    orderItemsQuery.recordset.forEach((item: any) => {
+                      orderDetailsMsg += `*${item.quantity} x ${item.product_name} = ${item.price * item.quantity}\n`;
+                    });
+                  } else {
+                    orderDetailsMsg = `تم استلام طلب جديد.
+رقم الطلب: ${orderId}
+يرجى مراجعة التفاصيل.`;
+                  }
+                  await client.sendMessage(altRecipient, orderDetailsMsg);
+                }
                 return
               }
               // (إن كانت الرسالة من نوع location)
@@ -677,9 +725,57 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         
                 // إلغاء المؤقت لأنه تم تأكيد الطلب
                 clearOrderTimeout(orderId);
-
+        
                 await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
                 io.emit('newOrder', { orderId: orderId })
+        
+                // إرسال رسالة تفصيلية للرقم البديل
+                const sessionData = await pool.request()
+                  .input('sessionId', sql.Int, sessionId)
+                  .query(`
+                    SELECT alternateWhatsAppNumber
+                    FROM Sessions
+                    WHERE id = @sessionId
+                  `)
+                if (sessionData.recordset.length && sessionData.recordset[0].alternateWhatsAppNumber) {
+                  const altNumber = sessionData.recordset[0].alternateWhatsAppNumber;
+                  const altRecipient = altNumber + '@c.us';
+                  // استعلام تفاصيل الطلب
+                  const orderDetailsQuery = await pool.request()
+                    .input('orderId', sql.Int, orderId)
+                    .query(`
+                      SELECT o.id, o.customerName, o.customerPhoneNumber, o.deliveryAddress, o.totalPrice, o.createdAt
+                      FROM Orders o
+                      WHERE o.id = @orderId
+                    `);
+                  let orderDetailsMsg = '';
+                  if (orderDetailsQuery.recordset.length) {
+                    const order = orderDetailsQuery.recordset[0];
+                    const orderItemsQuery = await pool.request()
+                      .input('orderId', sql.Int, orderId)
+                      .query(`
+                        SELECT oi.quantity, p.product_name, p.price
+                        FROM OrderItems oi
+                        JOIN Products p ON p.id = oi.productId
+                        WHERE oi.orderId = @orderId
+                      `);
+                    orderDetailsMsg = `تم استلام طلب جديد.
+رقم الطلب: ${order.id}
+اسم العميل: ${order.customerName || 'غير متوفر'}
+رقم العميل: ${order.customerPhoneNumber || 'غير متوفر'}
+العنوان: ${order.deliveryAddress || 'غير متوفر'}
+الإجمالي: ${order.totalPrice || 0}
+التفاصيل:\n`;
+                    orderItemsQuery.recordset.forEach((item: any) => {
+                      orderDetailsMsg += `*${item.quantity} x ${item.product_name} = ${item.price * item.quantity}\n`;
+                    });
+                  } else {
+                    orderDetailsMsg = `تم استلام طلب جديد.
+رقم الطلب: ${orderId}
+يرجى مراجعة التفاصيل.`;
+                  }
+                  await client.sendMessage(altRecipient, orderDetailsMsg);
+                }
                 return
               }
               else {
