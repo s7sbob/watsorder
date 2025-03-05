@@ -1,5 +1,3 @@
-// src/controllers/whatsappClients.ts
-
 import { Client, LocalAuth, Message, MessageMedia } from 'whatsapp-web.js'
 import { getConnection } from '../config/db'
 import * as sql from 'mssql'
@@ -46,7 +44,7 @@ const scheduleOrderTimeout = async (
           // إرسال رسالة إعلام للعميل
           const chatId = `${customerPhone}@c.us`;
           const notificationMsg = `تم الغاء طلبك لعدم الاستكمال
-*يمكنك الان بدأ طلب جديد*
+*يمكنك الان بدء طلب جديد*
 wa.me/201210970675?text=NEWORDER`;
           await client.sendMessage(chatId, notificationMsg);
           console.log(`Order ${orderId} deleted due to inactivity.`);
@@ -87,7 +85,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
   })
 
   // =========== [ Events: QR / Auth / Ready / Disconnected ] ===========
-
   client.on('qr', async qr => {
     console.log(`QR Code for session ${sessionId}:`, qr)
     const pool = await getConnection()
@@ -145,12 +142,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
   client.on('disconnected', reason => {
     console.log(`Session ${sessionId} was logged out`, reason)
-    // بث تحديث إن لزم الأمر
+    // يمكن بث تحديث للحالة إذا لزم الأمر
   })
 
   // =========== [ Handling Messages: Bot + Menu Bot + Greeting ] ===========
-
-  // دالة بسيطة لعمل Bold للنص
   const bold = (text: string) => `*${text}*`
 
   client.on('message', async (msg: Message) => {
@@ -171,7 +166,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         return
       }
 
-      // إذا كانت الرسالة من جروب => تجاهلها
+      // تجاهل الرسائل من جروبات
       if (msg.from.endsWith('@g.us')) {
         return
       }
@@ -186,6 +181,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
       const text = msg.body.trim()
       const upperText = text.toUpperCase()
+      // استخراج رقم العميل من الرسالة
       const customerPhone = msg.from.split('@')[0]
 
       // ======================================================
@@ -209,7 +205,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         )
   
         if (foundKeywordRow) {
-          // جلب ملفات الميديا من ReplayMedia باستخدام replayId
+          // جلب ملفات الميديا المرتبطة
           const mediaRes = await pool.request()
             .input('replayId', sql.Int, foundKeywordRow.replayId)
             .query(`
@@ -218,15 +214,13 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               WHERE replayId = @replayId
             `)
   
-          const mediaRows = mediaRes.recordset
-  
-          // إرسال الرد النصي أولاً
+          // إرسال الرد النصي
           if (foundKeywordRow.replyText) {
             await client.sendMessage(msg.from, `*${foundKeywordRow.replyText}*`)
           }
   
-          // إرسال الصور واحدة تلو الأخرى
-          for (const m of mediaRows) {
+          // إرسال ملفات الميديا (صورة/فيديو) واحدة تلو الأخرى
+          for (const m of mediaRes.recordset) {
             const fileData = fs.readFileSync(m.filePath)
             const base64 = fileData.toString('base64')
             const mediaMsg = new MessageMedia('image/jpeg', base64, path.basename(m.filePath))
@@ -235,6 +229,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           return
         }
       }
+
       // ======================================================
       // 2) المنيو بوت (Menu Bot) إن كان مفعلًا
       // ======================================================
@@ -261,7 +256,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             )
             return
           }
-
           // إنشاء طلب جديد
           const orderInsertResult = await pool.request()
             .input('sessionId', sql.Int, sessionId)
@@ -272,11 +266,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               OUTPUT INSERTED.id
               VALUES (@sessionId, @status, @custPhone)
             `);
-
           const orderId = orderInsertResult.recordset[0].id;
-          // جدولة حذف الطلب إذا لم يقم العميل بأي إجراء خلال 5 دقائق
+          // جدولة حذف الطلب في حالة عدم الإكمال
           scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
-
+  
           // جلب الأصناف
           const categories = await pool.request()
             .input('sessionId', sql.Int, sessionId)
@@ -289,26 +282,28 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             await client.sendMessage(msg.from, bold('لا توجد أصناف متاحة.'))
             return
           }
-
+  
           let catMsg = bold('برجاء اختيار القسم') + '\n'
           catMsg += '===========================\n'
           for (const cat of categories.recordset) {
             catMsg += bold(cat.category_name) + '\n'
             catMsg += `wa.me/${phoneNumber}?text=CATEGORY_${cat.id}\n\n`
           }
-
+  
           await client.sendMessage(msg.from, catMsg)
           return
         }
-
+  
         // ========== [SHOWCATEGORIES] ==========
         else if (upperText === 'SHOWCATEGORIES') {
           const openOrder = await pool.request()
             .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
               SELECT TOP 1 id
               FROM Orders
               WHERE sessionId = @sessionId
+                AND customerPhoneNumber = @custPhone
                 AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
               ORDER BY id DESC
             `)
@@ -316,7 +311,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             await client.sendMessage(msg.from, bold('لا يوجد طلب مفتوح. استخدم NEWORDER لفتح طلب جديد.'))
             return
           }
-
+  
           const categories = await pool.request()
             .input('sessionId', sql.Int, sessionId)
             .query(`
@@ -328,7 +323,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             await client.sendMessage(msg.from, bold('لا توجد أصناف متاحة.'))
             return
           }
-
+  
           let catMsg = bold('اختر الصنف لإضافة منتجات:') + '\n'
           catMsg += '===========================\n'
           for (const cat of categories.recordset) {
@@ -338,7 +333,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           await client.sendMessage(msg.from, catMsg)
           return
         }
-
+  
         // ========== [CATEGORY_x] ==========
         else if (upperText.startsWith('CATEGORY_')) {
           const catId = parseInt(upperText.replace('CATEGORY_', ''))
@@ -355,7 +350,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             await client.sendMessage(msg.from, bold('لا توجد منتجات في هذا التصنيف.'))
             return
           }
-
+  
           let prodMsg = bold('برجاء إختيار المنتج') + '\n'
           prodMsg += '===========================\n'
           for (const p of productsData.recordset) {
@@ -365,16 +360,18 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           await client.sendMessage(msg.from, prodMsg)
           return
         }
-
+  
         // ========== [PRODUCT_x] ==========
         else if (upperText.startsWith('PRODUCT_')) {
           const productId = parseInt(upperText.replace('PRODUCT_', ''))
           const orderRow = await pool.request()
             .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
               SELECT TOP 1 id, status
               FROM Orders
               WHERE sessionId = @sessionId
+                AND customerPhoneNumber = @custPhone
                 AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
               ORDER BY id DESC
             `)
@@ -383,7 +380,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
           const orderId = orderRow.recordset[0].id
-
+  
           await pool.request()
             .input('orderId', sql.Int, orderId)
             .input('tempProductId', sql.Int, productId)
@@ -398,20 +395,22 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           // إعادة جدولة المؤقت بعد الانتقال لمرحلة انتظار الكمية
           clearOrderTimeout(orderId);
           scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
-
+  
           await client.sendMessage(msg.from, bold('برجاء إرسال الكمية'))
           return
         }
-
+  
         // ========== [REMOVEPRODUCT_x] ==========
         else if (upperText.startsWith('REMOVEPRODUCT_')) {
           const productId = parseInt(upperText.replace('REMOVEPRODUCT_', ''))
           const orderRow = await pool.request()
             .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
               SELECT TOP 1 id
               FROM Orders
               WHERE sessionId = @sessionId
+                AND customerPhoneNumber = @custPhone
                 AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
               ORDER BY id DESC
             `)
@@ -420,7 +419,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
           const orderId = orderRow.recordset[0].id
-
+  
           await pool.request()
             .input('orderId', sql.Int, orderId)
             .input('productId', sql.Int, productId)
@@ -429,19 +428,21 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               WHERE orderId = @orderId
                 AND productId = @productId
             `)
-
+  
           await client.sendMessage(msg.from, bold('تم حذف المنتج من السلة.'))
           return
         }
-
+  
         // ========== [VIEWCART] ==========
         else if (upperText === 'VIEWCART') {
           const orderRow = await pool.request()
             .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
               SELECT TOP 1 id
               FROM Orders
               WHERE sessionId = @sessionId
+                AND customerPhoneNumber = @custPhone
                 AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
               ORDER BY id DESC
             `)
@@ -450,7 +451,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
           const orderId = orderRow.recordset[0].id
-
+  
           const itemsRes = await pool.request()
             .input('orderId', sql.Int, orderId)
             .query(`
@@ -463,7 +464,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             await client.sendMessage(msg.from, bold('سلتك فارغة.'))
             return
           }
-
+  
           let total = 0
           let cartMsg = bold('سلة المشتريات:') + '\n'
           cartMsg += '===========================\n'
@@ -477,7 +478,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           cartMsg += '===========================\n'
           cartMsg += bold('لتنفيذ الطلب:')+'\n'
           cartMsg += `wa.me/${phoneNumber}?text=CARTCONFIRM\n`
-
+  
           await pool.request()
             .input('orderId', sql.Int, orderId)
             .input('totalPrice', sql.Decimal(18,2), total)
@@ -486,19 +487,21 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               SET totalPrice = @totalPrice
               WHERE id = @orderId
             `)
-
+  
           await client.sendMessage(msg.from, cartMsg)
           return
         }
-
+  
         // ========== [CARTCONFIRM] ==========
         else if (upperText === 'CARTCONFIRM') {
           const orderRow = await pool.request()
             .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
               SELECT TOP 1 id
               FROM Orders
               WHERE sessionId = @sessionId
+                AND customerPhoneNumber = @custPhone
                 AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
               ORDER BY id DESC
             `)
@@ -507,7 +510,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             return
           }
           const orderId = orderRow.recordset[0].id
-
+  
           await pool.request()
             .input('orderId', sql.Int, orderId)
             .input('status', sql.NVarChar, 'AWAITING_NAME')
@@ -516,36 +519,33 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               SET status = @status, tempProductId = NULL
               WHERE id = @orderId
             `)
-
+  
           // إعادة جدولة المؤقت بعد الانتقال لمرحلة انتظار الاسم
           clearOrderTimeout(orderId);
           scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
-
+  
           await client.sendMessage(msg.from, bold('من فضلك قم بإرسال اسم صاحب الطلب'))
           return
         }
-
+  
         // ========== [حالات أخرى: الكمية/الاسم/العنوان/الموقع] ==========
         else {
           const orderRes = await pool.request()
             .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
             .query(`
               SELECT TOP 1 id, status, tempProductId
               FROM Orders
               WHERE sessionId = @sessionId
-                AND status IN (
-                  'AWAITING_QUANTITY',
-                  'AWAITING_NAME',
-                  'AWAITING_ADDRESS',
-                  'AWAITING_LOCATION'
-                )
+                AND customerPhoneNumber = @custPhone
+                AND status IN ('AWAITING_QUANTITY','AWAITING_NAME','AWAITING_ADDRESS','AWAITING_LOCATION')
               ORDER BY id DESC
             `)
           if (!orderRes.recordset.length) {
-            // إذا لم نجد طلب، ننتقل للفحص التالي
+            // لا يوجد طلب مفتوح، يمكن تجاهل الرسالة أو إرسال رسالة توضيحية
           } else {
             const { id: orderId, status, tempProductId } = orderRes.recordset[0]
-
+  
             // ----- [AWAITING_QUANTITY] -----
             if (status === 'AWAITING_QUANTITY' && tempProductId) {
               const quantityNum = parseInt(upperText)
@@ -553,7 +553,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                 await client.sendMessage(msg.from, bold('من فضلك أدخل رقم صحيح للكمية.'))
                 return
               }
-
+  
               await pool.request()
                 .input('orderId', sql.Int, orderId)
                 .input('productId', sql.Int, tempProductId)
@@ -562,7 +562,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   INSERT INTO OrderItems (orderId, productId, quantity)
                   VALUES (@orderId, @productId, @qty)
                 `)
-
+  
               await pool.request()
                 .input('orderId', sql.Int, orderId)
                 .input('status', sql.NVarChar, 'IN_CART')
@@ -571,11 +571,11 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                   SET status = @status, tempProductId = NULL
                   WHERE id = @orderId
                 `)
-
+  
               // إعادة جدولة المؤقت بعد إضافة الكمية
               clearOrderTimeout(orderId);
               scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
-
+  
               let addedMsg = bold('تم إضافة المنتج للسلة.') + '\n'
               addedMsg += '===========================\n'
               addedMsg += bold('عرض السلة:')+'\n'
@@ -585,7 +585,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
               await client.sendMessage(msg.from, addedMsg)
               return
             }
-
+  
             // ----- [AWAITING_NAME] -----
             if (status === 'AWAITING_NAME') {
               const customerName = msg.body.trim()
@@ -599,15 +599,15 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                       status = @status
                   WHERE id = @orderId
                 `)
-
+  
               // إعادة جدولة المؤقت بعد إضافة الاسم
               clearOrderTimeout(orderId);
               scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
-
+  
               await client.sendMessage(msg.from, bold('برجاء إدخال العنوان.'))
               return
             }
-
+  
             // ----- [AWAITING_ADDRESS] -----
             if (status === 'AWAITING_ADDRESS') {
               const address = msg.body.trim()
@@ -621,27 +621,27 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                       status = @status
                   WHERE id = @orderId
                 `)
-
-                // إعادة جدولة المؤقت بعد إدخال العنوان
-                clearOrderTimeout(orderId);
-                scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
-
-                await client.sendMessage(
-                  msg.from,
-                  bold("برجاء إرسال الموقع (Location).") +
-                    "\n\n" +
-                    bold("أو لتأكيد الطلب بدون إرسال الموقع:") +
-                    "\n" +
-                    `wa.me/${phoneNumber}?text=SKIP_LOCATION`
-                )
-                return
-              }
-
+  
+              // إعادة جدولة المؤقت بعد إدخال العنوان
+              clearOrderTimeout(orderId);
+              scheduleOrderTimeout(orderId, sessionId, client, customerPhone);
+  
+              await client.sendMessage(
+                msg.from,
+                bold("برجاء إرسال الموقع (Location).") +
+                "\n\n" +
+                bold("أو لتأكيد الطلب بدون إرسال الموقع:") +
+                "\n" +
+                `wa.me/${phoneNumber}?text=SKIP_LOCATION`
+              )
+              return
+            }
+  
             // ----- [AWAITING_LOCATION] -----
             if (status === 'AWAITING_LOCATION') {
               const upperTextLocation = msg.body.trim().toUpperCase()
-        
-              // (جديد) إذا المستخدم أرسل SKIP_LOCATION => نؤكد الطلب بدون موقع
+  
+              // (جديد) إذا المستخدم أرسل SKIP_LOCATION => تأكيد الطلب بدون الموقع
               if (upperTextLocation === 'SKIP_LOCATION') {
                 await pool.request()
                   .input('orderId', sql.Int, orderId)
@@ -651,14 +651,14 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                     SET status = @status
                     WHERE id = @orderId
                   `)
-        
-                // إلغاء المؤقت لأنه تم تأكيد الطلب
+  
+                // إلغاء المؤقت لأن الطلب تأكد
                 clearOrderTimeout(orderId);
-        
+  
                 await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'))
                 io.emit('newOrder', { orderId: orderId })
-        
-                // إرسال رسالة تفصيلية للرقم البديل
+  
+                // إرسال رسالة تفصيلية للرقم البديل إن وجد
                 const sessionData = await pool.request()
                   .input('sessionId', sql.Int, sessionId)
                   .query(`
@@ -707,7 +707,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                 }
                 return
               }
-              // (إن كانت الرسالة من نوع location)
+              // إذا كانت الرسالة من نوع location
               else if (msg.type === 'location' && msg.location) {
                 const { latitude, longitude } = msg.location
                 await pool.request()
@@ -722,14 +722,14 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                         status = @status
                     WHERE id = @orderId
                   `)
-        
-                // إلغاء المؤقت لأنه تم تأكيد الطلب
+  
+                // إلغاء المؤقت لأن الطلب تأكد
                 clearOrderTimeout(orderId);
-        
+  
                 await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'))
                 io.emit('newOrder', { orderId: orderId })
-        
-                // إرسال رسالة تفصيلية للرقم البديل
+  
+                // إرسال رسالة تفصيلية للرقم البديل إن وجد
                 const sessionData = await pool.request()
                   .input('sessionId', sql.Int, sessionId)
                   .query(`
@@ -740,7 +740,6 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
                 if (sessionData.recordset.length && sessionData.recordset[0].alternateWhatsAppNumber) {
                   const altNumber = sessionData.recordset[0].alternateWhatsAppNumber;
                   const altRecipient = altNumber + '@c.us';
-                  // استعلام تفاصيل الطلب
                   const orderDetailsQuery = await pool.request()
                     .input('orderId', sql.Int, orderId)
                     .query(`
@@ -791,11 +790,10 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
           }
         }
       }
-
+  
       // ======================================================
-      // 3) فحص هل النص الحالي هو أحد أوامر المنيو بوت (لتجنب إرسال التكرار)
+      // 3) فحص إذا كان النص الحالي من أوامر المنيو بوت لتجنب التكرار
       // ======================================================
-
       const isCommand =
         [
           'NEWORDER',
@@ -806,36 +804,29 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
         upperText.startsWith('CATEGORY_') ||
         upperText.startsWith('PRODUCT_') ||
         upperText.startsWith('REMOVEPRODUCT_')
-
+  
       // ======================================================
-      // 4) التحقق إن كان هناك طلب مفتوح بالفعل
+      // 4) منطق Greeting والرسائل الدورية
       // ======================================================
-      const existingOrder = await pool.request()
-        .input('sessionId', sql.Int, sessionId)
-        .input('custPhone', sql.NVarChar, customerPhone)
-        .query(`
-          SELECT TOP 1 id 
-          FROM Orders 
-          WHERE sessionId = @sessionId 
-            AND customerPhoneNumber = @custPhone
-            AND status IN (
-              'IN_CART',
-              'AWAITING_ADDRESS',
-              'AWAITING_LOCATION',
-              'AWAITING_QUANTITY',
-              'AWAITING_NAME'
-            )
-        `)
-
-      // === (جديد) ===
-      // ======================================================
-      // (A) إرسال رسالة توضيح المنيو بوت (الثابتة) كل ساعة
-      //    طالما menuBotActive = true + لا يوجد طلب مفتوح
-      // ======================================================
-      if (menuBotActive && existingOrder.recordset.length === 0) {
+      if (menuBotActive && (await pool.request()
+            .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
+            .query(`
+              SELECT TOP 1 id 
+              FROM Orders 
+              WHERE sessionId = @sessionId 
+                AND customerPhoneNumber = @custPhone
+                AND status IN (
+                  'IN_CART',
+                  'AWAITING_ADDRESS',
+                  'AWAITING_LOCATION',
+                  'AWAITING_QUANTITY',
+                  'AWAITING_NAME'
+                )
+            `)).recordset.length === 0 && !isCommand) {
         const specialPhoneForMenuBot = customerPhone + '-menubot'
         const now = new Date()
-
+  
         const menuBotLogRow = await pool.request()
           .input('sessionId', sql.Int, sessionId)
           .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
@@ -845,7 +836,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             WHERE sessionId = @sessionId
               AND phoneNumber = @specialPhone
           `)
-
+  
         let canSendMenuBot = false
         if (!menuBotLogRow.recordset.length) {
           canSendMenuBot = true
@@ -857,15 +848,15 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
             canSendMenuBot = true
           }
         }
-
-        if (canSendMenuBot && !isCommand) {
-          const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الارسال
+  
+        if (canSendMenuBot) {
+          const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الإرسال
 
 *لتسجيل طلب جديد*
 wa.me/${phoneNumber}?text=NEWORDER
 `
           await client.sendMessage(msg.from, menuBotGuide)
-
+  
           if (!menuBotLogRow.recordset.length) {
             await pool.request()
               .input('sessionId', sql.Int, sessionId)
@@ -889,11 +880,26 @@ wa.me/${phoneNumber}?text=NEWORDER
           }
         }
       }
-
-      // ======================================================
-      // (B) منطق الـ Greeting العادي إن كان مفعلًا
-      // ======================================================
+  
+      // (B) منطق Greeting العادي إن كان مفعلًا
       if (greetingActive && !isCommand) {
+        const existingOrder = await pool.request()
+          .input('sessionId', sql.Int, sessionId)
+          .input('custPhone', sql.NVarChar, customerPhone)
+          .query(`
+            SELECT TOP 1 id 
+            FROM Orders 
+            WHERE sessionId = @sessionId 
+              AND customerPhoneNumber = @custPhone
+              AND status IN (
+                'IN_CART',
+                'AWAITING_ADDRESS',
+                'AWAITING_LOCATION',
+                'AWAITING_QUANTITY',
+                'AWAITING_NAME'
+              )
+          `)
+  
         if (existingOrder.recordset.length === 0) {
           const now = new Date()
           const greetingLogRow = await pool.request()
@@ -905,7 +911,7 @@ wa.me/${phoneNumber}?text=NEWORDER
               WHERE sessionId = @sessionId
                 AND phoneNumber = @custPhone
             `)
-
+  
           let canSendGreeting = false
           if (!greetingLogRow.recordset.length) {
             canSendGreeting = true
@@ -917,11 +923,9 @@ wa.me/${phoneNumber}?text=NEWORDER
               canSendGreeting = true
             }
           }
-
-          if (canSendGreeting) {
-            if (greetingMessage) {
-              await client.sendMessage(msg.from, greetingMessage)
-            }
+  
+          if (canSendGreeting && greetingMessage) {
+            await client.sendMessage(msg.from, greetingMessage)
             if (!greetingLogRow.recordset.length) {
               await pool.request()
                 .input('sessionId', sql.Int, sessionId)
@@ -946,12 +950,12 @@ wa.me/${phoneNumber}?text=NEWORDER
           }
         }
       }
-
+  
     } catch (error) {
       console.error('Error handling menuBot message:', error)
     }
   })
-
+  
   // Initialize client
   client.initialize()
   whatsappClients[sessionId] = client
@@ -992,7 +996,6 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
     // بدء البث
     for (const phoneNumber of phoneNumbers) {
       const randomDelay = randomNumbers[Math.floor(Math.random() * randomNumbers.length)]
-
       if (media && Array.isArray(media) && media.length > 0) {
         for (const singleMedia of media) {
           const mediaMsg = new MessageMedia(singleMedia.mimetype, singleMedia.base64, singleMedia.filename)
