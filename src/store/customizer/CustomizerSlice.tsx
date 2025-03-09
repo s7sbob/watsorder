@@ -1,7 +1,8 @@
+// src/store/customizer/CustomizerSlice.ts
 import { createSlice } from '@reduxjs/toolkit';
 
 interface StateType {
-  activeDir?: string | any;
+  activeDir?: string;
   activeMode?: string; // This can be light or dark
   activeTheme?: string; // BLUE_THEME, GREEN_THEME, BLACK_THEME, PURPLE_THEME, ORANGE_THEME
   SidebarWidth?: number;
@@ -14,22 +15,22 @@ interface StateType {
   isHorizontal?: boolean;
   isLanguage?: string;
   isCardShadow?: boolean;
-  borderRadius?: number | any;
+  borderRadius?: number;
 }
 
 const initialState: StateType = {
   activeDir: 'ltr',
   activeMode: 'light', // This can be light or dark
-  activeTheme: 'BLUE_THEME', // BLUE_THEME, GREEN_THEME, BLACK_THEME, PURPLE_THEME, ORANGE_THEME
+  activeTheme: 'BLUE_THEME',
   SidebarWidth: 270,
   MiniSidebarWidth: 87,
   TopbarHeight: 70,
-  isLayout: 'boxed', // This can be full or boxed
-  isCollapse: false, // to make sidebar Mini by default
+  isLayout: 'boxed',
+  isCollapse: false,
   isSidebarHover: false,
   isMobileSidebar: false,
   isHorizontal: false,
-  isLanguage: 'en',
+  isLanguage: 'en', // لغة واجهة المستخدم الافتراضية هي الإنجليزية
   isCardShadow: true,
   borderRadius: 7,
 };
@@ -38,38 +39,42 @@ export const CustomizerSlice = createSlice({
   name: 'customizer',
   initialState,
   reducers: {
-    setTheme: (state: StateType, action) => {
+    setTheme: (state, action) => {
       state.activeTheme = action.payload;
     },
-    setDarkMode: (state: StateType, action) => {
+    setDarkMode: (state, action) => {
       state.activeMode = action.payload;
     },
-
-    setDir: (state: StateType, action) => {
+    setDir: (state, action) => {
       state.activeDir = action.payload;
     },
-    setLanguage: (state: StateType, action) => {
+    setLanguage: (state, action) => {
       state.isLanguage = action.payload;
+      if (action.payload === 'ar') {
+        state.activeDir = 'rtl';
+      } else {
+        state.activeDir = 'ltr';
+      }
     },
-    setCardShadow: (state: StateType, action) => {
+    setCardShadow: (state, action) => {
       state.isCardShadow = action.payload;
     },
     toggleSidebar: (state) => {
       state.isCollapse = !state.isCollapse;
     },
-    hoverSidebar: (state: StateType, action) => {
+    hoverSidebar: (state, action) => {
       state.isSidebarHover = action.payload;
     },
     toggleMobileSidebar: (state) => {
       state.isMobileSidebar = !state.isMobileSidebar;
     },
-    toggleLayout: (state: StateType, action) => {
+    toggleLayout: (state, action) => {
       state.isLayout = action.payload;
     },
-    toggleHorizontal: (state: StateType, action) => {
+    toggleHorizontal: (state, action) => {
       state.isHorizontal = action.payload;
     },
-    setBorderRadius: (state: StateType, action) => {
+    setBorderRadius: (state, action) => {
       state.borderRadius = action.payload;
     },
   },

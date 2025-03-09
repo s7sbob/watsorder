@@ -18,5 +18,393 @@
     "Notes": "Notes",
     "Calendar": "Calendar",
     "Email": "Email",
-    "Tickets": "Tickets"
-}
+    "Tickets": "Tickets",
+
+    "SessionListing": {
+      "columns": {
+        "id": "ID",
+        "plan": "Plan",
+        "expireDate": "Expire Date",
+        "phoneNumber": "Phone Number",
+        "alternateWhatsApp": "Alternate WhatsApp",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "buttons": {
+        "buyPlan": "Buy Plan",
+        "renew": "Renew",
+        "buyAgain": "Buy Again",
+        "showQRCode": "Show QR Code",
+        "botOn": "Bot ON",
+        "botOff": "Bot OFF",
+        "menuBotOn": "Menu Bot ON",
+        "menuBotOff": "Menu Bot OFF",
+        "logout": "Logout",
+        "close": "Close",
+        "cancel": "Cancel",
+        "iHavePaid": "I have paid"
+      },
+      "messages": {
+        "numberUpdateSuccess": "Updated the number successfully",
+        "numberUpdateError": "Error occurred while updating the number",
+        "confirmLogout": "Are you sure you want to logout from session ID: {{sessionId}}?",
+        "sessionLoggedOut": "Session {{sessionId}} has been logged out.",
+        "logoutError": "An error occurred while logging out the session.",
+        "confirmDelete": "Are you sure you want to delete the session with ID: {{sessionId}}?",
+        "deleteSuccess": "Session deleted successfully.",
+        "deleteError": "An error occurred while deleting the session.",
+        "createSessionSuccess": "New session created with status Paid. Awaiting manager confirmation.",
+        "createSessionError": "Failed to create paid session.",
+        "reactivateSuccess": "Session #{{sessionId}} is now Paid. Awaiting manager confirmation.",
+        "reactivateError": "Failed to re-activate session.",
+        "failedToFetchQr": "Failed to fetch QR code.",
+        "scanQrCode": "Scan QR Code",
+        "loadingQrCode": "Loading QR Code...",
+        "botUpdated": "Bot is now {{status}} for session {{sessionId}}",
+        "botToggleError": "An error occurred while toggling the bot.",
+        "menuBotUpdated": "Menu Bot is now {{status}} for session {{sessionId}}",
+        "menuBotToggleError": "An error occurred while toggling the Menu Bot."
+      },
+      "dialogTitles": {
+        "chooseYourPlanNew": "Choose Your Plan (New Session)",
+        "paymentInstructionsNew": "Payment Instructions (New Session)",
+        "chooseAPlan": "Choose a Plan",
+        "paymentInstructions": "Payment Instructions"
+      },
+      "chipLabels": {
+        "pending": "Pending",
+        "stoppedByAdmin": "Stopped by Admin"
+      },
+      "alternateWhatsAppEditor": {
+        "placeholder": "Enter the number",
+        "save": "Save"
+      }
+    },
+    "pricingCard": {
+      "basic": {
+        "title": "Basic",
+        "price": "700£/month\n7700£/year",
+        "features": ["Menu Bot", "Automation"]
+      },
+      "standered": {
+        "title": "Standard",
+        "price": "1000£/month\n11000£/year",
+        "features": ["Menu Bot", "Automation", "Orders Api Integration"]
+      },
+      "otpPlan": {
+        "title": "Otp Plan",
+        "price": "500£/month\n5000£/year",
+        "features": ["Otp Api"]
+      },
+      "golden": {
+        "title": "Golden",
+        "price": "1500£/month\n15000£/year",
+        "features": ["Menu Bot", "Automation", "Orders Api Integration", "Otp Api"]
+      },
+      "getStarted": "Get Started"
+    },
+    "PaymentInstructions": {
+      "title": "Payment Instructions",
+      "subTitle": "Based on your chosen plan, you are required to pay the corresponding amount.",
+      "vodafoneCash": "Vodafone Cash: 01000000000",
+      "instaPay": "InstaPay: 01200000000",
+      "assistance": "For assistance, call: 190",
+      "doneButton": "I have paid – Send to the Manager"
+    },
+
+    "SessionSettings": {
+      "noSession": "No session selected.",
+      "backToSessions": "Back to Sessions",
+      "tabs": {
+        "categories": "Categories",
+        "products": "Products",
+        "keywords": "Keywords",
+        "broadcast": "Broadcast",
+        "greeting": "Greeting"
+      }
+    },
+    "CategoriesTab": {
+      "buttons": {
+        "addCategory": "Add Category"
+      },
+      "alerts": {
+        "errorAdd": "Error adding category."
+      },
+      "popup": {
+        "title": "Add Category",
+        "fields": {
+          "categoryName": "Category Name"
+        }
+      }
+    },
+    "AddDataPopup": {
+      "buttons": {
+        "remove": "Remove",
+        "cancel": "Cancel",
+        "submit": "Submit"
+      }
+    },
+    "CategoryList": {
+      "confirmDelete": "Are you sure you want to delete this category?",
+      "errorDeleting": "Error deleting category.",
+      "errorUpdating": "Error updating category.",
+      "save": "Save"
+    },
+    "ProductsTab": {
+      "buttons": {
+        "addProduct": "Add Product"
+      },
+      "errorFetchingCategories": "Error fetching categories.",
+      "errorAddingProduct": "Error adding product.",
+      "popup": {
+        "title": "Add Product",
+        "fields": {
+          "productName": "Product Name",
+          "category": "Category",
+          "price": "Price"
+        }
+      }
+    },
+    "ProductList": {
+      "confirmDelete": "Are you sure you want to delete this product?",
+      "errorDeleting": "Error deleting product.",
+      "errorUpdating": "Error updating product.",
+      "categoryId": "Category ID",
+      "price": "Price",
+      "buttons": {
+        "save": "Save",
+        "cancel": "Cancel"
+      }
+    },
+    "KeywordsTab": {
+      "buttons": {
+        "addKeywords": "Add Keyword(s)"
+      },
+      "alerts": {
+        "noKeywords": "Please enter at least one keyword!",
+        "noReplyText": "Please provide a reply text!",
+        "errorAdd": "Error adding multiple keywords."
+      },
+      "popup": {
+        "title": "Add Multiple Keyword(s) with Reply",
+        "fields": {
+          "keywords": "Keywords",
+          "replyText": "Reply Text",
+          "replyMedia": "Reply Media"
+        }
+      }
+    },
+    "KeywordList": {
+      "confirmDelete": "Are you sure you want to delete this keyword?",
+      "errorDeleting": "Error deleting keyword.",
+      "errorUpdating": "Error updating keyword.",
+      "keywordLabel": "Keyword",
+      "replyTextLabel": "Reply Text",
+      "filesSelected": "file(s) selected",
+      "buttons": {
+        "uploadNewImages": "Upload New Image(s)",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "fields": {
+        "keyword": "Keyword",
+        "replyText": "Reply Text"
+      }
+    },
+    "BroadcastTab": {
+      "fields": {
+        "phones": "Phone Numbers (comma separated)",
+        "message": "Message",
+        "delays": "Delays (comma separated or interval e.g. 5-7)"
+      },
+      "buttons": {
+        "uploadExcel": "Upload Excel",
+        "insertRecipient": "Insert Recipient Phone",
+        "insertDateTime": "Insert Date/Time",
+        "uploadImages": "Upload Image(s)",
+        "send": "Send Broadcast"
+      },
+      "alerts": {
+        "fillAllRequired": "Please fill all required fields",
+        "sentSuccess": "Broadcast messages sent successfully",
+        "sendFail": "Failed to send broadcast messages"
+      }
+    },
+    "GreetingTab": {
+      "fields": {
+        "greetingMessage": "Greeting Message",
+        "enableGreeting": "Enable Greeting Message"
+      },
+      "buttons": {
+        "save": "Save"
+      },
+      "alerts": {
+        "updateSuccess": "Greeting message updated successfully.",
+        "updateError": "An error occurred while updating the greeting message."
+      }
+    },
+
+    "Orders": {
+      "HistoryPage": {
+        "title": "Orders History (Accepted Orders)",
+        "loading": "Loading orders...",
+        "error": "Error: {{error}}",
+        "searchPlaceholder": "Search by phone or address",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "acceptedOrdersTitle": "Accepted Orders History",
+        "buttons": {
+          "prev": "Previous",
+          "next": "Next"
+        },
+        "pageIndicator": "Page {{current}} / {{total}}"
+      },
+      "ConfirmOrderDialog": {
+        "title": "Confirm Order #{{orderId}}",
+        "prepTimeLabel": "Expected Preparation Time (minutes)",
+        "deliveryFeeLabel": "Delivery Fee",
+        "taxValueLabel": "Tax Value",
+        "buttons": {
+          "cancel": "Cancel",
+          "confirm": "Confirm & Send Message"
+        }
+      },
+      "InvoiceDialog": {
+        "title": "Invoice #{{orderId}}",
+        "customerPhone": "Customer Phone",
+        "deliveryAddress": "Delivery Address",
+        "totalPrice": "Total Price",
+        "status": "Status",
+        "confirmed": "Confirmed",
+        "pending": "Pending",
+        "createdAt": "Created At",
+        "deliveryFee": "Delivery Fee",
+        "taxValue": "Tax Value",
+        "prepTime": "Preparation Time",
+        "minutes": "minutes",
+        "itemsTitle": "Items:",
+        "buttons": {
+          "close": "Close"
+        }
+      },
+      "NewOrdersPage": {
+        "title": "New Orders (Today)",
+        "alerts": {
+          "invoiceError": "Failed to fetch invoice details. Please check console for more info."
+        },
+        "loading": "Loading orders...",
+        "error": "Error: {{error}}",
+        "searchPlaceholder": "Search by phone or address",
+        "acceptedToday": "Accepted (Today) ({{count}})",
+        "newToday": "New (Today) ({{count}})"
+      },
+      "OrderCard": {
+        "orderId": "Order #{{id}}",
+        "customerName": "Customer Name",
+        "phone": "Phone",
+        "address": "Address",
+        "total": "Total",
+        "status": "Status",
+        "statusConfirmed": "Confirmed",
+        "statusPending": "Pending",
+        "createdAt": "Created At",
+        "tooltips": {
+          "viewDetails": "View Details",
+          "viewInvoice": "View Invoice",
+          "restaurantConfirm": "Restaurant Confirm"
+        }
+      },
+      "OrderDetailsDialog": {
+        "title": "Order Details #{{orderId}}",
+        "customerName": "Customer Name",
+        "customerPhone": "Customer Phone",
+        "deliveryAddress": "Delivery Address",
+        "totalPrice": "Total Price",
+        "status": "Status",
+        "confirmed": "Confirmed",
+        "pending": "Pending",
+        "createdAt": "Created At",
+        "deliveryFee": "Delivery Fee",
+        "taxValue": "Tax Value",
+        "prepTime": "Preparation Time",
+        "minutes": "minutes",
+        "itemsTitle": "Items:",
+        "buttons": {
+          "close": "Close"
+        }
+      },
+      "OrdersColumn": {
+        "noOrders": "No orders"
+      }
+    },
+    "Sidebar": {
+      "home": "Home",
+      "sessions": "Sessions",
+      "new": "New",
+      "apiDocumentation": "API Documentation",
+      "newOrders": "New Orders",
+      "ordersHistory": "Orders History",
+      "subUsers": "Sub-Users",
+      "soon": "Soon",
+      "adminOnly": "Admin Only",
+      "adminUserList": "Admin UserList",
+      "sessionsDashboard": "Sessions Dashboard"
+    },
+ 
+    "HomePage": {
+      "mainPage": {
+        "title": "WhatsApp Bot for Restaurants",
+        "description": "Streamline your restaurant orders through our WhatsApp Bot"
+      },
+      "Banner": {
+        "mainTitle": "Transform Your Restaurant Orders with Our",
+        "mainTitleSpan": "WhatsApp Bot",
+        "joinMessage": "Join 50,000+ restaurants automating their order process",
+        "loginButton": "Restaurant Login",
+        "seeHowItWorks": "See how it works",
+        "closeButton": "Close"
+      },
+      "Header": {
+        "login": "Log In"
+      },
+      "Features": {
+        "otpServices": {
+          "title": "OTP Services",
+          "desc": "This service enables you to verify your clients' phone numbers easily."
+        },
+        "delivery": {
+          "title": "Boost your delivery services",
+          "desc": "Enhance your delivery services using our automated system ..."
+        },
+        "ourServicesTitle": "Our Services",
+        "ourServicesDesc": {
+          "part1": "receiving the orders through WhatsApp system: a unique service that ...",
+          "part2": "WhatsApp"
+        },
+        "apiIntegration": {
+          "title": "API Integration Services",
+          "desc": "Integrate with external systems easily."
+        },
+        "automation": {
+          "title": "Automation Services",
+          "desc": "A rich collection for seamless user experiences."
+        }
+      },
+      "FeaturesTitle": {
+        "descPart1": "Introducing Modernize's Light & Dark Skins,",
+        "descPart2": "Exceptional Dashboards",
+        "descPart3": "and Dynamic Pages - Stay Updated on What's New!"
+      },
+      "Pricing": {
+        "title": "Choose the Plan that Fits Your Restaurant Needs"
+      },
+      "C2a": {
+        "title": "Boost Your Restaurant's Efficiency with Our WhatsApp Bot",
+        "loginButton": "Restaurant Login",
+        "startButton": "Get Started Today",
+        "note": "One-time setup with no recurring fees."
+      }
+    }
+  }
+  
+  

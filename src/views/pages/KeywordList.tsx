@@ -1,5 +1,3 @@
-// src/components/KeywordList.tsx
-
 import React, { useEffect, useState } from 'react'
 import {
   Box,
@@ -14,11 +12,11 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import axiosServices from 'src/utils/axios'
+import { useTranslation } from 'react-i18next'
 
-// يُفترض أن الـBackend يعيد بيانات الكيبورد بهذه البنية:
 interface MediaFile {
   mediaId: number
-  mediaPath: string // مثلاً "keywords-images/file-123.jpg"
+  mediaPath: string
   mediaName: string
 }
 interface KeywordItem {
@@ -26,7 +24,7 @@ interface KeywordItem {
   keyword: string
   replayId: number
   replyText: string
-  mediaFiles: MediaFile[] // مجموعة الملفات المرتبطة بالرد
+  mediaFiles: MediaFile[]
 }
 
 interface KeywordListProps {
@@ -34,18 +32,15 @@ interface KeywordListProps {
 }
 
 const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
+  const { t } = useTranslation()
   const [keywords, setKeywords] = useState<KeywordItem[]>([])
 
-  // حالات التعديل
   const [editingId, setEditingId] = useState<number | null>(null)
   const [newKeyword, setNewKeyword] = useState('')
   const [newReplyText, setNewReplyText] = useState('')
-
-  // تخزين الملفات الجديدة أثناء التعديل
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
 
-  // دالة جلب البيانات
   const fetchKeywords = async () => {
     try {
       const res = await axiosServices.get(`/api/sessions/${sessionId}/keywords`)
@@ -61,7 +56,6 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
     }
   }, [sessionId])
 
-  // عند الضغط على زر "Edit"
   const handleEdit = (kw: KeywordItem) => {
     setEditingId(kw.keywordId)
     setNewKeyword(kw.keyword)
@@ -70,7 +64,6 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
     setPreviewUrls([])
   }
 
-  // إلغاء التعديل
   const handleCancelEdit = () => {
     setEditingId(null)
     setNewKeyword('')
@@ -79,7 +72,6 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
     setPreviewUrls([])
   }
 
-  // اختيار ملفات جديدة أثناء التعديل
   const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return
     const filesArray = Array.from(event.target.files)
@@ -88,7 +80,6 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
     setPreviewUrls(previews)
   }
 
-  // حفظ التعديلات
   const handleUpdate = async () => {
     if (!editingId) return
 
@@ -109,18 +100,18 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
       fetchKeywords()
     } catch (error) {
       console.error('Error updating keyword:', error)
-      alert('Error updating keyword.')
+      alert(t('KeywordList.errorUpdating'))
     }
   }
 
-  // حذف كلمة مفتاحية
   const handleDelete = async (keywordId: number) => {
-    if (!window.confirm('هل تريد حذف هذه الكلمة المفتاحية؟')) return
+    if (!window.confirm(t('KeywordList.confirmDelete') as string)) return
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/keyword/${keywordId}/delete`)
       fetchKeywords()
     } catch (error) {
       console.error('Error deleting keyword:', error)
+      alert(t('KeywordList.errorDeleting'))
     }
   }
 
@@ -131,19 +122,16 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
           const isEditing = editingId === kw.keywordId
           if (isEditing) {
             return (
-              <ListItem
-                key={kw.keywordId}
-                sx={{ display: 'block', mb: 2, border: '1px solid #ccc' }}
-              >
+              <ListItem key={kw.keywordId} sx={{ display: 'block', mb: 2, border: '1px solid #ccc' }}>
                 <TextField
-                  label='Keyword'
+                  label={t('KeywordList.fields.keyword')}
                   value={newKeyword}
                   onChange={e => setNewKeyword(e.target.value)}
                   size='small'
                   sx={{ mb: 1, mr: 1 }}
                 />
                 <TextField
-                  label='Reply Text'
+                  label={t('KeywordList.fields.replyText')}
                   value={newReplyText}
                   onChange={e => setNewReplyText(e.target.value)}
                   size='small'
@@ -151,7 +139,7 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                 />
                 <Box sx={{ mb: 1 }}>
                   <Button variant='outlined' component='label' sx={{ mr: 1 }}>
-                    Upload New Image(s)
+                    {t('KeywordList.buttons.uploadNewImages')}
                     <input
                       type='file'
                       hidden
@@ -162,7 +150,7 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                   </Button>
                   {selectedFiles.length > 0 && (
                     <Typography variant='body2' sx={{ display: 'inline' }}>
-                      {selectedFiles.length} file(s) selected
+                      {selectedFiles.length} {t('KeywordList.filesSelected')}
                     </Typography>
                   )}
                 </Box>
@@ -177,16 +165,11 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                   ))}
                 </Box>
                 <Box>
-                  <Button
-                    onClick={handleUpdate}
-                    variant='contained'
-                    color='primary'
-                    sx={{ mr: 1 }}
-                  >
-                    Save
+                  <Button onClick={handleUpdate} variant='contained' color='primary' sx={{ mr: 1 }}>
+                    {t('KeywordList.buttons.save')}
                   </Button>
                   <Button onClick={handleCancelEdit} variant='outlined' color='secondary'>
-                    Cancel
+                    {t('KeywordList.buttons.cancel')}
                   </Button>
                 </Box>
               </ListItem>
@@ -198,15 +181,15 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                 sx={{ display: 'block', mb: 2, border: '1px solid #eee' }}
               >
                 <ListItemText
-                  primary={`Keyword: ${kw.keyword}`}
-                  secondary={`ReplyText: ${kw.replyText}`}
+                  primary={`${t('KeywordList.keywordLabel')}: ${kw.keyword}`}
+                  secondary={`${t('KeywordList.replyTextLabel')}: ${kw.replyText}`}
                 />
                 {kw.mediaFiles && kw.mediaFiles.length > 0 && (
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
                     {kw.mediaFiles.map(media => (
                       <Box key={media.mediaId} textAlign='center'>
                         <img
-                          src={`/${media.mediaPath}`} // يفترض أن السيرفر يقدم static files من مجلد keywords-images
+                          src={`/${media.mediaPath}`}
                           alt={media.mediaName}
                           style={{ width: 100, height: 100, objectFit: 'cover' }}
                         />

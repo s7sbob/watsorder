@@ -1,24 +1,24 @@
-// src/layouts/sidebar/MenuItems.ts
 import { uniqueId } from 'lodash'
 import {
   IconNotebook,
   IconFileDescription,
-  IconShoppingCart,
   IconFileCheck,
   IconUserCircle,
   IconChartDonut3
 } from '@tabler/icons-react'
 
 interface MenuitemsType {
-  [x: string]: any
   id?: string
   navlabel?: boolean
-  subheader?: string
-  title?: string
+  // بدلاً من subheader
+  subheaderKey?: string
+  // بدلاً من title
+  titleKey?: string
   icon?: any
   href?: string
   children?: MenuitemsType[]
-  chip?: string
+  // بدلاً من chip
+  chipKey?: string
   chipColor?: string
   variant?: string
   external?: boolean
@@ -27,59 +27,56 @@ interface MenuitemsType {
 const Menuitems: MenuitemsType[] = [
   {
     navlabel: true,
-    subheader: 'Home'
+    subheaderKey: 'Sidebar.home' // مفتاح ترجمة "Home"
   },
   {
     id: uniqueId(),
-    title: 'Sessions',
+    titleKey: 'Sidebar.sessions', // مفتاح ترجمة "Sessions"
     icon: IconNotebook,
     href: '/apps/sessions',
-    chip: 'New',
+    chipKey: 'Sidebar.new', // مفتاح ترجمة "New"
     chipColor: 'secondary'
   },
   {
     id: uniqueId(),
-    title: 'API Documentation',
+    titleKey: 'Sidebar.apiDocumentation', // "API Documentation"
     icon: IconFileDescription,
     href: '/api-docs'
   },
   {
     id: uniqueId(),
-    title: 'Orders Dashboard',
-    icon: IconShoppingCart,
-    href: '/apps/ConfirmedOrdersPage',
-    children: [
-      {
-        id: uniqueId(),
-        title: 'Confirmed Orders',
-        icon: IconFileCheck,
-        href: '/apps/ConfirmedOrdersPage'
-      }
-    ]
+    titleKey: 'Sidebar.newOrders', // "New Orders"
+    icon: IconFileCheck,
+    href: '/apps/NewOrdersPage'
   },
   {
     id: uniqueId(),
-    title: 'Sub-Users',
+    titleKey: 'Sidebar.ordersHistory', // "Orders History"
+    icon: IconFileCheck,
+    href: '/apps/OrdersHistoryPage'
+  },
+  {
+    id: uniqueId(),
+    titleKey: 'Sidebar.subUsers', // "Sub-Users"
     icon: IconUserCircle,
     href: '#',
-    chip: 'Soon',
+    chipKey: 'Sidebar.soon', // "Soon"
     chipColor: 'green'
   },
-
   {
     navlabel: true,
-    subheader: 'Admin Only'
+    subheaderKey: 'Sidebar.adminOnly' // "Admin Only"
   },
   {
     id: uniqueId(),
-    title: 'Admin UserList',
+    titleKey: 'Sidebar.adminUserList', // "Admin UserList"
     icon: IconUserCircle,
     chipColor: 'secondary',
     href: '/UserList'
   },
   {
     id: uniqueId(),
-    title: 'Sessions Dashboard',
+    titleKey: 'Sidebar.sessionsDashboard', // "Sessions Dashboard"
     icon: IconChartDonut3,
     href: '/sessions/manage'
   }

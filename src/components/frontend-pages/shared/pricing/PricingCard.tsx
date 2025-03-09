@@ -1,36 +1,30 @@
-// src/components/frontend-pages/shared/pricing/PricingCard.tsx
-
 import { Box, Grid, Typography, Button, Paper } from '@mui/material'
 import { styled } from '@mui/material/styles'
+import { useTranslation } from 'react-i18next'
 
 interface PricingCardProps {
   // دالة تعيد اسم الخطة المختارة
   onPlanChosen: (planType: string) => void
 }
 
+// يمكنك تعديل هذه البيانات مباشرة أو إحضارها من الترجمة أيضاً
+// في حال أردت النصوص بالكامل من i18n يمكنك تعريفها في en/ar.json
+// وتعيين السعر من نفس المكان.
 const plans = [
   {
-    title: 'Basic',
-    price: '700£/month\n7700£/year',
-    features: ['Menu Bot', 'Automation'],
+    i18nKey: 'pricingCard.basic', // سنستخدمه للوصول للكلمات
     planType: 'Basic'
   },
   {
-    title: 'Standered',
-    price: '1000£/month\n11000£/year',
-    features: ['Menu Bot', 'Automation', 'Orders Api Integration'],
+    i18nKey: 'pricingCard.standered',
     planType: 'Standered'
   },
   {
-    title: 'Otp Plan',
-    price: '500£/month\n5000£/year',
-    features: ['Otp Api'],
+    i18nKey: 'pricingCard.otpPlan',
     planType: 'Otp Plan'
   },
   {
-    title: 'Golden',
-    price: '1500£/month\n15000£/year',
-    features: ['Menu Bot', 'Automation', 'Orders Api Integration', 'Otp Api'],
+    i18nKey: 'pricingCard.golden',
     planType: 'Golden'
   }
 ]
@@ -43,6 +37,8 @@ const Card = styled(Paper)(({ theme }) => ({
 }))
 
 const PricingCard: React.FC<PricingCardProps> = ({ onPlanChosen }) => {
+  const { t } = useTranslation()
+
   // عند الضغط على الخطة:
   const handleGetStarted = (planType: string) => {
     onPlanChosen(planType) // نعيد اسم الخطة فقط
@@ -50,32 +46,35 @@ const PricingCard: React.FC<PricingCardProps> = ({ onPlanChosen }) => {
 
   return (
     <Grid container spacing={3} justifyContent='center'>
-      {plans.map((plan, index) => (
-        <Grid item xs={12} sm={6} md={3} key={index}>
-          <Card>
-            <Typography variant='h5' fontWeight={700} gutterBottom>
-              {plan.title}
-            </Typography>
-            <Typography variant='h4' color='primary' gutterBottom>
-              {plan.price}
-            </Typography>
-            <Box mb={2}>
-              {plan.features.map((feature, i) => (
-                <Typography key={i} variant='body1'>
-                  • {feature}
-                </Typography>
-              ))}
-            </Box>
-            <Button
-              variant='contained'
-              color='primary'
-              onClick={() => handleGetStarted(plan.planType)}
-            >
-              Get Started
-            </Button>
-          </Card>
-        </Grid>
-      ))}
+      {plans.map((plan, index) => {
+        // جلب البيانات من ملفات الترجمة
+        const title = t(`${plan.i18nKey}.title`)
+        const price = t(`${plan.i18nKey}.price`)
+        const features: string[] = t(`${plan.i18nKey}.features`, { returnObjects: true })
+
+        return (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card>
+              <Typography variant='h5' fontWeight={700} gutterBottom>
+                {title}
+              </Typography>
+              <Typography variant='h4' color='primary' gutterBottom>
+                {price}
+              </Typography>
+              <Box mb={2}>
+                {features.map((feature, i) => (
+                  <Typography key={i} variant='body1'>
+                    • {feature}
+                  </Typography>
+                ))}
+              </Box>
+              <Button variant='contained' color='primary' onClick={() => handleGetStarted(plan.planType)}>
+                {t('pricingCard.getStarted')}
+              </Button>
+            </Card>
+          </Grid>
+        )
+      })}
     </Grid>
   )
 }

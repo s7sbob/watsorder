@@ -1,5 +1,3 @@
-// src/components/AddDataPopup.tsx
-
 import React, { useState, useEffect } from 'react'
 import {
   Dialog,
@@ -14,30 +12,23 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 
-/**
- * تعريف واجهة الحقل الواحد
- */
+// i18n
+import { useTranslation } from 'react-i18next'
+
 interface PopupField {
   label: string
   name: string
-  // لو كان الحقل select (خيارات منسدلة)
   options?: { value: any; label: string }[]
-  // لو أردنا استخدام Autocomplete متعدد (مثلاً Keywords)
   isMultipleKeywords?: boolean
-  // لو كان الحقل رفع ملف (صورة/ميديا)
   isFile?: boolean
-  // لو كان رفع عدة ملفات مرة واحدة
   multiple?: boolean
 }
 
-/**
- * واجهة الخصائص المقبولة في المكون
- */
 interface AddDataPopupProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: any) => void
-  title: string
+  title: string | React.ReactNode
   fields: PopupField[]
 }
 
@@ -48,10 +39,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
   title,
   fields
 }) => {
-  // تخزين القيم في state
-  // بالنسبة للحقل النصي: formData[field.name] = string
-  // بالنسبة لحقل Autocomplete: formData[field.name] = string[]
-  // بالنسبة لحقل الملفات: formData[field.name] = File (أو File[] لو multiple=true)
+  const { t } = useTranslation()
   const [formData, setFormData] = useState<Record<string, any>>({})
 
   useEffect(() => {
@@ -60,7 +48,6 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
     }
   }, [open])
 
-  // تحديث الحقول النصية
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
@@ -68,14 +55,12 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
     }))
   }
 
-  // عند الضغط على زر Submit
   const handleSubmit = () => {
     onSubmit(formData)
     setFormData({})
     onClose()
   }
 
-  // رفع ملف/ملفات: نقبل FileList ونخزن إما ملف واحد أو مصفوفة ملفات بناءً على الخاصية multiple
   const handleFileChange = (
     fieldName: string,
     fileList: FileList | null,
@@ -103,7 +88,6 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
     }
   }
 
-  // إزالة الملفات بالكامل للحقل المحدد
   const handleRemoveAllFiles = (fieldName: string, multiple: boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -111,7 +95,6 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
     }))
   }
 
-  // عرض المعاينة للملفات باستخدام URL.createObjectURL
   const renderPreviews = (fieldName: string, multiple: boolean) => {
     const value = formData[fieldName]
     if (!value) return null
@@ -164,7 +147,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         {fields.map(field => {
-          // (1) Autocomplete متعدد (مثل Keywords)
+          // (1) Autocomplete متعدد
           if (field.isMultipleKeywords) {
             const currentValue: string[] = formData[field.name] || []
             return (
@@ -172,7 +155,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 key={field.name}
                 multiple
                 freeSolo
-                options={[]} // يمكن وضع اقتراحات هنا
+                options={[]} 
                 value={currentValue}
                 onChange={(_event, newValue) => {
                   setFormData(prev => ({
@@ -215,7 +198,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
               </TextField>
             )
           }
-          // (3) حقل رفع ملف (isFile)
+          // (3) حقل رفع ملفات
           else if (field.isFile) {
             const multiple = !!field.multiple
             const hasValue = formData[field.name]
@@ -240,14 +223,14 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                     onClick={() => handleRemoveAllFiles(field.name, multiple)}
                     sx={{ ml: 2 }}
                   >
-                    Remove
+                    {t('AddDataPopup.buttons.remove')}
                   </Button>
                 )}
                 {renderPreviews(field.name, multiple)}
               </Box>
             )
           }
-          // (4) حقول نصية عادية
+          // (4) نص عادي
           else {
             return (
               <TextField
@@ -266,10 +249,10 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color='secondary'>
-          Cancel
+          {t('AddDataPopup.buttons.cancel')}
         </Button>
         <Button onClick={handleSubmit} color='primary' variant='contained'>
-          Submit
+          {t('AddDataPopup.buttons.submit')}
         </Button>
       </DialogActions>
     </Dialog>

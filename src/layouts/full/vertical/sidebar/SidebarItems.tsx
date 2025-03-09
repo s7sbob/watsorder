@@ -1,4 +1,3 @@
-// src/layouts/sidebar/SidebarItems.tsx
 import { useLocation } from 'react-router'
 import { Box, List, useMediaQuery } from '@mui/material'
 import { useSelector, useDispatch } from 'src/store/Store'
@@ -9,6 +8,9 @@ import NavCollapse from './NavCollapse'
 import NavGroup from './NavGroup/NavGroup'
 import { AppState } from 'src/store/Store'
 
+// استيراد الترجمة
+import { useTranslation } from 'react-i18next'
+
 const SidebarItems = () => {
   const { pathname } = useLocation()
   const pathDirect = pathname
@@ -18,6 +20,9 @@ const SidebarItems = () => {
   const hideMenu: any = lgUp ? customizer.isCollapse && !customizer.isSidebarHover : ''
   const dispatch = useDispatch()
 
+  // استخدام الترجمة
+  const { t } = useTranslation()
+
   // نجلب subscriptionType من Redux
   const subscriptionType = useSelector((state: AppState) => state.auth.subscriptionType)
 
@@ -26,7 +31,7 @@ const SidebarItems = () => {
 
   // إخفاء قسم "Admin Only" إن لم يكن المشترك admin
   if (subscriptionType !== 'admin') {
-    const adminIndex = finalMenu.findIndex((item) => item.subheader === 'Admin Only')
+    const adminIndex = finalMenu.findIndex((item) => item.subheaderKey === 'Sidebar.adminOnly')
     if (adminIndex !== -1) {
       finalMenu = finalMenu.slice(0, adminIndex)
     }
@@ -36,12 +41,25 @@ const SidebarItems = () => {
     <Box sx={{ px: 3 }}>
       <List sx={{ pt: 0 }} className='sidebarNav'>
         {finalMenu.map((item) => {
-          if (item.subheader) {
-            return <NavGroup item={item} hideMenu={hideMenu} key={item.subheader} />
+          // تحضير النصوص المترجمة
+          const subheader = item.subheaderKey ? t(item.subheaderKey) : undefined
+          const title = item.titleKey ? t(item.titleKey) : undefined
+          const chip = item.chipKey ? t(item.chipKey) : undefined
+
+          if (item.navlabel) {
+            // في الأصل NavGroup يستخدم item.subheader
+            return (
+              <NavGroup
+                item={{ ...item, subheader }}
+                hideMenu={hideMenu}
+                key={item.subheaderKey}
+              />
+            )
           } else if (item.children) {
+            // لو لدى العنصر children ، نترجم title بدلاً من item.title
             return (
               <NavCollapse
-                menu={item}
+                menu={{ ...item, title, chip }}
                 pathDirect={pathDirect}
                 hideMenu={hideMenu}
                 pathWithoutLastPart={pathWithoutLastPart}
@@ -51,9 +69,10 @@ const SidebarItems = () => {
               />
             )
           } else {
+            // عنصر عادي
             return (
               <NavItem
-                item={item}
+                item={{ ...item, title, chip }}
                 key={item.id}
                 pathDirect={pathDirect}
                 hideMenu={hideMenu}

@@ -1,80 +1,85 @@
-// src/components/CategoryList.tsx
-import React, { useEffect, useState } from 'react';
-import { Box, List, ListItem, ListItemText, IconButton, TextField, Button } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import axiosServices from 'src/utils/axios';
+import React, { useEffect, useState } from 'react'
+import { Box, List, ListItem, ListItemText, IconButton, TextField, Button } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
+import axiosServices from 'src/utils/axios'
+
+// i18n
+import { useTranslation } from 'react-i18next'
 
 interface Category {
-  id: number;
-  category_name: string;
+  id: number
+  category_name: string
 }
 
 interface CategoryListProps {
-  sessionId: number;
+  sessionId: number
 }
 
 const CategoryList: React.FC<CategoryListProps> = ({ sessionId }) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
-  const [newCategoryName, setNewCategoryName] = useState('');
+  const { t } = useTranslation()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   const fetchCategories = async () => {
     try {
-      const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
-      setCategories(response.data);
+      const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`)
+      setCategories(response.data)
     } catch (error) {
-      console.error('Error fetching categories', error);
+      console.error('Error fetching categories', error)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchCategories();
-  }, [sessionId]);
+    fetchCategories()
+  }, [sessionId])
 
   const handleDelete = async (categoryId: number) => {
-    if (!window.confirm('هل تريد حذف هذه الفئة؟')) return;
+    if (!window.confirm(t('CategoryList.confirmDelete') as string)) return
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/category/${categoryId}/delete`);
-      fetchCategories();
+      await axiosServices.post(`/api/sessions/${sessionId}/category/${categoryId}/delete`)
+      fetchCategories()
     } catch (error) {
-      console.error('Error deleting category', error);
+      console.error('Error deleting category', error)
+      alert(t('CategoryList.errorDeleting'))
     }
-  };
+  }
 
   const handleEdit = (category: Category) => {
-    setEditingCategoryId(category.id);
-    setNewCategoryName(category.category_name);
-  };
+    setEditingCategoryId(category.id)
+    setNewCategoryName(category.category_name)
+  }
 
   const handleUpdate = async () => {
-    if (editingCategoryId === null) return;
+    if (editingCategoryId === null) return
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/category/${editingCategoryId}/update`, {
         category_name: newCategoryName
-      });
-      setEditingCategoryId(null);
-      setNewCategoryName('');
-      fetchCategories();
+      })
+      setEditingCategoryId(null)
+      setNewCategoryName('')
+      fetchCategories()
     } catch (error) {
-      console.error('Error updating category', error);
+      console.error('Error updating category', error)
+      alert(t('CategoryList.errorUpdating'))
     }
-  };
+  }
 
   return (
     <Box>
       <List>
-        {categories.map((cat) => (
+        {categories.map(cat => (
           <ListItem key={cat.id}>
             {editingCategoryId === cat.id ? (
               <>
                 <TextField
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  variant="outlined"
-                  size="small"
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  variant='outlined'
+                  size='small'
                 />
-                <Button onClick={handleUpdate}>Save</Button>
+                <Button onClick={handleUpdate}>{t('CategoryList.save')}</Button>
               </>
             ) : (
               <>
@@ -91,7 +96,7 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId }) => {
         ))}
       </List>
     </Box>
-  );
-};
+  )
+}
 
-export default CategoryList;
+export default CategoryList

@@ -12,6 +12,7 @@ import BlogPage from 'src/views/pages/frontend-pages/Blog';
 import Contact from 'src/views/pages/frontend-pages/Contact';
 import Portfolio from 'src/views/pages/frontend-pages/Portfolio';
 import FeatureManagement from 'src/views/pages/FeatureManagement.tsx';
+import OrdersHistoryPage from 'src/views/pages/OrdersHistoryPage/OrdersHistoryPage.tsx';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
@@ -23,8 +24,8 @@ const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
 /* ****Apps***** */
 const UserList = Loadable(lazy(() => import('../views/admin/UserListing')));
 const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')));
-const ConfirmedOrdersPage = Loadable(
-  lazy(() => import('../views/pages/orders/ConfirmedOrdersPage.tsx')),
+const NewOrdersPage = Loadable(
+  lazy(() => import('../views/pages/NewOrdersPage/NewOrdersPage.tsx')),
 );
 const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')));
 const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')));
@@ -52,7 +53,9 @@ const Router = [
       { path: '/dashboards/modern', exact: true, element: <ModernDash /> },
       { path: '/UserList', element: <UserList /> },
       { path: '/apps/sessions', element: <Sessions /> },
-      { path: '/apps/ConfirmedOrdersPage', element: <ConfirmedOrdersPage /> },
+      { path: '/apps/NewOrdersPage', element: <NewOrdersPage /> },
+      { path: '/apps/OrdersHistoryPage', element: <OrdersHistoryPage /> },
+
       { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
       { path: '/users/:id/details', element: <UserDetails /> },
       {

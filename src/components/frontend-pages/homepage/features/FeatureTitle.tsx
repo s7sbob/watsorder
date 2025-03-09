@@ -1,20 +1,22 @@
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 const FeatureTitle = () => {
+  const { t } = useTranslation()
+
   return (
-    <Grid container spacing={3} justifyContent="center">
-      <Grid item xs={12} lg={6} textAlign="center">
-        <Typography variant="body1">
-          Introducing Modernize's Light & Dark Skins,{' '}
-          <Box fontWeight={500} component="span">
-            Exceptional Dashboards
+    <Grid container spacing={3} justifyContent='center'>
+      <Grid item xs={12} lg={6} textAlign='center'>
+        <Typography variant='body1'>
+          {t('HomePage.FeaturesTitle.descPart1')}{' '}
+          <Box fontWeight={500} component='span'>
+            {t('HomePage.FeaturesTitle.descPart2')}
           </Box>
-          , and <br />
-          Dynamic Pages - Stay Updated on What's New!
+          , {t('HomePage.FeaturesTitle.descPart3')}
         </Typography>
       </Grid>
     </Grid>
-  );
-};
+  )
+}
 
-export default FeatureTitle;
+export default FeatureTitle

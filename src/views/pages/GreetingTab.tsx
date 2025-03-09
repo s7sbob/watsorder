@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import { Box, TextField, FormControlLabel, Checkbox, Button } from '@mui/material'
 import axiosServices from 'src/utils/axios'
+import { useTranslation } from 'react-i18next'
 
 interface GreetingTabProps {
   sessionId: number
 }
 
 const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
-  const [greetingData, setGreetingData] = useState<{ greetingMessage: string; greetingActive: boolean }>({
+  const { t } = useTranslation()
+  const [greetingData, setGreetingData] = useState<{
+    greetingMessage: string
+    greetingActive: boolean
+  }>({
     greetingMessage: '',
     greetingActive: false
   })
 
-  // 1) اجلب البيانات عند التحميل
+  // جلب البيانات عند التحميل
   useEffect(() => {
     const fetchGreetingData = async () => {
       try {
@@ -28,29 +33,29 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
     fetchGreetingData()
   }, [sessionId])
 
-  // 2) تحديث الإعدادات
+  // تحديث الإعدادات
   const handleGreetingUpdate = async () => {
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/greeting/update`, {
         greetingMessage: greetingData.greetingMessage,
         greetingActive: greetingData.greetingActive
       })
-      alert('Greeting message updated successfully.')
+      alert(t('GreetingTab.alerts.updateSuccess'))
     } catch (error) {
       console.error('Error updating greeting:', error)
-      alert('An error occurred while updating the greeting message.')
+      alert(t('GreetingTab.alerts.updateError'))
     }
   }
 
   return (
     <Box>
       <TextField
-        label="Greeting Message"
+        label={t('GreetingTab.fields.greetingMessage')}
         fullWidth
         multiline
         rows={3}
         value={greetingData.greetingMessage}
-        onChange={(e) =>
+        onChange={e =>
           setGreetingData({ ...greetingData, greetingMessage: e.target.value })
         }
         sx={{ mt: 2 }}
@@ -59,17 +64,17 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
         control={
           <Checkbox
             checked={greetingData.greetingActive}
-            onChange={(e) =>
+            onChange={e =>
               setGreetingData({ ...greetingData, greetingActive: e.target.checked })
             }
           />
         }
-        label="Enable Greeting Message"
+        label={t('GreetingTab.fields.enableGreeting')}
         sx={{ mt: 2 }}
       />
       <Box mt={2}>
-        <Button variant="contained" onClick={handleGreetingUpdate}>
-          Save
+        <Button variant='contained' onClick={handleGreetingUpdate}>
+          {t('GreetingTab.buttons.save')}
         </Button>
       </Box>
     </Box>

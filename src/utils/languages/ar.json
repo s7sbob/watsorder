@@ -18,5 +18,390 @@
     "Notes": "ملاحظات",
     "Calendar": "التقويم",
     "Email": "بريد إلكتروني",
-    "Tickets": "تذاكر"
-}
+    "Tickets": "تذاكر",
+
+    "SessionListing": {
+      "columns": {
+        "id": "المعرّف",
+        "plan": "الخطة",
+        "expireDate": "تاريخ الانتهاء",
+        "phoneNumber": "رقم الهاتف",
+        "alternateWhatsApp": "واتساب بديل",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "buttons": {
+        "buyPlan": "شراء خطة",
+        "renew": "تجديد",
+        "buyAgain": "شراء مرة أخرى",
+        "showQRCode": "عرض رمز الاستجابة السريعة",
+        "botOn": "تشغيل البوت",
+        "botOff": "إيقاف البوت",
+        "menuBotOn": "تشغيل قائمة البوت",
+        "menuBotOff": "إيقاف قائمة البوت",
+        "logout": "تسجيل خروج",
+        "close": "إغلاق",
+        "cancel": "إلغاء",
+        "iHavePaid": "لقد دفعت"
+      },
+      "messages": {
+        "numberUpdateSuccess": "تم تحديث الرقم بنجاح",
+        "numberUpdateError": "حدث خطأ أثناء تحديث الرقم",
+        "confirmLogout": "هل أنت متأكد أنك تريد تسجيل الخروج من الجلسة ذات المعرّف: {{sessionId}}؟",
+        "sessionLoggedOut": "تم تسجيل الخروج من الجلسة {{sessionId}}.",
+        "logoutError": "حدث خطأ أثناء تسجيل الخروج من الجلسة.",
+        "confirmDelete": "هل أنت متأكد أنك تريد حذف الجلسة ذات المعرّف: {{sessionId}}؟",
+        "deleteSuccess": "تم حذف الجلسة بنجاح.",
+        "deleteError": "حدث خطأ أثناء حذف الجلسة.",
+        "createSessionSuccess": "تم إنشاء جلسة جديدة بحالة مدفوعة. بانتظار تأكيد المدير.",
+        "createSessionError": "فشل في إنشاء جلسة مدفوعة.",
+        "reactivateSuccess": "الجلسة #{{sessionId}} أصبحت الآن مدفوعة. بانتظار تأكيد المدير.",
+        "reactivateError": "فشل في إعادة تفعيل الجلسة.",
+        "failedToFetchQr": "فشل في جلب رمز الاستجابة السريعة.",
+        "scanQrCode": "امسح رمز الاستجابة السريعة",
+        "loadingQrCode": "جارٍ تحميل رمز الاستجابة السريعة...",
+        "botUpdated": "البوت الآن {{status}} للجلسة {{sessionId}}",
+        "botToggleError": "حدث خطأ أثناء تغيير حالة البوت.",
+        "menuBotUpdated": "قائمة البوت الآن {{status}} للجلسة {{sessionId}}",
+        "menuBotToggleError": "حدث خطأ أثناء تغيير حالة قائمة البوت."
+      },
+      "dialogTitles": {
+        "chooseYourPlanNew": "اختر خطتك (جلسة جديدة)",
+        "paymentInstructionsNew": "تعليمات الدفع (جلسة جديدة)",
+        "chooseAPlan": "اختر الخطة",
+        "paymentInstructions": "تعليمات الدفع"
+      },
+      "chipLabels": {
+        "pending": "قيد الانتظار",
+        "stoppedByAdmin": "تم الإيقاف من المشرف"
+      },
+      "alternateWhatsAppEditor": {
+        "placeholder": "أدخل الرقم",
+        "save": "حفظ"
+      }
+    },
+    "pricingCard": {
+      "basic": {
+        "title": "أساسي",
+        "price": "700ج/شهر\n7700ج/سنة",
+        "features": ["قائمة البوت", "الأتمتة"]
+      },
+      "standered": {
+        "title": "قياسي",
+        "price": "1000ج/شهر\n11000ج/سنة",
+        "features": ["قائمة البوت", "الأتمتة", "تكامل طلبات Api"]
+      },
+      "otpPlan": {
+        "title": "خطة OTP",
+        "price": "500ج/شهر\n5000ج/سنة",
+        "features": ["OTP Api"]
+      },
+      "golden": {
+        "title": "ذهبية",
+        "price": "1500ج/شهر\n15000ج/سنة",
+        "features": ["قائمة البوت", "الأتمتة", "تكامل طلبات Api", "OTP Api"]
+      },
+      "getStarted": "ابدأ الآن"
+    },
+    "PaymentInstructions": {
+      "title": "تعليمات الدفع",
+      "subTitle": "استنادًا إلى الخطة المختارة، يلزمك دفع المبلغ المقابل.",
+      "vodafoneCash": "فودافون كاش: 01000000000",
+      "instaPay": "إنستا باي: 01200000000",
+      "assistance": "للمساعدة اتصل على: 190",
+      "doneButton": "لقد دفعت – أرسل إلى المدير"
+    },
+
+    "SessionSettings": {
+      "noSession": "لا توجد جلسة محددة.",
+      "backToSessions": "الرجوع إلى الجلسات",
+      "tabs": {
+        "categories": "الفئات",
+        "products": "المنتجات",
+        "keywords": "الكلمات المفتاحية",
+        "broadcast": "البث",
+        "greeting": "الترحيب"
+      }
+    },
+    "CategoriesTab": {
+      "buttons": {
+        "addCategory": "إضافة فئة"
+      },
+      "alerts": {
+        "errorAdd": "حدث خطأ أثناء إضافة الفئة."
+      },
+      "popup": {
+        "title": "إضافة فئة",
+        "fields": {
+          "categoryName": "اسم الفئة"
+        }
+      }
+    },
+    "AddDataPopup": {
+      "buttons": {
+        "remove": "إزالة",
+        "cancel": "إلغاء",
+        "submit": "حفظ"
+      }
+    },
+    "CategoryList": {
+      "confirmDelete": "هل تريد حذف هذه الفئة؟",
+      "errorDeleting": "حدث خطأ أثناء حذف الفئة.",
+      "errorUpdating": "حدث خطأ أثناء تحديث الفئة.",
+      "save": "حفظ"
+    },
+    "ProductsTab": {
+      "buttons": {
+        "addProduct": "إضافة منتج"
+      },
+      "errorFetchingCategories": "حدث خطأ أثناء جلب الفئات.",
+      "errorAddingProduct": "حدث خطأ أثناء إضافة المنتج.",
+      "popup": {
+        "title": "إضافة منتج",
+        "fields": {
+          "productName": "اسم المنتج",
+          "category": "الفئة",
+          "price": "السعر"
+        }
+      }
+    },
+    "ProductList": {
+      "confirmDelete": "هل تريد حذف هذا المنتج؟",
+      "errorDeleting": "حدث خطأ أثناء حذف المنتج.",
+      "errorUpdating": "حدث خطأ أثناء تحديث المنتج.",
+      "categoryId": "معرّف الفئة",
+      "price": "السعر",
+      "buttons": {
+        "save": "حفظ",
+        "cancel": "إلغاء"
+      }
+    },
+    "KeywordsTab": {
+      "buttons": {
+        "addKeywords": "إضافة كلمة مفتاحية"
+      },
+      "alerts": {
+        "noKeywords": "الرجاء إدخال كلمة مفتاحية واحدة على الأقل!",
+        "noReplyText": "الرجاء إدخال نص الرد!",
+        "errorAdd": "حدث خطأ أثناء إضافة الكلمات المفتاحية."
+      },
+      "popup": {
+        "title": "إضافة عدة كلمات مفتاحية مع الرد",
+        "fields": {
+          "keywords": "الكلمات المفتاحية",
+          "replyText": "نص الرد",
+          "replyMedia": "مرفقات الرد"
+        }
+      }
+    },
+    "KeywordList": {
+      "confirmDelete": "هل تريد حذف هذه الكلمة المفتاحية؟",
+      "errorDeleting": "حدث خطأ أثناء حذف الكلمة المفتاحية.",
+      "errorUpdating": "حدث خطأ أثناء تحديث الكلمة المفتاحية.",
+      "keywordLabel": "الكلمة",
+      "replyTextLabel": "نص الرد",
+      "filesSelected": "ملف(ات) محدد",
+      "buttons": {
+        "uploadNewImages": "رفع صور جديدة",
+        "save": "حفظ",
+        "cancel": "إلغاء"
+      },
+      "fields": {
+        "keyword": "الكلمة",
+        "replyText": "نص الرد"
+      }
+    },
+    "BroadcastTab": {
+      "fields": {
+        "phones": "أرقام الهواتف (مفصولة بفاصلة)",
+        "message": "الرسالة",
+        "delays": "الفواصل الزمنية (مفصولة بفاصلة أو نطاق مثل 5-7)"
+      },
+      "buttons": {
+        "uploadExcel": "رفع ملف إكسل",
+        "insertRecipient": "إدراج رقم المستلم",
+        "insertDateTime": "إدراج التاريخ/الوقت",
+        "uploadImages": "رفع صور",
+        "send": "إرسال البث"
+      },
+      "alerts": {
+        "fillAllRequired": "الرجاء ملء جميع الحقول المطلوبة",
+        "sentSuccess": "تم إرسال رسائل البث بنجاح",
+        "sendFail": "فشل في إرسال رسائل البث"
+      }
+    },
+    "GreetingTab": {
+      "fields": {
+        "greetingMessage": "رسالة الترحيب",
+        "enableGreeting": "تفعيل رسالة الترحيب"
+      },
+      "buttons": {
+        "save": "حفظ"
+      },
+      "alerts": {
+        "updateSuccess": "تم تحديث رسالة الترحيب بنجاح.",
+        "updateError": "حدث خطأ أثناء تحديث رسالة الترحيب."
+      }
+    },
+    "Orders": {
+      "ConfirmOrderDialog": {
+        "title": "تأكيد الطلب #{{orderId}}",
+        "prepTimeLabel": "وقت التحضير المتوقع (بالدقائق)",
+        "deliveryFeeLabel": "رسوم التوصيل",
+        "taxValueLabel": "قيمة الضريبة",
+        "buttons": {
+          "cancel": "إلغاء",
+          "confirm": "تأكيد وإرسال الرسالة"
+        }
+      },
+      "InvoiceDialog": {
+        "title": "فاتورة #{{orderId}}",
+        "customerPhone": "رقم العميل",
+        "deliveryAddress": "عنوان التوصيل",
+        "totalPrice": "السعر الكلي",
+        "status": "الحالة",
+        "confirmed": "مؤكَّد",
+        "pending": "قيد الانتظار",
+        "createdAt": "وقت الإنشاء",
+        "deliveryFee": "رسوم التوصيل",
+        "taxValue": "قيمة الضريبة",
+        "prepTime": "وقت التحضير",
+        "minutes": "دقيقة",
+        "itemsTitle": "المنتجات:",
+        "buttons": {
+          "close": "إغلاق"
+        }
+      },
+      "NewOrdersPage": {
+        "title": "الطلبات الجديدة (اليوم)",
+        "alerts": {
+          "invoiceError": "فشل في جلب بيانات الفاتورة. تحقق من وحدة التحكم لمزيد من المعلومات."
+        },
+        "loading": "جاري تحميل الطلبات...",
+        "error": "خطأ: {{error}}",
+        "searchPlaceholder": "ابحث برقم الهاتف أو العنوان",
+        "acceptedToday": "المقبولة اليوم ({{count}})",
+        "newToday": "الجديدة اليوم ({{count}})"
+      },
+      "OrderCard": {
+        "orderId": "طلب #{{id}}",
+        "customerName": "اسم العميل",
+        "phone": "الهاتف",
+        "address": "العنوان",
+        "total": "الإجمالي",
+        "status": "الحالة",
+        "statusConfirmed": "مؤكَّد",
+        "statusPending": "قيد الانتظار",
+        "createdAt": "تاريخ الإنشاء",
+        "tooltips": {
+          "viewDetails": "عرض التفاصيل",
+          "viewInvoice": "عرض الفاتورة",
+          "restaurantConfirm": "تأكيد من المطعم"
+        }
+      },
+      "OrderDetailsDialog": {
+        "title": "تفاصيل الطلب #{{orderId}}",
+        "customerName": "اسم العميل",
+        "customerPhone": "هاتف العميل",
+        "deliveryAddress": "عنوان التوصيل",
+        "totalPrice": "الإجمالي",
+        "status": "الحالة",
+        "confirmed": "مؤكَّد",
+        "pending": "قيد الانتظار",
+        "createdAt": "وقت الإنشاء",
+        "deliveryFee": "رسوم التوصيل",
+        "taxValue": "قيمة الضريبة",
+        "prepTime": "وقت التحضير",
+        "minutes": "دقيقة",
+        "itemsTitle": "المنتجات:",
+        "buttons": {
+          "close": "إغلاق"
+        }
+      },
+      "OrdersColumn": {
+        "noOrders": "لا توجد طلبات"
+      },
+      "HistoryPage": {
+      "title": "سجل الطلبات (الطلبات المقبولة)",
+      "loading": "جاري تحميل الطلبات...",
+      "error": "خطأ: {{error}}",
+      "searchPlaceholder": "ابحث برقم الهاتف أو العنوان",
+      "startDate": "تاريخ البداية",
+      "endDate": "تاريخ النهاية",
+      "acceptedOrdersTitle": "سجل الطلبات المقبولة",
+      "buttons": {
+        "prev": "السابق",
+        "next": "التالي"
+      },
+      "pageIndicator": "الصفحة {{current}} / {{total}}"
+    }
+    },
+    "Sidebar": {
+      "home": "الرئيسية",
+      "sessions": "الجلسات",
+      "new": "جديد",
+      "apiDocumentation": "توثيق الـ API",
+      "newOrders": "الطلبات الجديدة",
+      "ordersHistory": "سجل الطلبات",
+      "subUsers": "مستخدمون فرعيون",
+      "soon": "قريباً",
+      "adminOnly": "خاص بالمدير",
+      "adminUserList": "قائمة مستخدمي المدير",
+      "sessionsDashboard": "لوحة تحكم الجلسات"
+    },
+    "HomePage": {
+      "mainPage": {
+        "title": "روبوت واتساب للمطاعم",
+        "description": "سهل طلبات مطعمك من خلال روبوت واتساب الخاص بنا"
+      },
+      "Banner": {
+        "mainTitle": "حوّل طلبات مطعمك باستخدام",
+        "mainTitleSpan": "روبوت واتساب",
+        "joinMessage": "انضم لأكثر من 50,000 مطعم يستخدمون الأتمتة",
+        "loginButton": "تسجيل دخول للمطعم",
+        "seeHowItWorks": "شاهد كيفية عمله",
+        "closeButton": "إغلاق"
+      },
+      "Header": {
+        "login": "تسجيل الدخول"
+      },
+      "Features": {
+        "otpServices": {
+          "title": "خدمة OTP",
+          "desc": "هذه الخدمة تتيح لك التحقق من أرقام هواتف عملائك بسهولة."
+        },
+        "delivery": {
+          "title": "عزّز خدمة التوصيل لديك",
+          "desc": "طوّر خدمة التوصيل باستخدام نظامنا المؤتمت لاستقبال الطلبات ..."
+        },
+        "ourServicesTitle": "خدماتنا",
+        "ourServicesDesc": {
+          "part1": "استقبال الطلبات عبر نظام واتساب: خدمة فريدة تتيح لك استقبال الطلبات بسهولة عبر",
+          "part2": "واتساب"
+        },
+        "apiIntegration": {
+          "title": "خدمات الدمج مع API",
+          "desc": "يمكنك الدمج مع الأنظمة الخارجية بسهولة."
+        },
+        "automation": {
+          "title": "خدمات الأتمتة",
+          "desc": "مجموعة غنية لتجربة مستخدم سلسة."
+        }
+      },
+      "FeaturesTitle": {
+        "descPart1": "تعرف على أشكال Modernize الفاتحة والداكنة،",
+        "descPart2": "لوحات معلومات مميزة",
+        "descPart3": "وصفحات ديناميكية - ابقَ على اطلاع بالجديد!"
+      },
+      "Pricing": {
+        "title": "اختر الخطة المناسبة لاحتياجات مطعمك"
+      },
+      "C2a": {
+        "title": "عزّز كفاءة مطعمك باستخدام روبوت واتساب",
+        "loginButton": "تسجيل دخول المطعم",
+        "startButton": "ابدأ الآن",
+        "note": "إعداد واحد دون رسوم متكررة."
+      }
+    }
+  }
+  

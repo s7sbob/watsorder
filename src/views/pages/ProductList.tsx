@@ -1,5 +1,3 @@
-// src/components/ProductList.tsx
-
 import React, { useEffect, useState } from 'react'
 import {
   Box,
@@ -15,6 +13,9 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import axiosServices from 'src/utils/axios'
 
+// i18n
+import { useTranslation } from 'react-i18next'
+
 interface Product {
   id: number
   product_name: string
@@ -27,14 +28,15 @@ interface ProductListProps {
 }
 
 const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
+  const { t } = useTranslation()
+
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<{ id: number; category_name: string }[]>([])
 
-  // حالة تمثّل المنتج الذي نقوم بتحريره حاليًا
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [editedProductName, setEditedProductName] = useState('')
   const [editedCategoryId, setEditedCategoryId] = useState<number | null>(null)
-  const [editedPrice, setEditedPrice] = useState<string>('') // استخدم string لتسهيل الإدخال
+  const [editedPrice, setEditedPrice] = useState<string>('')
 
   const fetchProducts = async () => {
     try {
@@ -62,16 +64,16 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
   }, [sessionId])
 
   const handleDelete = async (productId: number) => {
-    if (!window.confirm('هل تريد حذف هذا المنتج؟')) return
+    if (!window.confirm(t('ProductList.confirmDelete') as string)) return
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/product/${productId}/delete`)
       fetchProducts()
     } catch (error) {
       console.error('Error deleting product', error)
+      alert(t('ProductList.errorDeleting'))
     }
   }
 
-  // فتح وضع التعديل
   const handleEdit = (product: Product) => {
     setEditingProductId(product.id)
     setEditedProductName(product.product_name)
@@ -79,10 +81,8 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
     setEditedPrice(product.price ? product.price.toString() : '')
   }
 
-  // حفظ التعديلات
   const handleUpdate = async () => {
     if (editingProductId === null || editedCategoryId === null) return
-
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/product/${editingProductId}/update`, {
         product_name: editedProductName,
@@ -96,10 +96,10 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
       fetchProducts()
     } catch (error) {
       console.error('Error updating product', error)
+      alert(t('ProductList.errorUpdating'))
     }
   }
 
-  // إلغاء التعديل
   const handleCancelEdit = () => {
     setEditingProductId(null)
     setEditedProductName('')
@@ -114,7 +114,6 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
           <ListItem key={prod.id}>
             {editingProductId === prod.id ? (
               <>
-                {/* حقل اسم المنتج */}
                 <TextField
                   value={editedProductName}
                   onChange={e => setEditedProductName(e.target.value)}
@@ -122,7 +121,6 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
                   size='small'
                   sx={{ mr: 1 }}
                 />
-                {/* قائمة منسدلة لاختيار الفئة */}
                 <TextField
                   select
                   value={editedCategoryId ?? ''}
@@ -137,9 +135,8 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
                     </MenuItem>
                   ))}
                 </TextField>
-                {/* حقل السعر */}
                 <TextField
-                  label='Price'
+                  label={t('ProductList.price')}
                   type='number'
                   value={editedPrice}
                   onChange={e => setEditedPrice(e.target.value)}
@@ -149,22 +146,22 @@ const ProductList: React.FC<ProductListProps> = ({ sessionId }) => {
                 />
 
                 <Button onClick={handleUpdate} variant='contained' color='primary' sx={{ mr: 1 }}>
-                  Save
+                  {t('ProductList.buttons.save')}
                 </Button>
                 <Button onClick={handleCancelEdit} variant='outlined' color='secondary'>
-                  Cancel
+                  {t('ProductList.buttons.cancel')}
                 </Button>
               </>
             ) : (
               <>
                 <ListItemText
-                  primary={`${prod.product_name} (Price: ${prod.price ?? 'N/A'})`}
-                  secondary={`Category ID: ${prod.category_id}`}
+                  primary={`${prod.product_name} (${t('ProductList.price')}: ${prod.price ?? 'N/A'})`}
+                  secondary={`${t('ProductList.categoryId')}: ${prod.category_id}`}
                 />
-                <IconButton onClick={() => handleEdit(prod)} sx={{ mr: 1 }}>
+                <IconButton onClick={() => handleEdit(prod)} sx={{ mr: 1 }} color='primary'>
                   <EditIcon />
                 </IconButton>
-                <IconButton onClick={() => handleDelete(prod.id)}>
+                <IconButton onClick={() => handleDelete(prod.id)} color='error'>
                   <DeleteIcon />
                 </IconButton>
               </>

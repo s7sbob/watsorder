@@ -1,5 +1,3 @@
-// src/pages/SessionListing.tsx
-
 import { useEffect, useState } from 'react'
 import {
   Box,
@@ -34,6 +32,9 @@ import { useNavigate } from 'react-router'
 import PricingCard from 'src/components/frontend-pages/shared/pricing/PricingCard'
 import PaymentInstructions from 'src/views/pages/PaymentInstructions'
 
+// i18n
+import { useTranslation } from 'react-i18next'
+
 // مكون لتحرير رقم الواتساب البديل داخل جدول الجلسات
 interface AlternateWhatsAppEditorProps {
   session: SessionType
@@ -42,6 +43,7 @@ interface AlternateWhatsAppEditorProps {
 }
 
 const AlternateWhatsAppEditor: React.FC<AlternateWhatsAppEditorProps> = ({ session, onUpdate, onAlert }) => {
+  const { t } = useTranslation()
   const [value, setValue] = useState(session.alternateWhatsAppNumber || '')
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -52,10 +54,10 @@ const AlternateWhatsAppEditor: React.FC<AlternateWhatsAppEditorProps> = ({ sessi
         alternateWhatsAppNumber: value
       })
       onUpdate(session.id, value)
-      onAlert('تم تحديث الرقم بنجاح', 'success')
+      onAlert(t('SessionListing.messages.numberUpdateSuccess'), 'success')
     } catch (error) {
       console.error('Error updating alternate WhatsApp number', error)
-      onAlert('حدث خطأ أثناء تحديث الرقم', 'error')
+      onAlert(t('SessionListing.messages.numberUpdateError'), 'error')
     } finally {
       setIsUpdating(false)
     }
@@ -65,20 +67,21 @@ const AlternateWhatsAppEditor: React.FC<AlternateWhatsAppEditorProps> = ({ sessi
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <TextField
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        size="small"
-        variant="outlined"
-        placeholder="أدخل الرقم"
+        onChange={e => setValue(e.target.value)}
+        size='small'
+        variant='outlined'
+        placeholder={t('SessionListing.alternateWhatsAppEditor.placeholder') ?? ''}
         sx={{ width: '150px' }}
       />
-      <Button onClick={handleUpdate} variant="contained" size="small" disabled={isUpdating} sx={{ ml: 1 }}>
-        Save
+      <Button onClick={handleUpdate} variant='contained' size='small' disabled={isUpdating} sx={{ ml: 1 }}>
+        {t('SessionListing.alternateWhatsAppEditor.save')}
       </Button>
     </Box>
   )
 }
 
 const SessionListing = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const sessions = useSelector((state) => state.sessionReducer.sessions) as SessionType[]
@@ -141,14 +144,13 @@ const SessionListing = () => {
         planType: selectedPlan
       })
 
-      showAlert('New session created with status Paid. Awaiting manager confirmation.', 'success')
-
+      showAlert(t('SessionListing.messages.createSessionSuccess'), 'success')
       setPaymentDialogOpen(false)
       setSelectedPlan(null)
       dispatch(fetchSessions())
     } catch (error) {
       console.error('Error creating paid session:', error)
-      showAlert('Failed to create paid session.', 'error')
+      showAlert(t('SessionListing.messages.createSessionError'), 'error')
     }
   }
 
@@ -191,7 +193,10 @@ const SessionListing = () => {
       // 2) بعد الدفع => ترسل للمدير => تصبح "Paid"
       await axiosServices.post(`/api/sessions/${sessionId}/send-to-manager`)
 
-      showAlert(`Session #${sessionId} is now Paid. Awaiting manager confirmation.`, 'success')
+      showAlert(
+        t('SessionListing.messages.reactivateSuccess', { sessionId: sessionId.toString() }),
+        'success'
+      )
 
       setReactivateSession(null)
       setReactivateSelectedPlan(null)
@@ -200,7 +205,7 @@ const SessionListing = () => {
       dispatch(fetchSessions())
     } catch (error) {
       console.error('Error re-activating session:', error)
-      showAlert('Failed to re-activate session.', 'error')
+      showAlert(t('SessionListing.messages.reactivateError'), 'error')
     }
   }
 
@@ -216,7 +221,7 @@ const SessionListing = () => {
       setQrDialogOpen(true)
     } catch (error) {
       console.error('Error fetching QR code:', error)
-      showAlert('Failed to fetch QR code.', 'error')
+      showAlert(t('SessionListing.messages.failedToFetchQr'), 'error')
     }
   }
 
@@ -231,10 +236,16 @@ const SessionListing = () => {
     try {
       await axiosServices.post(`/api/sessions/${session.id}/bot/update`, { botActive: newBotActive })
       dispatch(updateSession({ sessionId: session.id, changes: { botActive: newBotActive } }))
-      showAlert(`Bot is now ${newBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
+      showAlert(
+        t('SessionListing.messages.botUpdated', {
+          status: newBotActive ? 'ON' : 'OFF',
+          sessionId: session.id.toString()
+        }),
+        'info'
+      )
     } catch (error) {
       console.error('Error toggling bot:', error)
-      showAlert('An error occurred while toggling the bot.', 'error')
+      showAlert(t('SessionListing.messages.botToggleError'), 'error')
     }
   }
 
@@ -243,35 +254,52 @@ const SessionListing = () => {
     try {
       await axiosServices.post(`/api/sessions/${session.id}/menu-bot/update`, { menuBotActive: newMenuBotActive })
       dispatch(updateSession({ sessionId: session.id, changes: { menuBotActive: newMenuBotActive } }))
-      showAlert(`Menu Bot is now ${newMenuBotActive ? 'ON' : 'OFF'} for session ${session.id}`, 'info')
+      showAlert(
+        t('SessionListing.messages.menuBotUpdated', {
+          status: newMenuBotActive ? 'ON' : 'OFF',
+          sessionId: session.id.toString()
+        }),
+        'info'
+      )
     } catch (error) {
       console.error('Error toggling menu bot:', error)
-      showAlert('An error occurred while toggling the Menu Bot.', 'error')
+      showAlert(t('SessionListing.messages.menuBotToggleError'), 'error')
     }
   }
 
   // ============== Logout & Delete ==============
   const handleLogoutSession = async (session: SessionType) => {
-    if (!window.confirm(`Are you sure you want to logout from session ID: ${session.id}?`)) return
+    const confirmation = window.confirm(
+      t('SessionListing.messages.confirmLogout', { sessionId: session.id.toString() }) ?? ''
+    )
+    if (!confirmation) return
+
     try {
       await axiosServices.post(`/api/sessions/${session.id}/logout`)
       dispatch(updateSession({ sessionId: session.id, changes: { status: 'Terminated', qrCode: undefined } }))
-      showAlert(`Session ${session.id} has been logged out.`, 'info')
+      showAlert(
+        t('SessionListing.messages.sessionLoggedOut', { sessionId: session.id.toString() }),
+        'info'
+      )
     } catch (error) {
       console.error('Error logging out session:', error)
-      showAlert('An error occurred while logging out the session.', 'error')
+      showAlert(t('SessionListing.messages.logoutError'), 'error')
     }
   }
 
   const handleDeleteSession = async (sessionId: number) => {
-    if (!window.confirm(`Are you sure you want to delete the session with ID: ${sessionId}?`)) return
+    const confirmation = window.confirm(
+      t('SessionListing.messages.confirmDelete', { sessionId: sessionId.toString() }) ?? ''
+    )
+    if (!confirmation) return
+
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/delete`)
-      showAlert('Session deleted successfully.', 'success')
+      showAlert(t('SessionListing.messages.deleteSuccess'), 'success')
       dispatch(fetchSessions())
     } catch (error) {
       console.error('Error deleting session:', error)
-      showAlert('An error occurred while deleting the session.', 'error')
+      showAlert(t('SessionListing.messages.deleteError'), 'error')
     }
   }
 
@@ -285,34 +313,31 @@ const SessionListing = () => {
     <Box mt={4}>
       {/* زر جلسة جديدة مدفوعة */}
       <Button variant='contained' color='primary' onClick={handleOpenPlanDialog} sx={{ mt: 2 }}>
-        Buy Plan
+        {t('SessionListing.buttons.buyPlan')}
       </Button>
 
       <TableContainer sx={{ mt: 4 }}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Plan</TableCell>
-              <TableCell>Expire Date</TableCell>
-              <TableCell>Phone Number</TableCell>
-              <TableCell>Alternate WhatsApp</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align='right'>Actions</TableCell>
+              <TableCell>{t('SessionListing.columns.id')}</TableCell>
+              <TableCell>{t('SessionListing.columns.plan')}</TableCell>
+              <TableCell>{t('SessionListing.columns.expireDate')}</TableCell>
+              <TableCell>{t('SessionListing.columns.phoneNumber')}</TableCell>
+              <TableCell>{t('SessionListing.columns.alternateWhatsApp')}</TableCell>
+              <TableCell>{t('SessionListing.columns.status')}</TableCell>
+              <TableCell align='right'>{t('SessionListing.columns.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {sessions.map((session) => {
-              // حالات مختلفة للاختصار
+            {sessions.map(session => {
               const isExpired = session.status === 'Expired'
               const isRejected = session.status === 'Payment Rejected'
               const isPaid = session.status === 'Paid'
               const isReady = session.status === 'Ready'
-              const isTerminated = session.status === 'Terminated'
               const isStoppedByAdmin = session.status === 'Stopped by Admin'
 
               // لو الجلسة Expired نعطل باقي الأزرار باستثناء زر "Renew"
-              // ولو الجلسة Stopped by Admin نعطل باقي الأزرار باستثناء دلالتها
               const actionsDisabled = isExpired || isStoppedByAdmin
 
               return (
@@ -348,14 +373,14 @@ const SessionListing = () => {
                       // زر "Renew"
                       <Box>
                         <Button variant='contained' color='info' onClick={() => handleRenew(session)}>
-                          Renew
+                          {t('SessionListing.buttons.renew')}
                         </Button>
                       </Box>
-                    ) : /* 2) لو الجلسة Payment Rejected */
-                    isRejected ? (
+                    ) : isRejected ? (
+                      // 2) لو الجلسة Payment Rejected
                       <Box>
                         <Button variant='contained' color='secondary' onClick={() => handleBuyAgain(session)}>
-                          Buy Again
+                          {t('SessionListing.buttons.buyAgain')}
                         </Button>
                         <IconButton
                           aria-label='delete'
@@ -366,18 +391,18 @@ const SessionListing = () => {
                           <DeleteIcon />
                         </IconButton>
                       </Box>
-                    ) : /* 3) لو الجلسة Paid => Awaiting Manager Confirmation */
-                    isPaid ? (
+                    ) : isPaid ? (
+                      // 3) لو الجلسة Paid => Awaiting Manager Confirmation
                       <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
-                        <Chip label='Awaiting Manager Confirmation' color='warning' />
+                        <Chip label={t('SessionListing.chipLabels.pending')} color='warning' />
                         <IconButton aria-label='delete' color='error' onClick={() => handleDeleteSession(session.id)}>
                           <DeleteIcon />
                         </IconButton>
                       </Box>
-                    ) : /* 4) لو الجلسة Stopped by Admin */
-                    isStoppedByAdmin ? (
+                    ) : isStoppedByAdmin ? (
+                      // 4) لو الجلسة Stopped by Admin
                       <Box>
-                        <Chip label='Stopped by Admin' color='error' />
+                        <Chip label={t('SessionListing.chipLabels.stoppedByAdmin')} color='error' />
                         <IconButton
                           aria-label='delete'
                           color='error'
@@ -402,7 +427,7 @@ const SessionListing = () => {
                         </IconButton>
                         {session.status === 'Waiting for QR Code' && (
                           <Button variant='outlined' size='small' onClick={() => handleShowQr(session)}>
-                            Show QR Code
+                            {t('SessionListing.buttons.showQRCode')}
                           </Button>
                         )}
                         {/* Bot Toggle */}
@@ -412,7 +437,9 @@ const SessionListing = () => {
                           size='small'
                           onClick={() => handleToggleBot(session)}
                         >
-                          {session.botActive ? 'Bot OFF' : 'Bot ON'}
+                          {session.botActive
+                            ? t('SessionListing.buttons.botOff')
+                            : t('SessionListing.buttons.botOn')}
                         </Button>
                         {/* Menu Bot Toggle */}
                         <Button
@@ -421,12 +448,14 @@ const SessionListing = () => {
                           size='small'
                           onClick={() => handleToggleMenuBot(session)}
                         >
-                          {session.menuBotActive ? 'Menu Bot OFF' : 'Menu Bot ON'}
+                          {session.menuBotActive
+                            ? t('SessionListing.buttons.menuBotOff')
+                            : t('SessionListing.buttons.menuBotOn')}
                         </Button>
                         {/* Logout */}
                         {session.status !== 'Terminated' && (
                           <Button variant='outlined' size='small' onClick={() => handleLogoutSession(session)}>
-                            Logout
+                            {t('SessionListing.buttons.logout')}
                           </Button>
                         )}
                         {/* Delete */}
@@ -445,42 +474,42 @@ const SessionListing = () => {
 
       {/* Dialog لاختيار الخطة (جلسة جديدة) */}
       <Dialog open={planDialogOpen} onClose={() => setPlanDialogOpen(false)} maxWidth='md' fullWidth>
-        <DialogTitle>Choose Your Plan (New Session)</DialogTitle>
+        <DialogTitle>{t('SessionListing.dialogTitles.chooseYourPlanNew')}</DialogTitle>
         <DialogContent>
           <PricingCard onPlanChosen={handlePlanChosenForNewSession} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPlanDialogOpen(false)} color='inherit'>
-            Cancel
+            {t('SessionListing.buttons.cancel')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog للدفع (جلسة جديدة) */}
       <Dialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} maxWidth='sm' fullWidth>
-        <DialogTitle>Payment Instructions (New Session)</DialogTitle>
+        <DialogTitle>{t('SessionListing.dialogTitles.paymentInstructionsNew')}</DialogTitle>
         <DialogContent>
           <PaymentInstructions onDone={handlePaymentDoneForNewSession} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPaymentDialogOpen(false)} color='inherit'>
-            Close
+            {t('SessionListing.buttons.close')}
           </Button>
           <Button variant='contained' color='primary' onClick={handlePaymentDoneForNewSession}>
-            I have paid
+            {t('SessionListing.buttons.iHavePaid')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog لاختيار الخطة (لجلسة قائمة: BuyAgain أو Renew) */}
       <Dialog open={reactivateDialogOpen} onClose={() => setReactivateDialogOpen(false)} maxWidth='md' fullWidth>
-        <DialogTitle>Choose a Plan</DialogTitle>
+        <DialogTitle>{t('SessionListing.dialogTitles.chooseAPlan')}</DialogTitle>
         <DialogContent>
           <PricingCard onPlanChosen={handlePlanChosenForExistingSession} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReactivateDialogOpen(false)} color='inherit'>
-            Cancel
+            {t('SessionListing.buttons.cancel')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -492,23 +521,23 @@ const SessionListing = () => {
         maxWidth='sm'
         fullWidth
       >
-        <DialogTitle>Payment Instructions</DialogTitle>
+        <DialogTitle>{t('SessionListing.dialogTitles.paymentInstructions')}</DialogTitle>
         <DialogContent>
           <PaymentInstructions onDone={handlePaymentDoneForExistingSession} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReactivatePaymentDialogOpen(false)} color='inherit'>
-            Close
+            {t('SessionListing.buttons.close')}
           </Button>
           <Button variant='contained' color='primary' onClick={handlePaymentDoneForExistingSession}>
-            I have paid
+            {t('SessionListing.buttons.iHavePaid')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog لعرض QR Code */}
       <Dialog open={qrDialogOpen} onClose={handleCloseQrDialog}>
-        <DialogTitle>Scan QR Code</DialogTitle>
+        <DialogTitle>{t('SessionListing.messages.scanQrCode')}</DialogTitle>
         <DialogContent>
           {selectedSession && selectedSession.qrCode ? (
             <Box
@@ -519,12 +548,12 @@ const SessionListing = () => {
               alt='QR Code'
             />
           ) : (
-            <div>Loading QR Code...</div>
+            <div>{t('SessionListing.messages.loadingQrCode')}</div>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseQrDialog} color='primary'>
-            Close
+            {t('SessionListing.buttons.close')}
           </Button>
         </DialogActions>
       </Dialog>
