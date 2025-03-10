@@ -1,6 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import React from 'react';
+// src/views/pages/authentication/Login.tsx
+
 import { Link } from 'react-router-dom';
 import { Grid, Box, Stack, Typography } from '@mui/material';
 import PageContainer from 'src/components/container/PageContainer';
@@ -38,7 +37,7 @@ const Login = () => (
           <Box
             alignItems="center"
             justifyContent="center"
-            height={'calc(100vh - 75px)'}
+            height="calc(100vh - 75px)"
             sx={{
               display: {
                 xs: 'none',
@@ -57,6 +56,7 @@ const Login = () => (
           </Box>
         </Box>
       </Grid>
+
       <Grid
         item
         xs={12}
@@ -67,29 +67,25 @@ const Login = () => (
         justifyContent="center"
         alignItems="center"
       >
-        <Box p={4}>
-          <AuthLogin
-            title="Welcome to WatsOrder"
+        <Box p={4} sx={{ width: '100%', maxWidth: 400 }}>
+          <AuthLogin />
 
-            subtitle={
-              <Stack direction="row" spacing={1} mt={3}>
-                <Typography color="textSecondary" variant="h6" fontWeight="500">
-                  New to WatsOrder?
-                </Typography>
-                <Typography
-                  component={Link}
-                  to="/auth/register"
-                  fontWeight="500"
-                  sx={{
-                    textDecoration: 'none',
-                    color: 'primary.main',
-                  }}
-                >
-                  Create an account
-                </Typography>
-              </Stack>
-            }
-          />
+          <Stack direction="row" spacing={1} mt={3} justifyContent="center">
+            <Typography color="textSecondary" variant="h6" fontWeight="500">
+              New to WatsOrder?
+            </Typography>
+            <Typography
+              component={Link}
+              to="/auth/register"
+              fontWeight="500"
+              sx={{
+                textDecoration: 'none',
+                color: 'primary.main',
+              }}
+            >
+              Create an account
+            </Typography>
+          </Stack>
         </Box>
       </Grid>
     </Grid>

@@ -1,80 +1,113 @@
+// src/controllers/authController.ts
 import { NextFunction, Request, Response } from 'express';
 import { getConnection } from '../config/db';
 import bcrypt from 'bcrypt';
 import * as sql from 'mssql';
 import jwt from 'jsonwebtoken';
-import { MyJwtPayload } from '../types/MyJwtPayload' // واجهة تعرف حقولك الإضافية
+import { MyJwtPayload } from '../types/MyJwtPayload';
 
-
+// ====== تعديل التسجيل ====== //
 export const registerUser = async (req: Request, res: Response): Promise<Response> => {
-  const { username, password, subscriptionType, name } = req.body;
+  // نتوقع من الواجهة: { phoneNumber, name, password, otpCode }
+  const { phoneNumber, name, password, otpCode } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ message: 'يرجى ملء جميع الحقول' });
+  if (!phoneNumber || !password || !otpCode) {
+    return res.status(400).json({ message: 'يرجى ملء الحقول المطلوبة: phoneNumber, password, otpCode' });
   }
 
   try {
     const pool = await getConnection();
 
-    const checkUser = await pool.request()
-      .input('username', sql.NVarChar, username)
-      .query('SELECT * FROM Users WHERE username = @username');
+    // 1) التحقق من الـ OTP:
+    //   - لم يُستخدم بعد، ولم تنته صلاحيته.
+    const now = new Date();
+    const otpResult = await pool.request()
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
+      .input('otpCode', sql.NVarChar, otpCode)
+      .input('now', sql.DateTime, now)
+      .query(`
+        SELECT TOP 1 * 
+        FROM OtpCodes
+        WHERE phoneNumber = @phoneNumber
+          AND otpCode = @otpCode
+          AND isUsed = 0
+          AND expiresAt > @now
+        ORDER BY id DESC
+      `);
 
-    if (checkUser.recordset.length > 0) {
-      return res.status(400).json({ message: 'اسم المستخدم موجود بالفعل' });
+    if (!otpResult.recordset.length) {
+      return res.status(400).json({ message: 'OTP غير صالح أو منتهي.' });
     }
 
+    // 2) وسّم الـ OTP بأنّه مستخدم
+    const otpRow = otpResult.recordset[0];
+    await pool.request()
+      .input('id', sql.Int, otpRow.id)
+      .query(`UPDATE OtpCodes SET isUsed = 1 WHERE id = @id`);
+
+    // 3) تحقق هل المستخدم (برقم الموبايل) موجود مسبقاً
+    const checkUser = await pool.request()
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
+      .query('SELECT * FROM Users WHERE phoneNumber = @phoneNumber');
+
+    if (checkUser.recordset.length > 0) {
+      return res.status(400).json({ message: 'رقم الموبايل هذا مسجّل بالفعل.' });
+    }
+
+    // 4) تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 5) إنشاء المستخدم
     await pool.request()
-      .input('username', sql.NVarChar, username)
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
       .input('name', sql.NVarChar, name || null)
       .input('password', sql.NVarChar, hashedPassword)
-      .input('subscriptionType', sql.NVarChar, subscriptionType || 'free')
-      .query(
-        'INSERT INTO Users (username, name, password, subscriptionType) VALUES (@username, @name, @password, @subscriptionType)'
-      );
+      .query(`
+        INSERT INTO Users (phoneNumber, name, password)
+        VALUES (@phoneNumber, @name, @password)
+      `);
 
     return res.status(201).json({ message: 'تم التسجيل بنجاح' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'خطأ في الخادم' });
+    return res.status(500).json({ message: 'خطأ في الخادم أثناء التسجيل' });
   }
 };
 
-// تسجيل الدخول وإنشاء التوكين
+// ====== تعديل تسجيل الدخول ====== //
 export const loginUser = async (req: Request, res: Response): Promise<Response> => {
-  const { username, password } = req.body;
+  // الآن بدلاً من username، سنستخدم phoneNumber
+  const { phoneNumber, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ message: 'يرجى ملء جميع الحقول' });
+  if (!phoneNumber || !password) {
+    return res.status(400).json({ message: 'يرجى ملء جميع الحقول: phoneNumber, password' });
   }
 
   try {
     const pool = await getConnection();
 
-    // التحقق من وجود المستخدم
+    // التحقق من وجود المستخدم بهذه القيمة
     const result = await pool.request()
-      .input('username', sql.NVarChar, username)
-      .query('SELECT * FROM Users WHERE username = @username');
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
+      .query('SELECT * FROM Users WHERE phoneNumber = @phoneNumber');
 
     const user = result.recordset[0];
 
     if (!user) {
-      return res.status(400).json({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+      return res.status(400).json({ message: 'رقم الموبايل أو كلمة المرور غير صحيحة' });
     }
 
     // التحقق من كلمة المرور
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+      return res.status(400).json({ message: 'رقم الموبايل أو كلمة المرور غير صحيحة' });
     }
 
-    // إنشاء التوكين وتضمين كل بيانات المستخدم
+    // إنشاء التوكين (JWT) وتضمين بيانات المستخدم
     const token = jwt.sign(
       {
         id: user.ID,
-        username: user.username,
+        phoneNumber: user.phoneNumber,
         subscriptionType: user.subscriptionType,
         name: user.name,
         subscriptionStart: user.subscriptionStart,
@@ -89,38 +122,32 @@ export const loginUser = async (req: Request, res: Response): Promise<Response> 
     return res.status(200).json({ message: 'تم تسجيل الدخول بنجاح', token });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'خطأ في الخادم' });
+    return res.status(500).json({ message: 'خطأ في الخادم أثناء تسجيل الدخول' });
   }
 };
 
-// فك تشفير التوكين
+// ====== فك تشفير التوكن (كما هو سابقاً) ====== //
 export const verifyToken = (req: Request, res: Response, next: NextFunction): Response | void => {
-  const authHeader = req.headers['authorization']
-  const token = authHeader && authHeader.split(' ')[1]
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(403).json({ message: 'التوكين غير موجود' })
+    return res.status(403).json({ message: 'التوكين غير موجود' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
 
-    // الآن decoded من نوع (string | JwtPayload)
     if (typeof decoded === 'string') {
-      // لو أردت اعتباره خطأ:
-      return res.status(401).json({ message: 'Invalid token payload (string).' })
+      return res.status(401).json({ message: 'Invalid token payload (string).' });
     }
 
-    // الآن decoded هو JwtPayload => حوله إلى MyJwtPayload
-    const customPayload = decoded as MyJwtPayload
-    req.user = customPayload
+    const customPayload = decoded as MyJwtPayload;
+    req.user = customPayload;
 
-    next()
+    next();
   } catch (err) {
-    console.error('Token verification failed:', err)
-    return res.status(401).json({ message: 'التوكين غير صالح' })
+    console.error('Token verification failed:', err);
+    return res.status(401).json({ message: 'التوكين غير صالح' });
   }
-}
-
-
-
+};

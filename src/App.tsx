@@ -16,7 +16,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <UserProvider>
-        <RTL direction={customizer.activeDir}>
+        <RTL direction={customizer.activeDir ?? 'ltr'}>
           <CssBaseline />
           <ScrollToTop>{routing}</ScrollToTop>
         </RTL>

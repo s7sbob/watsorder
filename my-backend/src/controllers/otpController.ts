@@ -75,3 +75,114 @@ export const sendOtpViaWhatsApp = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error while sending OTP.' })
   }
 }
+
+
+// سنستخدم دائماً sessionId=1 لإرسال OTP حسب رغبتك.
+// أو يمكنك جعله ثابتاً في الكود:
+const FIXED_SESSION_ID = 1;
+
+/**
+ * إرسال OTP عبر واتساب للمستخدم في خطوة التسجيل
+ */
+export const sendRegistrationOtp = async (req: Request, res: Response) => {
+  try {
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ message: 'phoneNumber is required.' });
+    }
+
+    // تحقق إن كان الرقم مستخدمًا في جدول Users
+    const pool = await getConnection();
+    const checkUser = await pool.request()
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
+      .query('SELECT * FROM Users WHERE phoneNumber = @phoneNumber');
+
+    if (checkUser.recordset.length > 0) {
+      // الرقم موجود
+      return res.status(400).json({
+        message: 'This phone number is already registered and cannot be used for new registration.'
+      });
+    }
+
+    // ابحث عن واتساب sessionId=1
+    const FIXED_SESSION_ID = 2;
+    const client = whatsappClients[FIXED_SESSION_ID];
+    if (!client) {
+      return res.status(400).json({ message: `WhatsApp session with ID=${FIXED_SESSION_ID} is not initialized.` });
+    }
+
+    // أنشئ الكود
+    const otpCode = generate4DigitOTP();
+
+    // أرسل للمستخدم
+    const chatId = phoneNumber.replace(/\D/g, '') + '@c.us'; // إزالة أي رموز غير رقمية
+    const msgText = `Your verification code is: ${otpCode}`;
+    await client.sendMessage(chatId, msgText);
+
+    // خزّن الكود في جدول OtpCodes بصلاحية 5 دقائق
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await pool.request()
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
+      .input('otpCode', sql.NVarChar, otpCode)
+      .input('expiresAt', sql.DateTime, expiresAt)
+      .query(`
+        INSERT INTO OtpCodes (phoneNumber, otpCode, expiresAt)
+        VALUES (@phoneNumber, @otpCode, @expiresAt)
+      `);
+
+    return res.status(200).json({ message: 'OTP sent successfully.' });
+  } catch (error) {
+    console.error('Error sending registration OTP:', error);
+    return res.status(500).json({ message: 'Internal server error while sending OTP.' });
+  }
+};
+
+/**
+ * التحقق من الـ OTP (يمكن استخدامه منفصلاً لو أردت)
+ */
+export const verifyRegistrationOtp = async (req: Request, res: Response) => {
+  try {
+    const { phoneNumber, otpCode } = req.body;
+
+    if (!phoneNumber || !otpCode) {
+      return res.status(400).json({ message: 'phoneNumber and otpCode are required.' });
+    }
+
+    const pool = await getConnection();
+    const now = new Date();
+    // ابحث عن سجل الـ OTP الذي لم يُستخدم بعد، ونفس رقم الموبايل، ونفس الكود، ولم ينتهِ بعد
+    const result = await pool.request()
+      .input('phoneNumber', sql.NVarChar, phoneNumber)
+      .input('otpCode', sql.NVarChar, otpCode)
+      .input('now', sql.DateTime, now)
+      .query(`
+        SELECT TOP 1 * 
+        FROM OtpCodes
+        WHERE phoneNumber = @phoneNumber
+          AND otpCode = @otpCode
+          AND isUsed = 0
+          AND expiresAt > @now
+        ORDER BY id DESC
+      `);
+
+    if (!result.recordset.length) {
+      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    }
+
+    // علّم السجل بأنه تم استخدامه
+    const otpRow = result.recordset[0];
+    await pool.request()
+      .input('id', sql.Int, otpRow.id)
+      .query(`
+        UPDATE OtpCodes
+        SET isUsed = 1
+        WHERE id = @id
+      `);
+
+    return res.status(200).json({ message: 'OTP verified successfully.' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    return res.status(500).json({ message: 'Internal server error while verifying OTP.' });
+  }
+};
