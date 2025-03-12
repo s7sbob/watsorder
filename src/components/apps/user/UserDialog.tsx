@@ -18,7 +18,7 @@ interface UserDialogProps {
 const UserDialog: React.FC<UserDialogProps> = ({ open, user, setUser, onClose, onSave, mode }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Dialog open={open} onClose={onClose}>
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <DialogTitle>{mode === "edit" ? "Edit User" : "Add New User"}</DialogTitle>
         <DialogContent>
           <TextField
@@ -28,19 +28,20 @@ const UserDialog: React.FC<UserDialogProps> = ({ open, user, setUser, onClose, o
             onChange={(e) => setUser({ ...user!, name: e.target.value })}
             margin="normal"
           />
-          <TextField
-            fullWidth
-            label="Username"
-            value={user?.username || ""}
-            onChange={(e) => setUser({ ...user!, username: e.target.value })}
-            margin="normal"
-          />
+
           <TextField
             fullWidth
             label="Password"
             type="password"
             value={user?.password || ""}
             onChange={(e) => setUser({ ...user!, password: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Phone Number"
+            value={user?.phoneNumber || ""}
+            onChange={(e) => setUser({ ...user!, phoneNumber: e.target.value })}
             margin="normal"
           />
           <TextField
@@ -71,6 +72,13 @@ const UserDialog: React.FC<UserDialogProps> = ({ open, user, setUser, onClose, o
               setUser({ ...user!, subscriptionEnd: date ? date.toISOString().split("T")[0] : "" })
             }
             renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+          />
+          <TextField
+            fullWidth
+            label="Status"
+            value={user?.status || ""}
+            onChange={(e) => setUser({ ...user!, status: e.target.value })}
+            margin="normal"
           />
         </DialogContent>
         <DialogActions>

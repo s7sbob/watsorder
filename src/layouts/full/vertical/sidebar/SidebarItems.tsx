@@ -1,41 +1,68 @@
+import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router'
 import { Box, List, useMediaQuery } from '@mui/material'
-import { useSelector, useDispatch } from 'src/store/Store'
+import { useDispatch, useSelector } from 'src/store/Store'
 import { toggleMobileSidebar } from 'src/store/customizer/CustomizerSlice'
 import Menuitems from './MenuItems'
 import NavItem from './NavItem'
 import NavCollapse from './NavCollapse'
 import NavGroup from './NavGroup/NavGroup'
 import { AppState } from 'src/store/Store'
-
-// استيراد الترجمة
 import { useTranslation } from 'react-i18next'
+import { getCookie } from 'src/utils/cookieHelpers'
+import { jwtDecode } from "jwt-decode";
+
+// تعريف للـ payload الخاص بالـ JWT
+interface DecodedToken {
+  id: number;
+  phoneNumber: string;
+  subscriptionType: string;
+  name: string;
+  subscriptionStart: string | null;
+  subscriptionEnd: string | null;
+  createdAt: string;
+  maxSessions: number;
+  iat: number;
+  exp: number;
+}
 
 const SidebarItems = () => {
   const { pathname } = useLocation()
   const pathDirect = pathname
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'))
+  const dispatch = useDispatch()
+  const { t } = useTranslation()
+
   const customizer = useSelector((state: AppState) => state.customizer)
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'))
   const hideMenu: any = lgUp ? customizer.isCollapse && !customizer.isSidebarHover : ''
-  const dispatch = useDispatch()
 
-  // استخدام الترجمة
-  const { t } = useTranslation()
-
-  // نجلب subscriptionType من Redux
-  const subscriptionType = useSelector((state: AppState) => state.auth.subscriptionType)
-
-  // نعمل نسخة من Menuitems
-  let finalMenu = [...Menuitems]
-
-  // إخفاء قسم "Admin Only" إن لم يكن المشترك admin
-  if (subscriptionType !== 'admin') {
-    const adminIndex = finalMenu.findIndex((item) => item.subheaderKey === 'Sidebar.adminOnly')
-    if (adminIndex !== -1) {
-      finalMenu = finalMenu.slice(0, adminIndex)
+  // قراءة التوكن من الكوكيز
+  const token = getCookie("token")
+  let subscriptionType: string | null = null
+  if (token) {
+    try {
+      const decoded = jwtDecode<DecodedToken>(token)
+      subscriptionType = decoded.subscriptionType
+    } catch (error) {
+      console.error("Error decoding token:", error)
     }
   }
+
+  // تخزين القائمة النهائية في حالة محلية
+  const [finalMenu, setFinalMenu] = useState(Menuitems)
+
+  // تحديث القائمة بناءً على قيمة subscriptionType من التوكن
+  useEffect(() => {
+    let updatedMenu = [...Menuitems]
+    if (subscriptionType !== 'admin') {
+      const adminIndex = updatedMenu.findIndex((item) => item.subheaderKey === 'Sidebar.adminOnly')
+      if (adminIndex !== -1) {
+        updatedMenu = updatedMenu.slice(0, adminIndex)
+      }
+    }
+    setFinalMenu(updatedMenu)
+  }, [subscriptionType])
 
   return (
     <Box sx={{ px: 3 }}>
@@ -47,7 +74,6 @@ const SidebarItems = () => {
           const chip = item.chipKey ? t(item.chipKey) : undefined
 
           if (item.navlabel) {
-            // في الأصل NavGroup يستخدم item.subheader
             return (
               <NavGroup
                 item={{ ...item, subheader }}
@@ -56,7 +82,6 @@ const SidebarItems = () => {
               />
             )
           } else if (item.children) {
-            // لو لدى العنصر children ، نترجم title بدلاً من item.title
             return (
               <NavCollapse
                 menu={{ ...item, title, chip }}
@@ -69,7 +94,6 @@ const SidebarItems = () => {
               />
             )
           } else {
-            // عنصر عادي
             return (
               <NavItem
                 item={{ ...item, title, chip }}

@@ -8,8 +8,8 @@ info:
     والجلسات، وإرسال OTP، وإدارة المستخدمين، والاستيراد بالجملة وغيرها. يمكن للعملاء
     والمطورين تجربة واختبار الواجهات بسهولة من خلال هذا الملف.
 servers:
-  - url: "http://localhost:5000"
-    description: "الخادم المحلي"
+  - url: "https://api.watsorder.com"
+    description: "WatsOrder Server"
 tags:
   - name: "Auth"
     description: "Endpoints المصممة لتسجيل الدخول والتسجيل"

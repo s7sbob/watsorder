@@ -8,14 +8,14 @@ import UserList from 'src/components/apps/user/UserList';
 
 const BCrumb = [
   { to: '/', title: 'Home' },
-  { title: 'User List' },
+  { title: 'User Management' },
 ];
 
 const UserListing = () => {
   return (
     <UserProvider>
-      <PageContainer title="User List" description="List of Users">
-        <Breadcrumb title="User List" items={BCrumb} />
+      <PageContainer title="User Management" description="Manage all user details">
+        <Breadcrumb title="User Management" items={BCrumb} />
         <BlankCard>
           <CardContent>
             <UserList />

@@ -5,7 +5,7 @@ import * as sql from 'mssql';
 import { whatsappClients } from '../controllers/whatsappClients';
 
 // تحقق كل دقيقة
-cron.schedule('* * * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
   try {
     const pool = await getConnection();
     const now = new Date();

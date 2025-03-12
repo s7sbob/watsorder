@@ -72,7 +72,7 @@ const Menuitems: MenuitemsType[] = [
     titleKey: 'Sidebar.adminUserList', // "Admin UserList"
     icon: IconUserCircle,
     chipColor: 'secondary',
-    href: '/UserList'
+    href: '/AdminUsersPage'
   },
   {
     id: uniqueId(),

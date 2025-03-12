@@ -1,11 +1,11 @@
+// src/context/UserContext.tsx
 import React, { createContext, useEffect, useState } from "react";
 import axios from "../utils/axios";
 
-// واجهات
 export interface User {
   id: number;
   name: string;
-  username: string;
+  phoneNumber: string;
   password: string;
   subscriptionType: string;
   subscriptionStart: string;
@@ -50,19 +50,13 @@ interface UserContextType {
   deleteUser: (id: number) => Promise<void>;
   addUser: (newUser: User) => Promise<void>;
   updateUser: (updatedUser: User) => Promise<void>;
-
-  // سجل
   subscriptionLogsMap: Record<number, SubscriptionLog[]>;
   fetchSubscriptionLogs: (userId: number) => Promise<void>;
-
-  // الميزات العامة
   features: Feature[];
   fetchAllFeatures: () => Promise<void>;
   createFeature: (data: { featureKey: string; featureName: string }) => Promise<void>;
   updateFeature: (featureId: number, data: { featureKey: string; featureName: string }) => Promise<void>;
   deleteFeature: (featureId: number) => Promise<void>;
-
-  // ميزات المستخدم
   userFeatures: UserFeature[];
   fetchUserFeatures: (userId: number) => Promise<void>;
   addFeatureToUser: (userId: number, data: { featureId: number; startDate: string; endDate?: string }) => Promise<void>;
@@ -81,7 +75,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // ========= دوال جلب المستخدمين =========
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -95,6 +88,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -141,20 +135,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ========= سجل اشتراك =========
   const fetchSubscriptionLogs = async (userId: number) => {
     try {
       const res = await axios.get(`/api/users/${userId}/logs`);
-      setSubscriptionLogsMap((prev) => ({
-        ...prev,
-        [userId]: res.data,
-      }));
+      setSubscriptionLogsMap((prev) => ({ ...prev, [userId]: res.data }));
     } catch (error) {
       console.error('Error fetching subscription logs:', error);
     }
   };
 
-  // ========= الميزات العامة =========
   const fetchAllFeatures = async () => {
     try {
       const res = await axios.get("/api/features");
@@ -180,7 +169,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchAllFeatures();
   };
 
-  // ========= ميزات المستخدم =========
   const fetchUserFeatures = async (userId: number) => {
     try {
       const res = await axios.get(`/api/features/user/${userId}`);
@@ -239,16 +227,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteUser,
         addUser,
         updateUser,
-
         subscriptionLogsMap,
         fetchSubscriptionLogs,
-
         features,
         fetchAllFeatures,
         createFeature,
         updateFeature,
         deleteFeature,
-
         userFeatures,
         fetchUserFeatures,
         addFeatureToUser,
@@ -260,3 +245,4 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </UserContext.Provider>
   );
 };
+

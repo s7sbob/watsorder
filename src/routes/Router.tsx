@@ -20,9 +20,10 @@ const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')))
 
 /* ****Pages***** */
 const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
+const AdminUsersPage = Loadable(lazy(() => import('../views/AdminUsersPage/pages/AdminUsersPage.tsx')));
 
 /* ****Apps***** */
-const UserList = Loadable(lazy(() => import('../views/admin/UserListing')));
+// const UserList = Loadable(lazy(() => import('../views/admin/UserListing')));
 const Sessions = Loadable(lazy(() => import('../views/pages/SessionListing.tsx')));
 const NewOrdersPage = Loadable(
   lazy(() => import('../views/pages/NewOrdersPage/NewOrdersPage.tsx')),
@@ -51,7 +52,7 @@ const Router = [
     ),
     children: [
       { path: '/dashboards/modern', exact: true, element: <ModernDash /> },
-      { path: '/UserList', element: <UserList /> },
+      { path: '/AdminUsersPage', element: <AdminUsersPage /> },
       { path: '/apps/sessions', element: <Sessions /> },
       { path: '/apps/NewOrdersPage', element: <NewOrdersPage /> },
       { path: '/apps/OrdersHistoryPage', element: <OrdersHistoryPage /> },
