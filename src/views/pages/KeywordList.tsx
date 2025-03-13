@@ -39,7 +39,7 @@ interface GroupedKeyword {
   mediaFiles: MediaFile[];
 }
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.watsorder.com';
 
 const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   const { t } = useTranslation();
