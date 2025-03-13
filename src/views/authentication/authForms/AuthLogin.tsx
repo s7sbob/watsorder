@@ -68,7 +68,7 @@ const AuthLogin = () => {
         </Box>
       )}
 
-      <Stack spacing={2} mt={3}>
+      <Stack spacing={1} mt={5}>
         {/* مكوّن اختيار الدولة + إدخال رقم الجوال المحلي */}
         <CountryPhoneSelector
           onChange={(val) => setFullPhone(val)}

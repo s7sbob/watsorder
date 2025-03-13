@@ -1,7 +1,6 @@
 // src/views/pages/authForms/AuthRegisterFlow.tsx
-
 import React, { useState } from 'react';
-import axiosServices from 'src/utils/axios';  // <-- تأكد من مسار axiosServices في مشروعك
+import axiosServices from 'src/utils/axios';
 import {
   Box,
   Button,
@@ -13,49 +12,51 @@ import {
   DialogTitle,
   DialogContent,
   TextField,
+  Link,
 } from '@mui/material';
 import CustomTextField from 'src/components/forms/theme-elements/CustomTextField';
 import CustomFormLabel from 'src/components/forms/theme-elements/CustomFormLabel';
-import CountryPhoneSelector from '../auth1/CountryPhoneSelector'; // <-- عدّل المسار حسب مكانه
+import CountryPhoneSelector from '../auth1/CountryPhoneSelector'; // رقم الهاتف الرئيسي
+import CountrySelector from '../auth1/CountrySelector'; // لاستخدامه في اختيار الدولة
 import { styled } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 
-// تنسيق بسيط لخانات الـ OTP
+// تنسيق خانات OTP
 const OtpContainer = styled('div')({
   display: 'flex',
   justifyContent: 'center',
-  gap: '8px',
+  gap: '4px', // تقليل المسافة بين خانات OTP
 });
-
 const OtpInput = styled(TextField)({
-  width: 50,
+  width: 45,
   textAlign: 'center',
 });
 
 function AuthRegister() {
-  // حقول التسجيل
+  // الحقول الأساسية
   const [name, setName] = useState('');
   const [fullPhone, setFullPhone] = useState('');
   const [password, setPassword] = useState('');
 
-  // حوار إدخال الـ OTP
+  // الحقول الجديدة (اختيارية)
+  const [companyName, setCompanyName] = useState('');
+  const [, setCountry] = useState(''); // سيستخدم CountrySelector لتعيين الدولة
+  const [address, setAddress] = useState('');
+  const [contactFullPhone, setContactFullPhone] = useState('');
+
   const [openOtpDialog, setOpenOtpDialog] = useState(false);
-
-  // خانات الـ 4 أرقام
   const [otpValues, setOtpValues] = useState(['', '', '', '']);
-
-  // رسائل الخطأ والنجاح
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // ------------------------------------------------------------------
-  // 1) عند الضغط على زر Register
-  // ------------------------------------------------------------------
-  const handleRegister = async (e: React.FormEvent) => {
+  const navigate = useNavigate();
+
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
 
-    // تحقق مبكر من الحقول
+    // تحقق من الحقول الأساسية فقط
     if (!name) {
       setError('Please enter your name.');
       return;
@@ -70,72 +71,55 @@ function AuthRegister() {
     }
 
     try {
-      // استدعاء المسار الذي يرسل OTP
+      // إرسال OTP للتسجيل
       await axiosServices.post('/api/otp/send-registration-otp', {
         phoneNumber: fullPhone,
       });
-      // إذا نجح => افتح نافذة إدخال OTP
       setOpenOtpDialog(true);
     } catch (err: any) {
-      // لو السيرفر أرجع خطأ => تظهر في واجهة المستخدم
       setError(err.message);
     }
   };
 
-  // ------------------------------------------------------------------
-  // 2) عند تغيير أي خانة من خانات الكود
-  // ------------------------------------------------------------------
   const handleChangeOtp = (index: number, value: string) => {
-    // نقبل رقم واحد فقط
     if (value.length > 1) return;
-
     const newArr = [...otpValues];
-    newArr[index] = value.replace(/\D/, ''); // منع الأحرف غير الرقمية
+    newArr[index] = value.replace(/\D/, '');
     setOtpValues(newArr);
-
-    // لو المستخدم كتب رقم في خانة وليست الأخيرة => ننقل المؤشر تلقائياً للخانة التالية
     if (value && index < 3) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
     }
   };
 
-  // ------------------------------------------------------------------
-  // 3) عند الضغط على زر Verify داخل الـ Dialog
-  // ------------------------------------------------------------------
   const handleVerifyClick = async () => {
     const code = otpValues.join('');
     if (code.length < 4) {
       setError('Please enter the 4-digit code.');
       return;
     }
-
     try {
-      // استدعاء /api/auth/register => يتحقق من الـ OTP + إنشاء المستخدم
       const resp = await axiosServices.post('/api/auth/register', {
         phoneNumber: fullPhone,
         name,
         password,
         otpCode: code,
+        companyName,      // اختياري
+        address,          // اختياري
+        contactPhone: contactFullPhone, // اختياري
       });
-      // لو نجح
       setOpenOtpDialog(false);
       setSuccessMsg(resp.data.message || 'Registered successfully!');
+      navigate('/auth/login');
     } catch (err: any) {
-      // لو الكود خطأ أو أي شيء آخر
       setError(err?.response?.data?.message || 'OTP verification failed.');
-      // أعد ضبط الخانات
       setOtpValues(['', '', '', '']);
     }
   };
 
-  // ------------------------------------------------------------------
-  // 4) عند الضغط على "Resend code"
-  // ------------------------------------------------------------------
   const handleResendCode = async () => {
     setError(null);
     setSuccessMsg(null);
-
     try {
       await axiosServices.post('/api/otp/send-registration-otp', {
         phoneNumber: fullPhone,
@@ -149,28 +133,26 @@ function AuthRegister() {
   return (
     <>
       <form onSubmit={handleRegister}>
-        <Typography fontWeight="700" variant="h3" mb={1}>
+        <Typography fontWeight="700" variant="h4" mb={1}>
           Create a New Account
         </Typography>
 
-        <Box mt={3}>
-          <Divider />
-        </Box>
+        {/* تقليل المسافات الرأسية */}
+        <Divider sx={{ mb: 1 }} />
 
-        {/* في حال وجود خطأ من السيرفر أو تحقق الفرونت */}
         {error && (
-          <Box mt={2}>
-            <Alert severity="error">{error}</Alert>
-          </Box>
+          <Alert severity="error" sx={{ mb: 1 }}>
+            {error}
+          </Alert>
         )}
-        {/* في حال وجود رسالة نجاح */}
         {successMsg && (
-          <Box mt={2}>
-            <Alert severity="success">{successMsg}</Alert>
-          </Box>
+          <Alert severity="success" sx={{ mb: 1 }}>
+            {successMsg}
+          </Alert>
         )}
 
-        <Stack mb={3} spacing={2} mt={2}>
+        {/* استخدام Stack مع spacing صغير لتقليل المسافات بين الحقول */}
+        <Stack spacing={0} mt={1}>
           <Box>
             <CustomFormLabel htmlFor="name">Full Name</CustomFormLabel>
             <CustomTextField
@@ -178,13 +160,13 @@ function AuthRegister() {
               variant="outlined"
               fullWidth
               value={name}
-              onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             />
           </Box>
 
-          {/* مكوّن اختيار الدولة + إدخال الرقم المحلي */}
+          {/* رقم الهاتف الرئيسي */}
           <CountryPhoneSelector
-            onChange={(val) => setFullPhone(val)}
+            onChange={(val: string) => setFullPhone(val)}
             defaultCountryCode="+20"
             label="Phone Number"
           />
@@ -197,22 +179,75 @@ function AuthRegister() {
               variant="outlined"
               fullWidth
               value={password}
-              onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            />
+          </Box>
+
+          {/* الحقول الجديدة اختيارية */}
+          <Box>
+            <CustomFormLabel htmlFor="companyName">Company Name (Optional)</CustomFormLabel>
+            <CustomTextField
+              id="companyName"
+              variant="outlined"
+              fullWidth
+              value={companyName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyName(e.target.value)}
+            />
+          </Box>
+          <Box>
+            <CustomFormLabel htmlFor="countrySelector">Country (Optional)</CustomFormLabel>
+            <CountrySelector
+              onChange={(country) => {
+                // تخزين اسم الدولة فقط
+                setCountry(country.label);
+              }}
+            />
+          </Box>
+          <Box>
+            <CustomFormLabel htmlFor="address">Address (Optional)</CustomFormLabel>
+            <CustomTextField
+              id="address"
+              variant="outlined"
+              fullWidth
+              value={address}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value)}
+            />
+          </Box>
+          <Box>
+            <CustomFormLabel htmlFor="contactPhone">Contact Phone (Optional)</CustomFormLabel>
+            <CountryPhoneSelector
+              onChange={(val: string) => setContactFullPhone(val)}
+              defaultCountryCode="+20"
+              label=""
             />
           </Box>
         </Stack>
 
-        <Button color="primary" variant="contained" size="large" fullWidth type="submit">
+        <Button
+          color="primary"
+          variant="contained"
+          size="large"
+          fullWidth
+          type="submit"
+          sx={{ mt: 2 }}
+        >
           Register
         </Button>
+
+        <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+          Already have an account?{' '}
+          <Link href="/auth/login" underline="none" color="primary">
+            Sign In
+          </Link>
+        </Typography>
       </form>
 
-      {/* نافذة إدخال الـ 4 أرقام للـ OTP */}
+      {/* Dialog لإدخال OTP */}
       <Dialog open={openOtpDialog} onClose={() => {}} disableEscapeKeyDown>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Verify your number</DialogTitle>
         <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Please confirm your whatsapp number by entering the code that we sent to you
+          <Typography variant="body1" sx={{ mb: 1 }}>
+            Please confirm your WhatsApp number by entering the code that we sent to you
           </Typography>
 
           <OtpContainer>
@@ -221,29 +256,27 @@ function AuthRegister() {
                 key={idx}
                 id={`otp-${idx}`}
                 value={val}
-                onChange={(e) => handleChangeOtp(idx, e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChangeOtp(idx, e.target.value)}
               />
             ))}
           </OtpContainer>
 
-          {/* زر Verify */}
           <Button
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 3 }}
+            sx={{ mt: 2 }}
             onClick={handleVerifyClick}
           >
             Verify
           </Button>
 
-          {/* رابط Resend code */}
           <Typography
             variant="body2"
             sx={{
               color: 'text.secondary',
               textAlign: 'center',
-              mt: 2,
+              mt: 1,
               cursor: 'pointer',
             }}
             onClick={handleResendCode}

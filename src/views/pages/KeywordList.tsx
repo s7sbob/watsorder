@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   List,
@@ -7,149 +7,185 @@ import {
   IconButton,
   TextField,
   Button,
-  Typography
-} from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import axiosServices from 'src/utils/axios'
-import { useTranslation } from 'react-i18next'
+  Typography,
+} from '@mui/material';
+import Autocomplete from '@mui/material/Autocomplete';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import axiosServices from 'src/utils/axios';
+import { useTranslation } from 'react-i18next';
 
 interface MediaFile {
-  mediaId: number
-  mediaPath: string
-  mediaName: string
+  mediaId: number;
+  mediaPath: string;
+  mediaName: string;
 }
-interface KeywordItem {
-  keywordId: number
-  keyword: string
-  replayId: number
-  replyText: string
-  mediaFiles: MediaFile[]
+
+export interface KeywordItem {
+  replayId: number;
+  keywords: string[];
+  replyText: string;
+  mediaFiles: MediaFile[];
 }
 
 interface KeywordListProps {
-  sessionId: number
+  sessionId: number;
 }
 
-const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
-  const { t } = useTranslation()
-  const [keywords, setKeywords] = useState<KeywordItem[]>([])
+interface GroupedKeyword {
+  replayId: number;
+  keywords: string[];
+  replyText: string;
+  mediaFiles: MediaFile[];
+}
 
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [newKeyword, setNewKeyword] = useState('')
-  const [newReplyText, setNewReplyText] = useState('')
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [previewUrls, setPreviewUrls] = useState<string[]>([])
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
+  const { t } = useTranslation();
+  const [keywords, setKeywords] = useState<KeywordItem[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [groupKeywords, setGroupKeywords] = useState<string[]>([]);
+  const [newReplyText, setNewReplyText] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [oldMediaFiles, setOldMediaFiles] = useState<MediaFile[]>([]);
 
   const fetchKeywords = async () => {
     try {
-      const res = await axiosServices.get(`/api/sessions/${sessionId}/keywords`)
-      setKeywords(res.data)
+      const res = await axiosServices.get(`/api/sessions/${sessionId}/keywords`);
+      setKeywords(res.data);
     } catch (error) {
-      console.error('Error fetching keywords', error)
+      console.error('Error fetching keywords', error);
     }
-  }
+  };
 
   useEffect(() => {
     if (sessionId) {
-      fetchKeywords()
+      fetchKeywords();
     }
-  }, [sessionId])
+  }, [sessionId]);
 
-  const handleEdit = (kw: KeywordItem) => {
-    setEditingId(kw.keywordId)
-    setNewKeyword(kw.keyword)
-    setNewReplyText(kw.replyText)
-    setSelectedFiles([])
-    setPreviewUrls([])
-  }
+  // تجميع الكلمات المفتاحية حسب replayId
+  const groupedKeywords = useMemo((): GroupedKeyword[] => {
+    return keywords;
+  }, [keywords]);
+
+  const handleEdit = (group: GroupedKeyword) => {
+    setEditingId(group.replayId);
+    setGroupKeywords(group.keywords);
+    setNewReplyText(group.replyText);
+    setOldMediaFiles(group.mediaFiles || []);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+  };
 
   const handleCancelEdit = () => {
-    setEditingId(null)
-    setNewKeyword('')
-    setNewReplyText('')
-    setSelectedFiles([])
-    setPreviewUrls([])
-  }
+    setEditingId(null);
+    setGroupKeywords([]);
+    setNewReplyText('');
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setOldMediaFiles([]);
+  };
 
   const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files) return
-    const filesArray = Array.from(event.target.files)
-    setSelectedFiles(filesArray)
-    const previews = filesArray.map(file => URL.createObjectURL(file))
-    setPreviewUrls(previews)
-  }
+    if (!event.target.files) return;
+    const filesArray = Array.from(event.target.files);
+    setSelectedFiles(filesArray);
+    const previews = filesArray.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(previews);
+  };
 
   const handleUpdate = async () => {
-    if (!editingId) return
-
+    if (!editingId) return;
     try {
-      const formData = new FormData()
-      formData.append('newKeyword', newKeyword)
-      formData.append('newReplyText', newReplyText)
-      selectedFiles.forEach(file => {
-        formData.append('media', file)
-      })
-
-      await axiosServices.post(`/api/sessions/${sessionId}/keyword/${editingId}/update`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+      const formData = new FormData();
+      formData.append('newKeyword', groupKeywords.join(', '));
+      formData.append('newReplyText', newReplyText);
+      if (selectedFiles.length > 0) {
+        selectedFiles.forEach((file) => {
+          formData.append('media', file);
+        });
+      }
+      await axiosServices.post(
+        `/api/sessions/${sessionId}/keyword/${editingId}/update`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         }
-      })
-      handleCancelEdit()
-      fetchKeywords()
+      );
+      handleCancelEdit();
+      fetchKeywords();
     } catch (error) {
-      console.error('Error updating keyword:', error)
-      alert(t('KeywordList.errorUpdating'))
+      console.error('Error updating keyword:', error);
+      alert(t('KeywordList.errorUpdating'));
     }
-  }
+  };
 
-  const handleDelete = async (keywordId: number) => {
-    if (!window.confirm(t('KeywordList.confirmDelete') as string)) return
+  const handleDelete = async (replayId: number) => {
+    if (!window.confirm(t('KeywordList.confirmDelete') as string)) return;
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/keyword/${keywordId}/delete`)
-      fetchKeywords()
+      await axiosServices.post(`/api/sessions/${sessionId}/keyword/${replayId}/delete`);
+      fetchKeywords();
     } catch (error) {
-      console.error('Error deleting keyword:', error)
-      alert(t('KeywordList.errorDeleting'))
+      console.error('Error deleting keyword:', error);
+      alert(t('KeywordList.errorDeleting'));
     }
-  }
+  };
 
   return (
     <Box>
       <List>
-        {keywords.map(kw => {
-          const isEditing = editingId === kw.keywordId
+        {groupedKeywords.map((group) => {
+          const isEditing = editingId === group.replayId;
           if (isEditing) {
             return (
-              <ListItem key={kw.keywordId} sx={{ display: 'block', mb: 2, border: '1px solid #ccc' }}>
-                <TextField
-                  label={t('KeywordList.fields.keyword')}
-                  value={newKeyword}
-                  onChange={e => setNewKeyword(e.target.value)}
-                  size='small'
-                  sx={{ mb: 1, mr: 1 }}
+              <ListItem
+                key={group.replayId}
+                sx={{ display: 'block', mb: 2, border: '1px solid #ccc', p: 1 }}
+              >
+                <Autocomplete
+                  multiple
+                  freeSolo
+                  options={[]}
+                  value={groupKeywords}
+                  onChange={(_event, newValue) => setGroupKeywords(newValue as string[])}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t('KeywordList.fields.keyword')}
+                      margin="dense"
+                      variant="outlined"
+                      fullWidth
+                      autoFocus
+                    />
+                  )}
+                  sx={{ mb: 1 }}
                 />
                 <TextField
                   label={t('KeywordList.fields.replyText')}
                   value={newReplyText}
-                  onChange={e => setNewReplyText(e.target.value)}
-                  size='small'
-                  sx={{ mb: 1, mr: 1 }}
+                  onChange={(e) => setNewReplyText(e.target.value)}
+                  size="small"
+                  fullWidth
+                  sx={{ mb: 1 }}
                 />
                 <Box sx={{ mb: 1 }}>
-                  <Button variant='outlined' component='label' sx={{ mr: 1 }}>
+                  <Button variant="outlined" component="label" sx={{ mr: 1 }}>
                     {t('KeywordList.buttons.uploadNewImages')}
                     <input
-                      type='file'
+                      type="file"
                       hidden
                       multiple
-                      accept='image/*'
+                      accept="image/*"
                       onChange={handleFilesChange}
                     />
                   </Button>
                   {selectedFiles.length > 0 && (
-                    <Typography variant='body2' sx={{ display: 'inline' }}>
+                    <Typography variant="body2" sx={{ display: 'inline' }}>
                       {selectedFiles.length} {t('KeywordList.filesSelected')}
                     </Typography>
                   )}
@@ -159,60 +195,60 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                     <img
                       key={idx}
                       src={url}
-                      alt='Preview'
+                      alt="Preview"
                       style={{ width: 100, height: 100, objectFit: 'cover' }}
                     />
                   ))}
                 </Box>
                 <Box>
-                  <Button onClick={handleUpdate} variant='contained' color='primary' sx={{ mr: 1 }}>
+                  <Button onClick={handleUpdate} variant="contained" color="primary" sx={{ mr: 1 }}>
                     {t('KeywordList.buttons.save')}
                   </Button>
-                  <Button onClick={handleCancelEdit} variant='outlined' color='secondary'>
+                  <Button onClick={handleCancelEdit} variant="outlined" color="secondary">
                     {t('KeywordList.buttons.cancel')}
                   </Button>
                 </Box>
               </ListItem>
-            )
+            );
           } else {
             return (
               <ListItem
-                key={kw.keywordId}
-                sx={{ display: 'block', mb: 2, border: '1px solid #eee' }}
+                key={group.replayId}
+                sx={{ display: 'block', mb: 2, border: '1px solid #eee', p: 1 }}
               >
                 <ListItemText
-                  primary={`${t('KeywordList.keywordLabel')}: ${kw.keyword}`}
-                  secondary={`${t('KeywordList.replyTextLabel')}: ${kw.replyText}`}
+                  primary={`${t('KeywordList.keywordLabel')}: ${group.keywords.join(', ')}`}
+                  secondary={`${t('KeywordList.replyTextLabel')}: ${group.replyText}`}
                 />
-                {kw.mediaFiles && kw.mediaFiles.length > 0 && (
+                {group.mediaFiles && group.mediaFiles.length > 0 && (
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
-                    {kw.mediaFiles.map(media => (
-                      <Box key={media.mediaId} textAlign='center'>
+                    {group.mediaFiles.map((media) => (
+                      <Box key={media.mediaId} textAlign="center">
                         <img
-                          src={`/${media.mediaPath}`}
+                          src={`${backendUrl}/${media.mediaPath}`}
                           alt={media.mediaName}
                           style={{ width: 100, height: 100, objectFit: 'cover' }}
                         />
-                        <Typography variant='caption'>{media.mediaName}</Typography>
+                        <Typography variant="caption">{media.mediaName}</Typography>
                       </Box>
                     ))}
                   </Box>
                 )}
                 <Box sx={{ mt: 1 }}>
-                  <IconButton onClick={() => handleEdit(kw)} sx={{ mr: 1 }} color='primary'>
+                  <IconButton onClick={() => handleEdit(group)} sx={{ mr: 1 }} color="primary">
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(kw.keywordId)} color='error'>
+                  <IconButton onClick={() => handleDelete(group.replayId)} color="error">
                     <DeleteIcon />
                   </IconButton>
                 </Box>
               </ListItem>
-            )
+            );
           }
         })}
       </List>
     </Box>
-  )
-}
+  );
+};
 
-export default KeywordList
+export default KeywordList;

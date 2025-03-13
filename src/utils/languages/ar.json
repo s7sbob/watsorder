@@ -47,6 +47,11 @@
     "banned": "محظور",
     "notAuthorized": "غير مصرح لك",
 
+    "MarketingTab": {
+      "broadcast": "البث"
+    },
+
+
     "SessionListing": {
       "columns": {
         "id": "المعرّف",
@@ -147,7 +152,9 @@
         "products": "المنتجات",
         "keywords": "الكلمات المفتاحية",
         "broadcast": "البث",
-        "greeting": "الترحيب"
+        "greeting": "الترحيب",
+        "marketing": "التسويق"
+
       }
     },
     "CategoriesTab": {
@@ -175,7 +182,9 @@
       "confirmDelete": "هل تريد حذف هذه الفئة؟",
       "errorDeleting": "حدث خطأ أثناء حذف الفئة.",
       "errorUpdating": "حدث خطأ أثناء تحديث الفئة.",
-      "save": "حفظ"
+      "save": "حفظ",
+      "filterLabel": "بحث الاقسام"
+
     },
     "ProductsTab": {
       "buttons": {
@@ -197,6 +206,7 @@
       "errorDeleting": "حدث خطأ أثناء حذف المنتج.",
       "errorUpdating": "حدث خطأ أثناء تحديث المنتج.",
       "categoryId": "معرّف الفئة",
+      "filterLabel": "ابحث عن المنتجات",
       "price": "السعر",
       "buttons": {
         "save": "حفظ",

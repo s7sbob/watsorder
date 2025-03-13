@@ -98,7 +98,7 @@ const CountryPhoneSelector: React.FC<Props> = ({
     <Box sx={{ position: 'relative' }}>
       {/* العنوان label */}
       {label && (
-        <Typography sx={{ mb: 1, fontWeight: 500 }}>
+        <Typography >
           {label}
         </Typography>
       )}

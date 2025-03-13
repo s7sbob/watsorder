@@ -1,3 +1,4 @@
+// src/views/pages/session/CategoriesTab.tsx
 import React, { useState } from 'react'
 import { Box, Button } from '@mui/material'
 import CategoryList from './CategoryList'
@@ -37,7 +38,13 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({ sessionId }) => {
         onClose={() => setOpenAddPopup(false)}
         onSubmit={handleAddCategory}
         title={t('CategoriesTab.popup.title')}
-        fields={[{ label: t('CategoriesTab.popup.fields.categoryName'), name: 'category_name' }]}
+        fields={[
+          { 
+            label: t('CategoriesTab.popup.fields.categoryName'), 
+            name: 'category_name',
+            autoFocus: true  // تفعيل التركيز التلقائي
+          }
+        ]}
       />
     </Box>
   )

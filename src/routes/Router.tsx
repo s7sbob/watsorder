@@ -30,7 +30,7 @@ const NewOrdersPage = Loadable(
 );
 const ApiDocumentation = Loadable(lazy(() => import('../views/pages/ApiDocumentation.tsx')));
 const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettings.tsx')));
-const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails')));
+// const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails')));
 const SessionManagement = Loadable(React.lazy(() => import('../views/pages/SessionManagement')));
 const PaymentInstructions = Loadable(React.lazy(() => import('../views/pages/PaymentInstructions')));
 
@@ -58,7 +58,7 @@ const Router = [
       { path: '/apps/OrdersHistoryPage', element: <OrdersHistoryPage /> },
 
       { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
-      { path: '/users/:id/details', element: <UserDetails /> },
+      // { path: '/users/:id/details', element: <UserDetails /> },
       {
         path: '/admin/features',
         element: <FeatureManagement />,

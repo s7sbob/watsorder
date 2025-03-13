@@ -47,6 +47,11 @@
     "banned": "Banned",
     "notAuthorized": "Not authorized",
 
+
+    "MarketingTab": {
+      "broadcast": "Broadcast"
+    },
+
     "SessionListing": {
       "columns": {
         "id": "ID",
@@ -147,7 +152,9 @@
         "products": "Products",
         "keywords": "Keywords",
         "broadcast": "Broadcast",
-        "greeting": "Greeting"
+        "greeting": "Greeting",
+        "marketing": "Marketing"
+
       }
     },
     "CategoriesTab": {
@@ -175,7 +182,8 @@
       "confirmDelete": "Are you sure you want to delete this category?",
       "errorDeleting": "Error deleting category.",
       "errorUpdating": "Error updating category.",
-      "save": "Save"
+      "save": "Save",
+      "filterLabel": "Search Category"
     },
     "ProductsTab": {
       "buttons": {
@@ -197,6 +205,8 @@
       "errorDeleting": "Error deleting product.",
       "errorUpdating": "Error updating product.",
       "categoryId": "Category ID",
+      "filterLabel": "Search products",
+
       "price": "Price",
       "buttons": {
         "save": "Save",

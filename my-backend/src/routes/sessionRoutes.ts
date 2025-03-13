@@ -114,21 +114,20 @@ router.post('/:sessionId/product/:productId/delete', authenticateToken, deletePr
 // الكلمات المفتاحية (Keywords)
 //----------------------------------
 
-// [POST] إضافة Keyword (كان POST بالفعل)
-router.post('/:sessionId/keyword', authenticateToken, upload.array('media', 10), addKeyword)
+// [POST] إضافة مجموعة كلمات مفتاحية
+router.post('/:sessionId/keyword', authenticateToken, upload.array('media', 10), addKeyword);
 
-// [GET] جلب الـ Keywords
-router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession)
+// [GET] جلب الكلمات المفتاحية (سيتم تجميعها في الباك إند أو الفرونت)
+router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession);
 
-// [POST] تعديل Keyword (بدلًا من PUT)
-router.post('/:sessionId/keyword/:keywordId/update', authenticateToken, upload.array('media', 10), updateKeyword)
+// [POST] تعديل مجموعة الكلمات المفتاحية باستخدام replayId
+router.post('/:sessionId/keyword/:replayId/update', authenticateToken, upload.array('media', 10), updateKeyword);
 
-// [POST] حذف Keyword (بدلًا من DELETE)
-router.post('/:sessionId/keyword/:keywordId/delete', authenticateToken, deleteKeyword)
+// [POST] حذف مجموعة الكلمات المفتاحية باستخدام replayId
+router.post('/:sessionId/keyword/:replayId/delete', authenticateToken, deleteKeyword);
 
 router.post('/:sessionId/alternate-whatsapp', authenticateToken, updateAlternateWhatsAppNumber);
-
-router.get('/:id/greeting', authenticateToken, getGreeting)
+router.get('/:id/greeting', authenticateToken, getGreeting);
 
 
 // المسارات الجديدة للتعديل على حالة الجلسة:

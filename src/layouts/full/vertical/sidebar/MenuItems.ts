@@ -37,12 +37,7 @@ const Menuitems: MenuitemsType[] = [
     chipKey: 'Sidebar.new', // مفتاح ترجمة "New"
     chipColor: 'secondary'
   },
-  {
-    id: uniqueId(),
-    titleKey: 'Sidebar.apiDocumentation', // "API Documentation"
-    icon: IconFileDescription,
-    href: '/api-docs'
-  },
+
   {
     id: uniqueId(),
     titleKey: 'Sidebar.newOrders', // "New Orders"
@@ -62,6 +57,12 @@ const Menuitems: MenuitemsType[] = [
     href: '#',
     chipKey: 'Sidebar.soon', // "Soon"
     chipColor: 'green'
+  },
+  {
+    id: uniqueId(),
+    titleKey: 'Sidebar.apiDocumentation', // "API Documentation"
+    icon: IconFileDescription,
+    href: '/api-docs'
   },
   {
     navlabel: true,

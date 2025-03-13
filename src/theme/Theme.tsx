@@ -46,7 +46,7 @@ const ThemeSettings = () => {
     theme: activeTheme,
   });
   useEffect(() => {
-    document.dir = activDir;
+    document.dir = activDir as string;
   }, [activDir]);
 
   return theme;

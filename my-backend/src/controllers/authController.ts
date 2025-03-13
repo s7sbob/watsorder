@@ -8,8 +8,8 @@ import { MyJwtPayload } from '../types/MyJwtPayload';
 
 // ====== تعديل التسجيل ====== //
 export const registerUser = async (req: Request, res: Response): Promise<Response> => {
-  // نتوقع من الواجهة: { phoneNumber, name, password, otpCode }
-  const { phoneNumber, name, password, otpCode } = req.body;
+  // نتوقع من الواجهة: { phoneNumber, name, password, otpCode, companyName, country, address, contactPhone }
+  const { phoneNumber, name, password, otpCode, companyName, country, address, contactPhone } = req.body;
 
   if (!phoneNumber || !password || !otpCode) {
     return res.status(400).json({ message: 'يرجى ملء الحقول المطلوبة: phoneNumber, password, otpCode' });
@@ -18,8 +18,7 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
   try {
     const pool = await getConnection();
 
-    // 1) التحقق من الـ OTP:
-    //   - لم يُستخدم بعد، ولم تنته صلاحيته.
+    // التحقق من OTP
     const now = new Date();
     const otpResult = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
@@ -39,13 +38,12 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
       return res.status(400).json({ message: 'OTP غير صالح أو منتهي.' });
     }
 
-    // 2) وسّم الـ OTP بأنّه مستخدم
     const otpRow = otpResult.recordset[0];
     await pool.request()
       .input('id', sql.Int, otpRow.id)
       .query(`UPDATE OtpCodes SET isUsed = 1 WHERE id = @id`);
 
-    // 3) تحقق هل المستخدم (برقم الموبايل) موجود مسبقاً
+    // التحقق من وجود المستخدم مسبقاً
     const checkUser = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
       .query('SELECT * FROM Users WHERE phoneNumber = @phoneNumber');
@@ -54,17 +52,21 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
       return res.status(400).json({ message: 'رقم الموبايل هذا مسجّل بالفعل.' });
     }
 
-    // 4) تشفير كلمة المرور
+    // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 5) إنشاء المستخدم
+    // إنشاء المستخدم مع الحقول الجديدة (بدون حقل logo)
     await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
       .input('name', sql.NVarChar, name || null)
       .input('password', sql.NVarChar, hashedPassword)
+      .input('companyName', sql.NVarChar, companyName || null)
+      .input('country', sql.NVarChar, country || null)
+      .input('address', sql.NVarChar, address || null)
+      .input('contactPhone', sql.NVarChar, contactPhone || null)
       .query(`
-        INSERT INTO Users (phoneNumber, name, password)
-        VALUES (@phoneNumber, @name, @password)
+        INSERT INTO Users (phoneNumber, name, password, companyName, country, address, contactPhone)
+        VALUES (@phoneNumber, @name, @password, @companyName, @country, @address, @contactPhone)
       `);
 
     return res.status(201).json({ message: 'تم التسجيل بنجاح' });

@@ -1,13 +1,10 @@
-// src/views/pages/authentication/Register.tsx
-
 import { Grid, Box } from '@mui/material';
 import PageContainer from 'src/components/container/PageContainer';
 import img1 from 'src/assets/images/backgrounds/login-bg.svg';
 import Logo from 'src/layouts/full/shared/logo/Logo';
-import AuthRegisterFlow from '../authForms/AuthRegister'; 
-// ^ اسم الملف الذي به الكود أعلاه
+import AuthRegisterFlow from '../authForms/AuthRegister';
 
-const Register = () => (
+const Register: React.FC = () => (
   <PageContainer title="Register" description="this is Register page">
     <Grid container spacing={0} sx={{ overflowX: 'hidden' }}>
       <Grid
@@ -38,19 +35,13 @@ const Register = () => (
           justifyContent="center"
           height="calc(100vh - 75px)"
           sx={{
-            display: {
-              xs: 'none',
-              lg: 'flex',
-            },
+            display: { xs: 'none', lg: 'flex' },
           }}
         >
           <img
             src={img1}
             alt="bg"
-            style={{
-              width: '100%',
-              maxWidth: '500px',
-            }}
+            style={{ width: '100%', maxWidth: '500px' }}
           />
         </Box>
       </Grid>
@@ -65,7 +56,7 @@ const Register = () => (
         justifyContent="center"
         alignItems="center"
       >
-        <Box p={4} sx={{ width: '100%', maxWidth: 400 }}>
+        <Box p={2} sx={{ width: '100%', maxWidth: 400 }}>
           <AuthRegisterFlow />
         </Box>
       </Grid>

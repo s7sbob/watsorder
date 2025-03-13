@@ -1,51 +1,49 @@
-import React, { useState } from 'react'
-import { Box, Button } from '@mui/material'
-import KeywordList from './KeywordList'
-import AddDataPopup from './AddDataPopup'
-import axiosServices from 'src/utils/axios'
-import { useTranslation } from 'react-i18next'
+import React, { useState } from 'react';
+import { Box, Button } from '@mui/material';
+import KeywordList from './KeywordList';
+import AddDataPopup from './AddDataPopup';
+import axiosServices from 'src/utils/axios';
+import { useTranslation } from 'react-i18next';
 
 interface KeywordsTabProps {
-  sessionId: number
+  sessionId: number;
 }
 
 const KeywordsTab: React.FC<KeywordsTabProps> = ({ sessionId }) => {
-  const { t } = useTranslation()
-  const [openAddPopup, setOpenAddPopup] = useState(false)
-  const [refresh, setRefresh] = useState(false)
+  const { t } = useTranslation();
+  const [openAddPopup, setOpenAddPopup] = useState(false);
+  const [refresh, setRefresh] = useState(false);
 
   const handleAddKeywords = async (data: any) => {
-    const { keywords, replyText, replyMedia } = data
+    const { keywords, replyText, replyMedia } = data;
     if (!keywords?.length) {
-      alert(t('KeywordsTab.alerts.noKeywords'))
-      return
+      alert(t('KeywordsTab.alerts.noKeywords'));
+      return;
     }
     if (!replyText) {
-      alert(t('KeywordsTab.alerts.noReplyText'))
-      return
+      alert(t('KeywordsTab.alerts.noReplyText'));
+      return;
     }
-
     try {
-      for (const kw of keywords) {
-        const formData = new FormData()
-        formData.append('keyword', kw)
-        formData.append('replyText', replyText)
-        if (Array.isArray(replyMedia)) {
-          replyMedia.forEach((file: File) => {
-            formData.append('media', file, file.name)
-          })
-        }
-        await axiosServices.post(`/api/sessions/${sessionId}/keyword`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+      const formData = new FormData();
+      // إرسال الكلمات كمجموعة باستخدام سلسلة مفصولة بفواصل
+      formData.append('keywords', keywords.join(', '));
+      formData.append('replyText', replyText);
+      if (Array.isArray(replyMedia) && replyMedia.length > 0) {
+        replyMedia.forEach((file: File) => {
+          formData.append('media', file, file.name);
+        });
       }
-      setOpenAddPopup(false)
-      setRefresh(!refresh)
+      await axiosServices.post(`/api/sessions/${sessionId}/keyword`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setOpenAddPopup(false);
+      setRefresh(!refresh);
     } catch (err) {
-      console.error('Error adding multiple keywords:', err)
-      alert(t('KeywordsTab.alerts.errorAdd'))
+      console.error('Error adding keywords:', err);
+      alert(t('KeywordsTab.alerts.errorAdd'));
     }
-  }
+  };
 
   return (
     <Box>
@@ -65,7 +63,7 @@ const KeywordsTab: React.FC<KeywordsTabProps> = ({ sessionId }) => {
         ]}
       />
     </Box>
-  )
-}
+  );
+};
 
-export default KeywordsTab
+export default KeywordsTab;

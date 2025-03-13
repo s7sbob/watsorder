@@ -5,7 +5,7 @@ import path from 'path'
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     // المجلد الثابت لحفظ الصور
-    cb(null, 'keywords-images/')
+    cb(null, 'keywords-images')
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
