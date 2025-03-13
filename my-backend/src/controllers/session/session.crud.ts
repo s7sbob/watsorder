@@ -2,8 +2,6 @@
 import { Request, Response } from 'express';
 import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
-import { createWhatsAppClientForSession } from '../whatsappClients';
-import { checkSessionOwnership } from './session.helpers';
 
 // جلب الجلسات بناءً على المستخدم
 export const fetchSessions = async (req: Request, res: Response) => {

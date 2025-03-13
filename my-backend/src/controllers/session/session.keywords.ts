@@ -2,7 +2,6 @@
 import { Request, Response } from 'express';
 import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
-import fs from 'fs';
 
 /**
  * دالة للتحقق من ملكية sessionId (مشابهة لدوال أخرى)

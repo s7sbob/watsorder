@@ -2,7 +2,6 @@
 import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
 import { Client } from 'whatsapp-web.js';
-import { whatsappClients } from './whatsappClientsStore';
 
 /**
  * خريطة لتخزين مؤقتات الطلبات المفتوحة
@@ -14,7 +13,7 @@ const orderTimeoutMap: { [orderId: number]: NodeJS.Timeout } = {};
  */
 export const scheduleOrderTimeout = async (
   orderId: number,
-  sessionId: number,
+  _sessionId: number,
   client: Client,
   sessionPhone: string
 ) => {

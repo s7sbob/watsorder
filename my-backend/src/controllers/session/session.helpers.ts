@@ -1,5 +1,4 @@
 // src/controllers/session/session.helpers.ts
-import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
 
 /**

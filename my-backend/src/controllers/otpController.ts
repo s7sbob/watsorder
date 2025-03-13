@@ -79,7 +79,6 @@ export const sendOtpViaWhatsApp = async (req: Request, res: Response) => {
 
 // سنستخدم دائماً sessionId=1 لإرسال OTP حسب رغبتك.
 // أو يمكنك جعله ثابتاً في الكود:
-const FIXED_SESSION_ID = 1;
 
 /**
  * إرسال OTP عبر واتساب للمستخدم في خطوة التسجيل

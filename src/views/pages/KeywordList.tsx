@@ -49,7 +49,7 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   const [newReplyText, setNewReplyText] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [oldMediaFiles, setOldMediaFiles] = useState<MediaFile[]>([]);
+  const [, setOldMediaFiles] = useState<MediaFile[]>([]);
 
   const fetchKeywords = async () => {
     try {
