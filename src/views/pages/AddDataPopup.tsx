@@ -45,11 +45,18 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
   const { t } = useTranslation();
   const [formData, setFormData] = useState<Record<string, any>>({});
 
+  // عند فتح النافذة نقوم بتهيئة القيم الافتراضية لكل حقل
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      const initialData: Record<string, any> = {};
+      fields.forEach(field => {
+        initialData[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
+      });
+      setFormData(initialData);
+    } else {
       setFormData({});
     }
-  }, [open]);
+  }, [open, fields]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -192,7 +199,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 variant="outlined"
                 onChange={handleTextChange}
                 sx={{ mt: 2, ...field.style }}
-                value={formData[field.name] || field.defaultValue || ''}
+                value={formData[field.name] || ''}
               >
                 {field.options.map(option => (
                   <MenuItem key={option.value} value={option.value}>
@@ -248,7 +255,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 sx={{ mt: 2, ...field.style }}
                 autoFocus={field.autoFocus}
                 type={field.type}
-                value={formData[field.name] || field.defaultValue || ''}
+                value={formData[field.name] || ''}
               />
             );
           }

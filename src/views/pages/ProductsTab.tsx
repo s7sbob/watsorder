@@ -1,4 +1,3 @@
-// src/views/pages/session/ProductsTab.tsx
 import React, { useState } from 'react';
 import { Box, Button } from '@mui/material';
 import ProductList from './ProductList';
@@ -58,7 +57,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
           {
             label: t('ProductsTab.popup.fields.productName'),
             name: 'product_name',
-            autoFocus: true, // التركيز يبدأ هنا
+            autoFocus: true, // يبدأ التركيز هنا
             style: { display: 'inline-block', width: '48%', marginRight: '4%' },
           },
           {

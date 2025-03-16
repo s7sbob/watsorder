@@ -78,10 +78,10 @@ const NewOrdersPage: React.FC = () => {
 
   // فلترة الطلبات لليوم
   function isToday(dateString: string | undefined): boolean {
-    if (!dateString) return false
-    const dateObj = new Date(dateString)
-    const now = new Date()
-    return (
+    if (!dateString) return false;
+    const dateObj = new Date(dateString);
+    const now = new Date();
+    return (dateObj.toLocaleDateString() === now.toLocaleDateString() &&
       dateObj.getFullYear() === now.getFullYear() &&
       dateObj.getMonth() === now.getMonth() &&
       dateObj.getDate() === now.getDate()
