@@ -61,9 +61,10 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
             JOIN Replays r ON k.replay_id = r.id
             WHERE k.sessionId = @sessionId
           `);
-        const foundKeywordRow = keywordsRes.recordset.find((row: any) =>
-          row.keyword?.toLowerCase() === text.toLowerCase()
-        );
+          const foundKeywordRow = keywordsRes.recordset.find((row: any) =>
+            text.toLowerCase().includes(row.keyword?.toLowerCase())
+          );
+          
         if (foundKeywordRow) {
           const mediaRes = await pool.request()
             .input('replayId', sql.Int, foundKeywordRow.replayId)
