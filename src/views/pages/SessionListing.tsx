@@ -1,3 +1,8 @@
+// src/views/.... /SessionListing.tsx
+// (هذا هو الملف الذي وضعته في سؤالك. سأعرضه بالكامل مع تعديلات بسيطة)
+
+// الملاحظات على أماكن التعديل موضحة في الكومنتات
+
 import { useEffect, useState } from 'react'
 import {
   Box,
@@ -117,7 +122,6 @@ const SessionListing = () => {
       )
 
       // 2) إذا النافذة مفتوحة على نفس الـ sessionId => نحدث selectedSession
-      // كي تتجدد صورة الـ QR تلقائيًا
       if (selectedSession && selectedSession.id === data.sessionId) {
         setSelectedSession(prev => {
           if (!prev) return prev
@@ -147,7 +151,6 @@ const SessionListing = () => {
       const response = await axiosServices.get(`/api/sessions/${session.id}/qr`)
       const qrData = response.data.qr
 
-      // خزنّا الجلسة المختارة + qrCode المحدث
       setSelectedSession({ ...session, qrCode: qrData })
       setQrDialogOpen(true)
     } catch (error) {
@@ -166,14 +169,13 @@ const SessionListing = () => {
   const [pendingSessionId, setPendingSessionId] = useState<number | null>(null)
   const [pendingSessionPlan, setPendingSessionPlan] = useState<string | null>(null)
 
-  // هذه الدالة تفتح حوار الدفع للمستخدم إذا كانت الجلسة Waiting for Payment
+  // فتح حوار الدفع إذا الحالة Waiting for Payment
   const handlePayForWaitingSession = (session: SessionType) => {
     setPendingSessionId(session.id)
     setPendingSessionPlan(session.planType || '')
     setPaymentDialogOpen(true)
   }
 
-  // عند الانتهاء من الدفع (داخل PaymentInstructions) نغلق الحوار ونحدث الجلسات
   const handlePaymentDoneForExistingSession = () => {
     setPaymentDialogOpen(false)
     setPendingSessionId(null)
@@ -187,7 +189,6 @@ const SessionListing = () => {
     setPlanDialogOpen(true)
   }
 
-  // بعد اختيار الخطة في جلسة جديدة
   const handlePlanChosenForNewSession = async (plan: string) => {
     try {
       const response = await axiosServices.post('/api/sessions/create-paid-session', {
@@ -197,9 +198,8 @@ const SessionListing = () => {
       showAlert(data.message, 'success')
       setPlanDialogOpen(false)
 
-      // إذا وجدنا أنها ليست free trial (message يشير لـ "Please proceed with payment")
+      // إذا الجلسة التي أنشئت بحاجة لدفع
       if (data.message?.includes('Please proceed with payment')) {
-        // افتح الدفع
         setPendingSessionId(data.session.id)
         setPendingSessionPlan(data.session.planType)
         setPaymentDialogOpen(true)
@@ -298,7 +298,7 @@ const SessionListing = () => {
     }
   }
 
-  // ==================== Logout & Delete ====================
+  // ==================== Logout & Delete & Login ====================
   const handleLogoutSession = async (session: SessionType) => {
     const confirmation = window.confirm(
       t('SessionListing.messages.confirmLogout', { sessionId: session.id.toString() }) ?? ''
@@ -315,6 +315,18 @@ const SessionListing = () => {
     } catch (error) {
       console.error('Error logging out session:', error)
       showAlert(t('SessionListing.messages.logoutError'), 'error')
+    }
+  }
+
+  // دالة تسجيل الدخول مجددًا (إذا الحالة Terminated)
+  const handleLoginSession = async (session: SessionType) => {
+    try {
+      await axiosServices.post(`/api/sessions/${session.id}/login`)
+      showAlert(t('SessionListing.messages.sessionLoggedIn', { sessionId: session.id.toString() }), 'success')
+      dispatch(fetchSessions())
+    } catch (error) {
+      console.error('Error logging in session:', error)
+      showAlert(t('SessionListing.messages.loginError'), 'error')
     }
   }
 
@@ -367,6 +379,7 @@ const SessionListing = () => {
               const isReady = session.status === 'Ready'
               const isStoppedByAdmin = session.status === 'Stopped by Admin'
               const isWaitingForPayment = session.status === 'Waiting for Payment'
+              const isTerminated = session.status === 'Terminated'
 
               // تحويل expireDate إلى صيغة YYYY-MM-DD دون وقت
               const expireDateDisplay = session.expireDate
@@ -401,7 +414,9 @@ const SessionListing = () => {
                     />
                   </TableCell>
                   <TableCell align='right'>
-                    {/* ====== الحالة Waiting for Payment => زر Pay ====== */}
+                    {/*
+                      ====== الحالة Waiting for Payment => زر Pay ======
+                    */}
                     {isWaitingForPayment ? (
                       <Box>
                         <Button
@@ -455,8 +470,23 @@ const SessionListing = () => {
                           <DeleteIcon />
                         </IconButton>
                       </Box>
+                    ) : isTerminated ? (
+                      <>
+                        {/* زر Login لإعادة تشغيل الجلسة */}
+                        <Button variant='contained' size='small' onClick={() => handleLoginSession(session)}>
+                          {t('SessionListing.buttons.login')}
+                        </Button>
+                        <IconButton
+                          aria-label='delete'
+                          color='error'
+                          onClick={() => handleDeleteSession(session.id)}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
                     ) : (
-                      // الحالات الأخرى (Ready, Waiting for QR Code, Terminated, ...)
+                      // الحالات الأخرى (Ready, Waiting for QR Code, ...)
                       <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
                         {session.status === 'Waiting for QR Code' && (
                           <Button variant='outlined' size='small' onClick={() => handleShowQr(session)}>

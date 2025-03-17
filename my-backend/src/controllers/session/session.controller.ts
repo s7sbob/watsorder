@@ -83,8 +83,8 @@ export const createSession = async (req: Request, res: Response) => {
 
 /**
  * إنشاء جلسة مدفوعة (createPaidSession)
- * - إذا كان المستخدم لم يستخدم التجربة المجانية (usedTrial=0)، نعطيه 3 أيام مجانية.
- * - إذا كان المستخدم قد استخدم التجربة (usedTrial=1)، ننشئ الجلسة مباشرة بحالة "Waiting for Payment" من دون تجربة.
+ * - إذا كان المستخدم لم يستخدم التجربة المجانية (usedTrial=0)، نعطيه 3 أيام مجانية -> الحالة Ready وتشغيل الجلسة فورًا.
+ * - إذا كان المستخدم قد استخدم التجربة (usedTrial=1)، ننشئ الجلسة مباشرة بحالة "Waiting for Payment".
  */
 export const createPaidSession = async (req: Request, res: Response) => {
   const user = req.user && typeof req.user !== 'string' ? req.user : null
@@ -119,7 +119,7 @@ export const createPaidSession = async (req: Request, res: Response) => {
 
     // ----- 1) المستخدم لم يستخدم التجربة المجانية بعد => سيحصل على 3 أيام تجريبية -----
     if (!usedTrial) {
-      // حالة Ready مباشرة
+      // حالة Ready مباشرة + تشغيل جلسة
       const status = 'Ready'
       const now = new Date()
       const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
@@ -161,8 +161,7 @@ export const createPaidSession = async (req: Request, res: Response) => {
 
     // ----- 2) المستخدم استخدم التجربة المجانية => إنشاء جلسة بدون Free Trial -----
     } else {
-      // يتم إنشاء الجلسة بحالة "Waiting for Payment" (أو "Paid" لو أردت).
-      // لاحقًا يمكنه الدفع لتصبح Ready.
+      // الحالة: "Waiting for Payment"
       const status = 'Waiting for Payment'
       const sessionIdentifier = `${user.id}.${user.subscriptionType}.${Date.now()}`
 
@@ -181,9 +180,6 @@ export const createPaidSession = async (req: Request, res: Response) => {
         `)
 
       const newSession = insertSessionResult.recordset[0]
-
-      // لا نستدعي createWhatsAppClientForSession الآن، لأن الدفع لم يتم.
-      // سيقوم المستخدم بدفع الرسوم -> sendToManager -> confirmPayment -> يتم استدعاء createWhatsAppClientForSession.
 
       return res.status(201).json({
         message: 'Session created. Please proceed with payment to activate it.',
@@ -245,7 +241,7 @@ export const sendToManager = async (req: Request, res: Response) => {
 }
 
 /**
- * تأكيد الدفع -> جاهزة
+ * تأكيد الدفع -> جاهزة (Ready)
  */
 export const confirmPayment = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)
@@ -334,7 +330,7 @@ export const confirmPaymentWithExpire = async (req: Request, res: Response) => {
 }
 
 /**
- * تجديد الاشتراك
+ * تجديد الاشتراك -> جاهز (Ready) + تشغيل الجلسة فورًا
  */
 export const renewSubscription = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)
@@ -353,9 +349,21 @@ export const renewSubscription = async (req: Request, res: Response) => {
             expireDate = @newExpireDate
         WHERE id = @sessionId
       `)
+
+    // بمجرد أن تصبح Ready نعيد تشغيل الجلسة
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId`)
+
+    if (result.recordset.length > 0) {
+      const sessionIdentifier = result.recordset[0].sessionIdentifier
+      await createWhatsAppClientForSession(sessionId, sessionIdentifier)
+    }
+
     return res.status(200).json({ message: 'Subscription renewed, session is now ready.' })
   } catch (error) {
     console.error('Error renewing subscription:', error)
     return res.status(500).json({ message: 'Error renewing subscription.' })
   }
 }
+

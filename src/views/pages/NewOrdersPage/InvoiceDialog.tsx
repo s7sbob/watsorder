@@ -1,5 +1,13 @@
 import React from 'react'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography } from '@mui/material'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Typography
+} from '@mui/material'
 import { OrderType, OrderItemType } from 'src/types/apps/order'
 
 // الترجمة
@@ -25,14 +33,15 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
           <Box>
             <Typography>
               <strong>{t('Orders.InvoiceDialog.customerPhone')}:</strong>{' '}
-              {invoiceDetails.customerPhoneNumber}
+              {invoiceDetails.customerPhone}
             </Typography>
             <Typography>
               <strong>{t('Orders.InvoiceDialog.deliveryAddress')}:</strong>{' '}
               {invoiceDetails.deliveryAddress}
             </Typography>
             <Typography>
-              <strong>{t('Orders.InvoiceDialog.totalPrice')}:</strong> {invoiceDetails.totalPrice}
+              <strong>{t('Orders.InvoiceDialog.totalPrice')}:</strong>{' '}
+              {invoiceDetails.totalPrice}
             </Typography>
             <Typography>
               <strong>{t('Orders.InvoiceDialog.status')}:</strong>{' '}
@@ -41,7 +50,8 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
                 : t('Orders.InvoiceDialog.pending')}
             </Typography>
             <Typography>
-              <strong>{t('Orders.InvoiceDialog.createdAt')}:</strong> {invoiceDetails.createdAt}
+              <strong>{t('Orders.InvoiceDialog.createdAt')}:</strong>{' '}
+              {invoiceDetails.createdAt}
             </Typography>
             {invoiceDetails.deliveryFee !== null && (
               <Typography>
@@ -51,13 +61,14 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
             )}
             {invoiceDetails.taxValue !== null && (
               <Typography>
-                <strong>{t('Orders.InvoiceDialog.taxValue')}:</strong> {invoiceDetails.taxValue}
+                <strong>{t('Orders.InvoiceDialog.taxValue')}:</strong>{' '}
+                {invoiceDetails.taxValue}
               </Typography>
             )}
             {invoiceDetails.prepTime !== null && (
               <Typography>
-                <strong>{t('Orders.InvoiceDialog.prepTime')}:</strong> {invoiceDetails.prepTime}{' '}
-                {t('Orders.InvoiceDialog.minutes')}
+                <strong>{t('Orders.InvoiceDialog.prepTime')}:</strong>{' '}
+                {invoiceDetails.prepTime} {t('Orders.InvoiceDialog.minutes')}
               </Typography>
             )}
 

@@ -1,6 +1,9 @@
-// src/socket.ts
 import { io } from 'socket.io-client';
 
-const socket = io('https://api.watsorder.com');
+// استخدم withCredentials عشان تُرسل الكوكيز مع الاتصال
+const socket = io("https://api.watsorder.com", {
+  transports: ['websocket'],
+  withCredentials: true
+});
 
 export default socket;

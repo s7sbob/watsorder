@@ -1,38 +1,54 @@
 // src/store/apps/orders/OrderSlice.ts
 
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'src/utils/axios';
-import { OrderType } from 'src/types/apps/order';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import axios from 'src/utils/axios'
+import { OrderType } from 'src/types/apps/order'
 
 interface OrderState {
-  orders: OrderType[];
-  loading: boolean;
-  error: string | null;
+  // سنعتمد فقط على هذه القائمة لعرض كل الطلبات (سواء finalConfirmed = false أو true)
+  confirmedOrders: OrderType[]
+
+  loading: boolean
+  error: string | null
 }
 
 const initialState: OrderState = {
-  orders: [],
+  confirmedOrders: [],
   loading: false,
-  error: null,
-};
+  error: null
+}
 
+// نجلب كل الطلبات الخاصة بالمستخدم من /api/orders/confirmed
+// (رغم الاسم "confirmed" إلا أنها تعيد الطلبات بقيمة finalConfirmed = false أو true)
 export const fetchConfirmedOrders = createAsyncThunk(
-  'orders/fetchConfirmed',
+  'orders/fetchConfirmedOrders',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get<OrderType[]>('/api/orders/confirmed');
-      return response.data;
+      const response = await axios.get<OrderType[]>('/api/orders/confirmed')
+      return response.data
     } catch (error: any) {
-      return rejectWithValue(error.response?.data || 'Error fetching confirmed orders');
+      return rejectWithValue(error.response?.data || 'Error fetching confirmed orders')
     }
   }
-);
+)
 
+// تأكيد الطلب
 export const confirmOrderByRestaurant = createAsyncThunk(
   'orders/confirmOrderByRestaurant',
   async (
-    { orderId, prepTime, deliveryFee, serviceFee, taxValue }:
-      { orderId: number; prepTime: number; deliveryFee?: number; serviceFee?: number; taxValue?: number },
+    {
+      orderId,
+      prepTime,
+      deliveryFee,
+      serviceFee,
+      taxValue
+    }: {
+      orderId: number
+      prepTime: number
+      deliveryFee?: number
+      serviceFee?: number
+      taxValue?: number
+    },
     { rejectWithValue }
   ) => {
     try {
@@ -40,46 +56,52 @@ export const confirmOrderByRestaurant = createAsyncThunk(
         prepTime,
         deliveryFee,
         serviceFee,
-        taxValue,
-      });
-      return { orderId, prepTime, deliveryFee, serviceFee, taxValue };
+        taxValue
+      })
+      return { orderId, prepTime, deliveryFee, serviceFee, taxValue }
     } catch (err: any) {
-      return rejectWithValue(err.response?.data || 'Error confirming order');
+      return rejectWithValue(err.response?.data || 'Error confirming order')
     }
   }
-);
+)
 
 const orderSlice = createSlice({
   name: 'orders',
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      // معالجة حالة جلب الطلبات المؤكدة
-      .addCase(fetchConfirmedOrders.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // fetchConfirmedOrders
+      .addCase(fetchConfirmedOrders.pending, state => {
+        state.loading = true
+        state.error = null
       })
       .addCase(fetchConfirmedOrders.fulfilled, (state, action) => {
-        state.loading = false;
-        state.orders = action.payload;
+        state.loading = false
+        state.confirmedOrders = action.payload
       })
       .addCase(fetchConfirmedOrders.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.loading = false
+        state.error = action.payload as string
       })
-      // معالجة تأكيد الطلب من المطعم
+
+      // confirmOrderByRestaurant
       .addCase(confirmOrderByRestaurant.fulfilled, (state, action) => {
-        const { orderId } = action.payload as any;
-        const index = state.orders.findIndex((o) => o.id === orderId);
+        // بعد التأكيد، عدّل قيمة الـ finalConfirmed في نفس القائمة
+        const { orderId } = action.payload
+        const index = state.confirmedOrders.findIndex(o => o.id === orderId)
         if (index !== -1) {
-          state.orders[index].finalConfirmed = true;
+          state.confirmedOrders[index].finalConfirmed = true
+          // لو تحب تغير أي حقول أخرى (prepTime/deliveryFee/...) عشان تبقى محدثة في الواجهة
+          state.confirmedOrders[index].prepTime = action.payload.prepTime
+          state.confirmedOrders[index].deliveryFee = action.payload.deliveryFee
+          state.confirmedOrders[index].taxValue = action.payload.taxValue
         }
       })
       .addCase(confirmOrderByRestaurant.rejected, (state, action) => {
-        state.error = action.payload as string;
-      });
-  },
-});
+        state.error = action.payload as string
+      })
+  }
+})
 
-export default orderSlice.reducer;
+export default orderSlice.reducer

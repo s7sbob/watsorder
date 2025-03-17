@@ -1,117 +1,142 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, TextField, InputAdornment, Grid } from '@mui/material';
-import { IconSearch } from '@tabler/icons-react';
-import { useSelector, useDispatch } from 'react-redux';
-import { AppState, AppDispatch } from 'src/store/Store';
-import socket from 'src/socket';
-import axiosServices from 'src/utils/axios';
-import OrdersColumn from './OrdersColumn';
-import OrderDetailsDialog from './OrderDetailsDialog';
-import InvoiceDialog from './InvoiceDialog';
-import ConfirmOrderDialog from './ConfirmOrderDialog';
-import { OrderType } from 'src/types/apps/order';
-import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice';
-import { useTranslation } from 'react-i18next';
+// src/pages/NewOrdersPage.tsx
+
+import React, { useEffect, useState, useRef } from 'react'
+import { Box, Typography, TextField, InputAdornment, Grid } from '@mui/material'
+import { IconSearch } from '@tabler/icons-react'
+import { useSelector, useDispatch } from 'react-redux'
+import { AppState, AppDispatch } from 'src/store/Store'
+import socket from 'src/socket'
+import axiosServices from 'src/utils/axios'
+import OrdersColumn from './OrdersColumn'
+import OrderDetailsDialog from './OrderDetailsDialog'
+import InvoiceDialog from './InvoiceDialog'
+import ConfirmOrderDialog from './ConfirmOrderDialog'
+import { OrderType } from 'src/types/apps/order'
+import {
+  fetchConfirmedOrders,
+  confirmOrderByRestaurant
+} from 'src/store/apps/orders/OrderSlice'
+
+// الترجمة
+import { useTranslation } from 'react-i18next'
 
 const NewOrdersPage: React.FC = () => {
-  const { t } = useTranslation();
-  const dispatch = useDispatch<AppDispatch>();
-  const { orders, loading, error } = useSelector((state: AppState) => state.order);
+  const { t } = useTranslation()
+  const dispatch = useDispatch<AppDispatch>()
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [orderDetails, setOrderDetails] = useState<OrderType | null>(null);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
-  const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null);
+  // نأخذ الطلبات كلّها من confirmedOrders (والتي قد تكون finalConfirmed=false أو true)
+  const { confirmedOrders, loading, error } = useSelector((state: AppState) => state.order)
 
-  // Socket events لتحديث الطلبات في الوقت الحقيقي
+  // بحث
+  const [searchTerm, setSearchTerm] = useState('')
+
+  // حوارات
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
+  const [orderDetails, setOrderDetails] = useState<OrderType | null>(null)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
+  const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null)
+
+  // للصوت عند قدوم طلب
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  useEffect(() => {
+    audioRef.current = new Audio('/notification.mp3')
+  }, [])
+
+  // Socket
   useEffect(() => {
     const handleNewOrder = (data: OrderType) => {
-      console.log('New order event received:', data);
-      // عند وصول طلب جديد نقوم بجلب الطلبات من السيرفر
-      dispatch(fetchConfirmedOrders());
-      triggerAlarm();
-    };
+      console.log('New order event received:', data)
+      dispatch(fetchConfirmedOrders())
+      triggerAlarm()
+    }
 
     const handleOrderConfirmed = (data: { orderId: number }) => {
-      console.log('Order Confirmed event received:', data);
-      dispatch(fetchConfirmedOrders());
-    };
+      console.log('Order Confirmed event received:', data)
+      dispatch(fetchConfirmedOrders())
+    }
 
-    socket.on('newOrder', handleNewOrder);
-    socket.on('orderConfirmed', handleOrderConfirmed);
+    socket.on('newOrder', handleNewOrder)
+    socket.on('orderConfirmed', handleOrderConfirmed)
 
     return () => {
-      socket.off('newOrder', handleNewOrder);
-      socket.off('orderConfirmed', handleOrderConfirmed);
-    };
-  }, [dispatch]);
+      socket.off('newOrder', handleNewOrder)
+      socket.off('orderConfirmed', handleOrderConfirmed)
+    }
+  }, [dispatch])
 
-  // دالة التنبيه بالصوت والاهتزاز
   const triggerAlarm = () => {
     if (navigator.vibrate) {
-      navigator.vibrate(200);
+      navigator.vibrate(200)
     }
-    const audio = new Audio('/notification.mp3');
-    audio.play().catch(err => console.error('Error playing sound:', err));
-  };
-
-  // جلب الطلبات عند تحميل الصفحة
-  useEffect(() => {
-    dispatch(fetchConfirmedOrders());
-  }, [dispatch]);
-
-  // دالة للتحقق مما إذا كان تاريخ الطلب هو اليوم الحالي (باستخدام toLocaleDateString لمقارنة التوقيت المحلي)
-  function isToday(dateString: string | undefined): boolean {
-    if (!dateString) return false;
-    const dateObj = new Date(dateString);
-    const now = new Date();
-    return dateObj.toLocaleDateString() === now.toLocaleDateString();
+    if (audioRef.current) {
+      audioRef.current.play().catch(err => console.error('Error playing sound:', err))
+    }
   }
-  const todaysOrders = orders.filter(o => isToday(o.createdAt));
 
-  // فلترة الطلبات بناءً على البحث
-  const filteredSearchOrders = todaysOrders.filter((order: OrderType) => {
-    const phoneMatch = order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase());
+  // جلب الطلبات عند الدخول للصفحة
+  useEffect(() => {
+    dispatch(fetchConfirmedOrders())
+  }, [dispatch])
+
+  // هل الطلب من تاريخ اليوم؟
+  function isToday(dateString: string | undefined): boolean {
+    if (!dateString) return false
+    const dateObj = new Date(dateString)
+    const now = new Date()
+    return dateObj.toLocaleDateString() === now.toLocaleDateString()
+  }
+
+  // فلترة الطلبات من قائمة confirmedOrders:
+  // - الجزء الأيمن (Accepted Today) = finalConfirmed = true + تاريخ اليوم
+  // - الجزء الأيمن (New Today)      = finalConfirmed = false + تاريخ اليوم
+
+  const todaysAccepted = confirmedOrders.filter(
+    o => o.finalConfirmed === true && isToday(o.createdAt)
+  )
+  const todaysNew = confirmedOrders.filter(
+    o => o.finalConfirmed === false && isToday(o.createdAt)
+  )
+
+  // فلترة بالبحث
+  const searchFilter = (order: OrderType) => {
+    const phoneMatch = order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase())
     const addressMatch =
       order.deliveryAddress &&
-      order.deliveryAddress.toLowerCase().includes(searchTerm.toLowerCase());
-    return phoneMatch || addressMatch;
-  });
+      order.deliveryAddress.toLowerCase().includes(searchTerm.toLowerCase())
+    return phoneMatch || addressMatch
+  }
 
-  // تقسيم الطلبات إلى جديدة ومقبولة
-  const newOrders = filteredSearchOrders.filter(o => !o.finalConfirmed);
-  const acceptedOrders = filteredSearchOrders.filter(o => o.finalConfirmed);
+  const filteredAccepted = todaysAccepted.filter(searchFilter)
+  const filteredNew = todaysNew.filter(searchFilter)
 
-  // Handlers لعرض التفاصيل والفاتورة وتأكيد الطلب
+  // Handlers
   const handleViewDetails = async (orderId: number) => {
     try {
-      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`);
-      setOrderDetails(res.data);
-      setDetailsDialogOpen(true);
+      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`)
+      setOrderDetails(res.data)
+      setDetailsDialogOpen(true)
     } catch (error) {
-      console.error('Error fetching order details', error);
+      console.error('Error fetching order details', error)
     }
-  };
+  }
 
   const handleViewInvoice = async (orderId: number) => {
     try {
-      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`);
-      setInvoiceDetails(res.data);
-      setInvoiceDialogOpen(true);
+      const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`)
+      setInvoiceDetails(res.data)
+      setInvoiceDialogOpen(true)
     } catch (error) {
-      console.error('Error fetching invoice details:', error);
-      alert(t('Orders.NewOrdersPage.alerts.invoiceError'));
+      console.error('Error fetching invoice details:', error)
     }
-  };
+  }
 
   const handleConfirmClick = (orderId: number) => {
-    setSelectedOrderId(orderId);
-  };
+    setSelectedOrderId(orderId)
+  }
 
   const handleConfirmSubmit = async (prepTime: number, deliveryFee: number, taxValue: number) => {
-    if (!selectedOrderId) return;
+    if (!selectedOrderId) return
     await dispatch(
       confirmOrderByRestaurant({
         orderId: selectedOrderId,
@@ -119,16 +144,16 @@ const NewOrdersPage: React.FC = () => {
         deliveryFee,
         taxValue
       })
-    );
-    setSelectedOrderId(null);
-  };
+    )
+    setSelectedOrderId(null)
+  }
 
-  if (loading) return <div>{t('Orders.NewOrdersPage.loading')}</div>;
-  if (error) return <div>{t('Orders.NewOrdersPage.error', { error })}</div>;
+  if (loading) return <div>{t('Orders.NewOrdersPage.loading')}</div>
+  if (error) return <div>{t('Orders.NewOrdersPage.error', { error })}</div>
 
   return (
     <Box p={3}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant='h4' gutterBottom>
         {t('Orders.NewOrdersPage.title')}
       </Typography>
 
@@ -141,7 +166,7 @@ const NewOrdersPage: React.FC = () => {
           fullWidth
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
+              <InputAdornment position='end'>
                 <IconSearch size={16} />
               </InputAdornment>
             )
@@ -150,20 +175,22 @@ const NewOrdersPage: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
+        {/* العمود الأيسر: Accepted (Today) */}
         <Grid item xs={12} md={6}>
           <OrdersColumn
-            title={t('Orders.NewOrdersPage.acceptedToday', { count: acceptedOrders.length })}
-            orders={acceptedOrders}
+            title='Accepted (Today)'
+            orders={filteredAccepted}
             onViewDetails={handleViewDetails}
             onViewInvoice={handleViewInvoice}
             onConfirmClick={handleConfirmClick}
           />
         </Grid>
 
+        {/* العمود الأيمن: New (Today) */}
         <Grid item xs={12} md={6}>
           <OrdersColumn
-            title={t('Orders.NewOrdersPage.newToday', { count: newOrders.length })}
-            orders={newOrders}
+            title='New (Today)'
+            orders={filteredNew}
             onViewDetails={handleViewDetails}
             onViewInvoice={handleViewInvoice}
             onConfirmClick={handleConfirmClick}
@@ -171,18 +198,21 @@ const NewOrdersPage: React.FC = () => {
         </Grid>
       </Grid>
 
+      {/* حوار التفاصيل */}
       <OrderDetailsDialog
         open={detailsDialogOpen}
         orderDetails={orderDetails}
         onClose={() => setDetailsDialogOpen(false)}
       />
 
+      {/* حوار الفاتورة */}
       <InvoiceDialog
         open={invoiceDialogOpen}
         invoiceDetails={invoiceDetails}
         onClose={() => setInvoiceDialogOpen(false)}
       />
 
+      {/* حوار التأكيد */}
       <ConfirmOrderDialog
         open={selectedOrderId !== null}
         orderId={selectedOrderId}
@@ -190,7 +220,7 @@ const NewOrdersPage: React.FC = () => {
         onSubmit={handleConfirmSubmit}
       />
     </Box>
-  );
-};
+  )
+}
 
-export default NewOrdersPage;
+export default NewOrdersPage

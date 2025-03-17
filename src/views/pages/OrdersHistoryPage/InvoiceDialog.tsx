@@ -32,7 +32,7 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
           <Box>
             <Typography>
               <strong>{t('Orders.InvoiceDialog.customerPhone')}:</strong>{' '}
-              {invoiceDetails.customerPhoneNumber}
+              {invoiceDetails.customerPhone}
             </Typography>
             <Typography>
               <strong>{t('Orders.InvoiceDialog.deliveryAddress')}:</strong>{' '}
@@ -49,8 +49,7 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
                 : t('Orders.InvoiceDialog.pending')}
             </Typography>
             <Typography>
-              <strong>{t('Orders.InvoiceDialog.createdAt')}:</strong>{' '}
-              {invoiceDetails.createdAt}
+              <strong>{t('Orders.InvoiceDialog.createdAt')}:</strong> {invoiceDetails.createdAt}
             </Typography>
             {invoiceDetails.deliveryFee !== null && (
               <Typography>
@@ -70,6 +69,7 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
                 {invoiceDetails.prepTime} {t('Orders.InvoiceDialog.minutes')}
               </Typography>
             )}
+
             <Typography variant='h6' mt={2}>
               {t('Orders.InvoiceDialog.itemsTitle')}
             </Typography>

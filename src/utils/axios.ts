@@ -10,7 +10,7 @@ const axiosServices = axios.create({
 })
 
 axiosServices.interceptors.request.use(
-  (config) => {
+  config => {
     // اقرأ التوكن من الكوكي بدلًا من localStorage
     const token = getCookie('token')
     if (token && config.headers) {
@@ -18,12 +18,12 @@ axiosServices.interceptors.request.use(
     }
     return config
   },
-  (error) => Promise.reject(error)
+  error => Promise.reject(error)
 )
 
 axiosServices.interceptors.response.use(
-  (response) => response, // النجاح
-  (error) => {
+  response => response, // النجاح
+  error => {
     // عرض رسالة خطأ واضحة
     return Promise.reject((error.response && error.response.data) || 'Wrong Services')
   }

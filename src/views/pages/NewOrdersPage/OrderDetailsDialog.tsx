@@ -1,5 +1,13 @@
 import React from 'react'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography } from '@mui/material'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Typography
+} from '@mui/material'
 import { OrderType, OrderItemType } from 'src/types/apps/order'
 
 // الترجمة
@@ -11,11 +19,7 @@ interface OrderDetailsDialogProps {
   onClose: () => void
 }
 
-const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
-  open,
-  orderDetails,
-  onClose
-}) => {
+const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ open, orderDetails, onClose }) => {
   const { t } = useTranslation()
 
   return (
@@ -27,13 +31,16 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         {orderDetails && (
           <Box>
             <Typography>
-              <strong>{t('Orders.OrderDetailsDialog.customerName')}:</strong> {orderDetails.customerName}
+              <strong>{t('Orders.OrderDetailsDialog.customerName')}:</strong>{' '}
+              {orderDetails.customerName}
             </Typography>
             <Typography>
-              <strong>{t('Orders.OrderDetailsDialog.customerPhone')}:</strong> {orderDetails.customerPhoneNumber}
+              <strong>{t('Orders.OrderDetailsDialog.customerPhone')}:</strong>{' '}
+              {orderDetails.customerPhone}
             </Typography>
             <Typography>
-              <strong>{t('Orders.OrderDetailsDialog.deliveryAddress')}:</strong> {orderDetails.deliveryAddress}
+              <strong>{t('Orders.OrderDetailsDialog.deliveryAddress')}:</strong>{' '}
+              {orderDetails.deliveryAddress}
             </Typography>
             <Typography>
               <strong>{t('Orders.OrderDetailsDialog.totalPrice')}:</strong> {orderDetails.totalPrice}
@@ -49,7 +56,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             </Typography>
             {orderDetails.deliveryFee !== null && (
               <Typography>
-                <strong>{t('Orders.OrderDetailsDialog.deliveryFee')}:</strong> {orderDetails.deliveryFee}
+                <strong>{t('Orders.OrderDetailsDialog.deliveryFee')}:</strong>{' '}
+                {orderDetails.deliveryFee}
               </Typography>
             )}
             {orderDetails.taxValue !== null && (

@@ -22,7 +22,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const { t } = useTranslation()
   const [blink, setBlink] = useState(false)
 
-  // إذا كان الطلب غير مؤكد نقوم بتشغيل مؤقت لتغيير قيمة blink
+  // إذا لم يكن الطلب مؤكدًا، نجعل الـ Card يومض
   useEffect(() => {
     if (!order.finalConfirmed) {
       const intervalId = setInterval(() => {

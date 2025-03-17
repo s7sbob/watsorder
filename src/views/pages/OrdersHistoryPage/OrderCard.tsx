@@ -26,7 +26,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
     if (!order.finalConfirmed) {
       const intervalId = setInterval(() => {
         setBlink(prev => !prev)
-      }, 1000) // تغيير كل ثانية
+      }, 1000)
       return () => clearInterval(intervalId)
     }
   }, [order.finalConfirmed])

@@ -40,7 +40,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             </Typography>
             <Typography>
               <strong>{t('Orders.OrderDetailsDialog.customerPhone')}:</strong>{' '}
-              {orderDetails.customerPhoneNumber}
+              {orderDetails.customerPhone}
             </Typography>
             <Typography>
               <strong>{t('Orders.OrderDetailsDialog.deliveryAddress')}:</strong>{' '}

@@ -34,6 +34,7 @@ const ConfirmOrderDialog: React.FC<ConfirmOrderDialogProps> = ({
 
   const handleConfirm = () => {
     onSubmit(prepTime, deliveryFee, taxValue)
+    onClose()
   }
 
   return (

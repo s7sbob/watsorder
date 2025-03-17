@@ -74,7 +74,9 @@
       "close": "إغلاق",
       "cancel": "إلغاء",
       "iHavePaid": "لقد دفعت",
-      "payNow": "ادفع الآن" 
+      "payNow": "ادفع الآن" ,
+      "login": "تسجيل الدخول"
+
     },
     "messages": {
       "numberUpdateSuccess": "تم تحديث الرقم بنجاح",

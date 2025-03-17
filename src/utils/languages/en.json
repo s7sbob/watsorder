@@ -75,7 +75,8 @@
         "close": "Close",
         "cancel": "Cancel",
         "iHavePaid": "I have paid",
-        "payNow": "Pay Now"
+        "payNow": "Pay Now",
+        "login": "Login"
       },
       "messages": {
         "numberUpdateSuccess": "Updated the number successfully",

@@ -26,7 +26,7 @@ const OrdersColumn: React.FC<OrdersColumnProps> = ({
   return (
     <Paper sx={{ p: 2 }}>
       <Typography variant='h6' sx={{ mb: 2 }}>
-        {title}
+        {title} <span style={{ color: '#f90' }}>({orders.length})</span>
       </Typography>
       {orders.length === 0 ? (
         <Typography>{t('Orders.OrdersColumn.noOrders')}</Typography>

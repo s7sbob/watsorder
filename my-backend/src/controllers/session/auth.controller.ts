@@ -7,7 +7,7 @@ import { checkSessionOwnership } from './helpers';
 import { whatsappClients } from '../whatsappClients';
 import { createWhatsAppClientForSession } from '../whatsappClients';
 
-/**
+/*
  * استرجاع رمز QR لجلسة معينة
  */
 export const getQrForSession = async (req: Request, res: Response) => {
@@ -37,100 +37,101 @@ export const getQrForSession = async (req: Request, res: Response) => {
   }
 };
 
+/* 
+  ================================
+   دوال تسجيل الخروج / تسجيل الدخول 
+  ================================
+*/
+
 /**
- * تسجيل الخروج من الجلسة
+ * تسجيل الخروج من جلسة -> Terminated
  */
 export const logoutSession = async (req: Request, res: Response) => {
-  const sessionId = parseInt(req.params.id, 10);
+  const sessionId = parseInt(req.params.id, 10)
   if (!sessionId) {
-    return res.status(400).json({ message: 'Invalid session ID.' });
+    return res.status(400).json({ message: 'Invalid session ID.' })
   }
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnership(pool, sessionId, req.user);
+    const pool = await getConnection()
+    await checkSessionOwnership(pool, sessionId, req.user)
 
-    const result = await pool.request()
+    // اجلب البيانات وتأكد أن الجلسة موجودة
+    const sessionRow = await pool.request()
       .input('sessionId', sql.Int, sessionId)
-      .query('SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId');
-
-    const { sessionIdentifier } = result.recordset[0];
-
-    const client = whatsappClients[sessionId];
-    if (client) {
-      await client.destroy();
-      delete whatsappClients[sessionId];
+      .query(`SELECT id FROM Sessions WHERE id = @sessionId`)
+    if (!sessionRow.recordset.length) {
+      return res.status(404).json({ message: 'Session not found.' })
     }
 
-    const folderPath = `.wwebjs_auth/session-${sessionIdentifier.replace(/[^A-Za-z0-9_-]/g, '_')}`;
-    if (fs.existsSync(folderPath)) {
-      await fs.remove(folderPath);
+    // دمّر عميل الواتساب (إن وجد) ثم حدث الحالة
+    const { whatsappClients } = await import('../whatsappClients')
+    const client = whatsappClients[sessionId]
+    if (client) {
+      await client.destroy()
+      delete whatsappClients[sessionId]
     }
 
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
+      .input('newStatus', sql.NVarChar, 'Terminated')
       .query(`
         UPDATE Sessions
-        SET status = 'Terminated',
-            qrCode = NULL,
-            phoneNumber = NULL
+        SET status = @newStatus
         WHERE id = @sessionId
-      `);
+      `)
 
-    return res.status(200).json({ message: 'Session logged out successfully (files removed).' });
-  } catch (error: any) {
-    if (error.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found in DB.' });
-    }
-    if (error.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
-    }
-    console.error('Error logging out session:', error);
-    return res.status(500).json({ message: 'Error logging out session.' });
+    return res.status(200).json({ message: 'Session logged out (Terminated).' })
+  } catch (error) {
+    console.error('Error logging out session:', error)
+    return res.status(500).json({ message: 'Error logging out session.' })
   }
-};
+}
 
 /**
- * تسجيل الدخول مجددًا (إعادة تهيئة)
+ * تسجيل الدخول مجددًا -> Ready + تشغيل الجلسة
  */
 export const loginSession = async (req: Request, res: Response) => {
-  const sessionId = parseInt(req.params.id, 10);
+  const sessionId = parseInt(req.params.id, 10)
   if (!sessionId) {
-    return res.status(400).json({ message: 'Invalid session ID.' });
+    return res.status(400).json({ message: 'Invalid session ID.' })
   }
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnership(pool, sessionId, req.user);
+    const pool = await getConnection()
+    await checkSessionOwnership(pool, sessionId, req.user)
 
-    const result = await pool.request()
-      .input('sessionId', sql.Int, sessionId)
-      .query('SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId');
-
-    if (!result.recordset.length) {
-      return res.status(404).json({ message: 'Session not found.' });
-    }
-
-    const { sessionIdentifier } = result.recordset[0];
-    await createWhatsAppClientForSession(sessionId, sessionIdentifier);
-
-    await pool.request()
+    // نتحقق من أن الجلسة حالتها Terminated (منطقيًا)
+    const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
-        UPDATE Sessions
-        SET status = 'Waiting for QR Code', qrCode = NULL
+        SELECT sessionIdentifier
+        FROM Sessions
         WHERE id = @sessionId
-      `);
+      `)
+    if (!sessionResult.recordset.length) {
+      return res.status(404).json({ message: 'Session not found.' })
+    }
 
-    return res.status(200).json({ message: 'Session login initiated. Please scan the QR code.' });
-  } catch (error: any) {
-    if (error.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found.' });
-    }
-    if (error.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
-    }
-    console.error('Error logging in session:', error);
-    return res.status(500).json({ message: 'Error logging in session.' });
+    const sessionIdentifier = sessionResult.recordset[0].sessionIdentifier
+
+    // تحويلها إلى Ready
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('newStatus', sql.NVarChar, 'Ready')
+      .query(`
+        UPDATE Sessions
+        SET status = @newStatus
+        WHERE id = @sessionId
+      `)
+
+    // استدعاء دالة إنشاء عميل واتساب
+    await createWhatsAppClientForSession(sessionId, sessionIdentifier)
+
+    return res.status(200).json({ message: 'Session re-logged in successfully. Now Ready.' })
+  } catch (error) {
+    console.error('Error logging in session:', error)
+    return res.status(500).json({ message: 'Error logging in session.' })
   }
-};
+}
+
