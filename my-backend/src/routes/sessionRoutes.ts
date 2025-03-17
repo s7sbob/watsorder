@@ -33,9 +33,10 @@ import {
   forceStartSession,
   getGreeting,
   updateAlternateWhatsAppNumber
-} from '../controllers/sessionController'
+} from '../controllers/session'
 import { authenticateToken } from '../middleware/authMiddleware'
 import { upload } from '../middleware/uploadMiddleware'
+import { getPaymentProof, submitPaymentProof, uploadPaymentProof } from '../controllers/session/paymentProof.controller'
 
 const router = Router()
 
@@ -140,6 +141,12 @@ router.post('/create-paid-session', authenticateToken, createPaidSession);
 router.post('/:id/reject-payment', authenticateToken, rejectPayment);
 router.post('/:id/force-pause', authenticateToken, forcePauseSession)
 router.post('/:id/force-start', authenticateToken, forceStartSession)
+// رفع إثبات الدفع
+
+router.post('/:sessionId/payment-proof', uploadPaymentProof, submitPaymentProof)
+
+// جلب إثبات الدفع
+router.get('/:sessionId/payment-proof', getPaymentProof)
 
 
 

@@ -18,9 +18,10 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  InputAdornment
+  InputAdornment,
+  IconButton
 } from '@mui/material'
-import { Search as SearchIcon } from '@mui/icons-material'
+import { Search as SearchIcon, ImageSearch as ImageSearchIcon } from '@mui/icons-material'
 import axiosServices from 'src/utils/axios'
 
 interface Session {
@@ -43,6 +44,10 @@ const SessionManagement: React.FC = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [newExpireDate, setNewExpireDate] = useState('')
+
+  // ======= حوار عرض إثبات الدفع =======
+  const [openProofDialog, setOpenProofDialog] = useState(false)
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(null)
 
   const fetchSessions = async () => {
     try {
@@ -148,6 +153,40 @@ const SessionManagement: React.FC = () => {
     }
   }
 
+  // ======= عرض إثبات الدفع =======
+  const handleViewPaymentProof = async (sessionId: number) => {
+    try {
+      const res = await axiosServices.get(`/api/sessions/${sessionId}/payment-proof`)
+  
+      if (!res.data.hasProof) {
+        alert('No payment proof found for this session.')
+        return
+      }
+  
+      // المسار النسبي للملف كما يعيده السيرفر
+      const filePath = res.data.filePath || ''
+      // ضمّه مع الـ baseURL للـ axios
+      const baseURL = axiosServices.defaults.baseURL || ''
+      // إذا لم يبدأ المسار بـ '/' ضفنا واحد
+      const imageUrl = `${baseURL}${filePath.startsWith('/') ? filePath : `/${filePath}`}`
+  
+      setProofImageUrl(imageUrl)
+      setOpenProofDialog(true)
+    } catch (error) {
+      console.error('Error fetching payment proof:', error)
+      alert('Failed to fetch payment proof.')
+    }
+  }
+  
+
+  // تنسيق التاريخ فقط (YYYY-MM-DD)
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'N/A'
+    // تحويل لسنة-شهر-يوم
+    const dateObj = new Date(dateStr)
+    return dateObj.toISOString().slice(0, 10) // فقط YYYY-MM-DD
+  }
+
   return (
     <Box p={3}>
       <Typography variant='h4' gutterBottom>
@@ -227,9 +266,17 @@ const SessionManagement: React.FC = () => {
                   />
                 </TableCell>
                 <TableCell>{session.planType || 'Not Chosen'}</TableCell>
-                <TableCell>{session.expireDate || 'N/A'}</TableCell>
+                <TableCell>{formatDate(session.expireDate)}</TableCell>
                 <TableCell>{session.phoneNumber || 'N/A'}</TableCell>
                 <TableCell align='center'>
+                  {/* زر لفتح إثبات الدفع دائماً (أو يمكنك إظهاره فقط لو الحالة Paid أو غيره) */}
+                  <IconButton
+                    onClick={() => handleViewPaymentProof(session.id)}
+                    title='View Payment Proof'
+                  >
+                    <ImageSearchIcon />
+                  </IconButton>
+
                   {/* التأكيد أو الرفض عند Waiting for Payment أو Paid */}
                   {(session.status === 'Waiting for Payment' || session.status === 'Paid') && (
                     <>
@@ -238,7 +285,7 @@ const SessionManagement: React.FC = () => {
                         color='primary'
                         size='small'
                         onClick={() => handleForceConfirm(session)}
-                        style={{ marginRight: 8 }}
+                        style={{ marginRight: 8, marginLeft: 8 }}
                       >
                         Confirm Payment
                       </Button>
@@ -248,7 +295,7 @@ const SessionManagement: React.FC = () => {
                         size='small'
                         onClick={() => handleRejectPayment(session.id)}
                       >
-                        Reject Payment
+                        Reject
                       </Button>
                     </>
                   )}
@@ -259,6 +306,7 @@ const SessionManagement: React.FC = () => {
                       variant='outlined'
                       color='secondary'
                       size='small'
+                      style={{ marginLeft: 8 }}
                       onClick={() => handleRenewSubscription(session.id)}
                     >
                       Renew
@@ -315,6 +363,26 @@ const SessionManagement: React.FC = () => {
           <Button onClick={handleConfirmPayment} variant='contained' color='primary'>
             Confirm
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* حوار لعرض إثبات الدفع (صورة) */}
+      <Dialog open={openProofDialog} onClose={() => setOpenProofDialog(false)} maxWidth='sm' fullWidth>
+        <DialogTitle>Payment Proof</DialogTitle>
+        <DialogContent>
+          {proofImageUrl ? (
+            <Box
+              component='img'
+              src={proofImageUrl}
+              alt='Payment Proof'
+              sx={{ width: '100%', height: 'auto', mt: 1 }}
+            />
+          ) : (
+            <Typography>No proof found.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenProofDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

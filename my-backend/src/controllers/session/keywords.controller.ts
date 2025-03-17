@@ -1,33 +1,30 @@
-// src/controllers/session/session.keywords.ts
+// controllers/session/keywords.controller.ts
 import { Request, Response } from 'express';
 import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
+import { checkSessionOwnershipForKeywords } from './helpers';
+import fs from 'fs-extra'; // في حال تحتاجه لإزالة ملفات
 
 /**
- * دالة للتحقق من ملكية sessionId (مشابهة لدوال أخرى)
- */
-async function checkSessionOwnershipForKeywords(pool: sql.ConnectionPool, sessionId: number, user: any) {
-  const sessRow = await pool.request()
-    .input('sessionId', sql.Int, sessionId)
-    .query(`SELECT userId FROM Sessions WHERE id = @sessionId`);
-  if (!sessRow.recordset.length) {
-    throw new Error('SessionNotFound');
-  }
-  const ownerId = sessRow.recordset[0].userId;
-  if (user.subscriptionType !== 'admin' && user.id !== ownerId) {
-    throw new Error('Forbidden');
-  }
-}
-
-/**
- * إضافة Keyword + Replay
+ * (1) إضافة مجموعة كلمات مفتاحية + الرد
  */
 export const addKeyword = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
-  const { keyword, replyText } = req.body;
+  let keywordsInput = req.body.keywords || req.body.keyword;
+  const replyText = req.body.replyText;
 
-  if (!keyword || !replyText) {
-    return res.status(400).json({ message: 'keyword and replyText are required.' });
+  if (!keywordsInput || !replyText) {
+    return res.status(400).json({ message: 'keywords and replyText are required.' });
+  }
+
+  let keywordsArray: string[] = [];
+  if (typeof keywordsInput === 'string') {
+    keywordsArray = keywordsInput.split(',').map((kw: string) => kw.trim()).filter((kw: string) => kw);
+  } else if (Array.isArray(keywordsInput)) {
+    keywordsArray = keywordsInput.map((kw: string) => kw.trim()).filter((kw: string) => kw);
+  }
+  if (keywordsArray.length === 0) {
+    return res.status(400).json({ message: 'At least one keyword is required.' });
   }
 
   try {
@@ -36,7 +33,7 @@ export const addKeyword = async (req: Request, res: Response) => {
 
     let replayId: number;
 
-    // البحث عن Replay بنفس النص في جدول Replays
+    // البحث عن Replay بنفس نص الرد
     const replaySearch = await pool.request()
       .input('replyText', sql.NVarChar, replyText)
       .query(`
@@ -46,7 +43,7 @@ export const addKeyword = async (req: Request, res: Response) => {
 
     if (replaySearch.recordset.length > 0) {
       replayId = replaySearch.recordset[0].id;
-      // تحديث نص الرد إن رغبت (اختياري)
+      // تحديث نص الرد (اختياري)
       await pool.request()
         .input('replayId', sql.Int, replayId)
         .input('replyText', sql.NVarChar, replyText)
@@ -67,26 +64,27 @@ export const addKeyword = async (req: Request, res: Response) => {
       replayId = replayInsert.recordset[0].id;
     }
 
-    // إضافة الـ Keyword وربطه بالـ replay_id (العمود في جدول Keywords)
-    await pool.request()
-      .input('sessionId', sql.Int, sessionId)
-      .input('keyword', sql.NVarChar, keyword)
-      .input('replay_id', sql.Int, replayId)
-      .query(`
-        INSERT INTO [dbo].[Keywords] (sessionId, keyword, replay_id)
-        VALUES (@sessionId, @keyword, @replay_id)
-      `);
+    // إدراج كل كلمة مفتاحية
+    for (const kw of keywordsArray) {
+      await pool.request()
+        .input('sessionId', sql.Int, sessionId)
+        .input('keyword', sql.NVarChar, kw)
+        .input('replay_id', sql.Int, replayId)
+        .query(`
+          INSERT INTO [dbo].[Keywords] (sessionId, keyword, replay_id)
+          VALUES (@sessionId, @keyword, @replay_id)
+        `);
+    }
 
-    // قبل إدخال الملفات، تحقق مما إذا كانت هناك وسائط موجودة مسبقاً
+    // إضافة ملفات مرفقة (إن لم يكن هناك ملفات قديمة)
     const existingMedia = await pool.request()
       .input('replayId', sql.Int, replayId)
       .query(`SELECT COUNT(*) as cnt FROM ReplayMedia WHERE replayId = @replayId`);
-
     if (existingMedia.recordset[0].cnt === 0) {
       const files = req.files as Express.Multer.File[];
       if (files && files.length > 0) {
         for (const file of files) {
-          const filePath = file.path; // المسار الذي حفظه multer
+          const filePath = file.path;
           const originalName = file.originalname;
           await pool.request()
             .input('replayId', sql.Int, replayId)
@@ -100,7 +98,7 @@ export const addKeyword = async (req: Request, res: Response) => {
       }
     }
 
-    return res.status(201).json({ message: 'Keyword added successfully.' });
+    return res.status(201).json({ message: 'Keywords added successfully.' });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
       return res.status(404).json({ message: 'Session not found.' });
@@ -108,14 +106,13 @@ export const addKeyword = async (req: Request, res: Response) => {
     if (error.message === 'Forbidden') {
       return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
     }
-    console.error('Error adding keyword:', error);
-    return res.status(500).json({ message: 'Error adding keyword.' });
+    console.error('Error adding keywords:', error);
+    return res.status(500).json({ message: 'Error adding keywords.' });
   }
 };
 
 /**
- * جلب الـ Keywords وتجميعها حسب replay_id
- * نعيد replay_id باستخدام alias باسم replayId لتسهيل التعامل مع الـ frontend
+ * (2) جلب كل الكلمات المفتاحية الخاصة بالجلسة
  */
 export const getKeywordsForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
@@ -142,28 +139,33 @@ export const getKeywordsForSession = async (req: Request, res: Response) => {
       `);
 
     const rows = queryResult.recordset;
-    // تجميع النتائج بحسب replayId
     const map = new Map<number, any>();
+
     for (const row of rows) {
       if (!map.has(row.replayId)) {
         map.set(row.replayId, {
           replayId: row.replayId,
           keywords: [row.keyword],
           replyText: row.replyText,
-          mediaFiles: [],
+          mediaFiles: []
         });
       } else {
         map.get(row.replayId).keywords.push(row.keyword);
       }
       if (row.mediaId) {
-        map.get(row.replayId).mediaFiles.push({
-          mediaId: row.mediaId,
-          mediaPath: row.mediaPath,
-          mediaName: row.mediaName,
-        });
+        const mediaArray = map.get(row.replayId).mediaFiles;
+        if (!mediaArray.find((media: any) => media.mediaId === row.mediaId)) {
+          mediaArray.push({
+            mediaId: row.mediaId,
+            mediaPath: row.mediaPath,
+            mediaName: row.mediaName
+          });
+        }
       }
     }
-    return res.status(200).json(Array.from(map.values()));
+
+    const keywordsArray = Array.from(map.values());
+    return res.status(200).json(keywordsArray);
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
       return res.status(404).json({ message: 'Session not found.' });
@@ -177,33 +179,38 @@ export const getKeywordsForSession = async (req: Request, res: Response) => {
 };
 
 /**
- * تحديث Keyword (مجموعة الكلمات) بناءً على replay_id
- * يتم تحديث نص الرد في جدول Replays وتحديث جميع الكلمات في جدول Keywords التي تحمل replay_id
- * كما يتم إدارة الوسائط: إذا تم رفع ملفات جديدة يتم حذف القديمة وإدراج الجديدة؛ وإلا يتم الاحتفاظ بالوسائط القديمة
+ * (3) تحديث مجموعة الكلمات المفتاحية
  */
 export const updateKeyword = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
-  // نستخدم replay_id المُرسل في الرابط
-  const replayId = parseInt(req.params.replayId, 10);
+  const replayIdParam = req.params.replayId || req.params.keywordId;
+  const replayId = parseInt(replayIdParam, 10);
   const { newKeyword, newReplyText } = req.body;
 
   if (!newKeyword || !newReplyText) {
     return res.status(400).json({ message: 'newKeyword and newReplyText are required.' });
   }
 
+  const keywordsArray = newKeyword.split(',').map((kw: string) => kw.trim()).filter((kw: string) => kw);
+
   try {
     const pool = await getConnection();
     await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user);
 
-    // التحقق من وجود Replay باستخدام العمود id
-    const replayRes = await pool.request()
+    // التحقق من وجود المجموعة
+    const keywordRows = await pool.request()
       .input('replayId', sql.Int, replayId)
-      .query(`SELECT id FROM Replays WHERE id = @replayId`);
-    if (!replayRes.recordset.length) {
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT id FROM Keywords
+        WHERE replay_id = @replayId AND sessionId = @sessionId
+      `);
+
+    if (!keywordRows.recordset.length) {
       return res.status(404).json({ message: 'Keyword group not found.' });
     }
 
-    // تحديث نص الرد في جدول Replays
+    // تحديث الرد
     await pool.request()
       .input('replayId', sql.Int, replayId)
       .input('newReplyText', sql.NVarChar, newReplyText)
@@ -213,25 +220,33 @@ export const updateKeyword = async (req: Request, res: Response) => {
         WHERE id = @replayId
       `);
 
-    // تحديث جميع الكلمات في جدول Keywords التي تحمل هذا replay_id
+    // حذف الكلمات المفتاحية القديمة
     await pool.request()
-      .input('sessionId', sql.Int, sessionId)
       .input('replayId', sql.Int, replayId)
-      .input('newKeyword', sql.NVarChar, newKeyword)
       .query(`
-        UPDATE Keywords
-        SET keyword = @newKeyword
+        DELETE FROM Keywords
         WHERE replay_id = @replayId
-          AND sessionId = @sessionId
       `);
 
-    // إدارة الوسائط:
-    // إذا تم رفع ملفات جديدة، نقوم بحذف الوسائط القديمة وإدراج الجديدة.
+    // إدخال الكلمات الجديدة
+    for (const kw of keywordsArray) {
+      await pool.request()
+        .input('sessionId', sql.Int, sessionId)
+        .input('keyword', sql.NVarChar, kw)
+        .input('replay_id', sql.Int, replayId)
+        .query(`
+          INSERT INTO [dbo].[Keywords] (sessionId, keyword, replay_id)
+          VALUES (@sessionId, @keyword, @replay_id)
+        `);
+    }
+
+    // تحديث الوسائط (في حال رفع ملفات جديدة)
     const files = req.files as Express.Multer.File[];
     if (files && files.length > 0) {
       await pool.request()
         .input('replayId', sql.Int, replayId)
         .query(`DELETE FROM ReplayMedia WHERE replayId = @replayId`);
+
       for (const file of files) {
         const filePath = file.path;
         const originalName = file.originalname;
@@ -245,9 +260,8 @@ export const updateKeyword = async (req: Request, res: Response) => {
           `);
       }
     }
-    // إذا لم تُرفع ملفات جديدة، نترك الوسائط القديمة كما هي
 
-    return res.status(200).json({ message: 'Keyword updated successfully.' });
+    return res.status(200).json({ message: 'Keyword group updated successfully.' });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
       return res.status(404).json({ message: 'Session not found.' });
@@ -255,50 +269,42 @@ export const updateKeyword = async (req: Request, res: Response) => {
     if (error.message === 'Forbidden') {
       return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
     }
-    console.error('Error updating keyword:', error);
-    return res.status(500).json({ message: 'Error updating keyword.' });
+    console.error('Error updating keyword group:', error);
+    return res.status(500).json({ message: 'Error updating keyword group.' });
   }
 };
 
 /**
- * حذف Keyword
- * إذا لم يعد الـ replay مستخدمًا، نقوم أيضًا بحذف وسائطه وسجل Replays
+ * (4) حذف مجموعة الكلمات المفتاحية
  */
 export const deleteKeyword = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
-  const keywordId = parseInt(req.params.keywordId, 10);
+  const replayId = parseInt(req.params.keywordId, 10);
 
   try {
     const pool = await getConnection();
     await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user);
 
-    // استرجاع replay_id الخاص بالكلمة المفتاحية
-    const keywordRow = await pool.request()
-      .input('keywordId', sql.Int, keywordId)
+    const keywordRows = await pool.request()
+      .input('replayId', sql.Int, replayId)
       .input('sessionId', sql.Int, sessionId)
       .query(`
-        SELECT replay_id
-        FROM Keywords
-        WHERE id = @keywordId
-          AND sessionId = @sessionId
+        SELECT id FROM Keywords
+        WHERE replay_id = @replayId AND sessionId = @sessionId
       `);
 
-    if (!keywordRow.recordset.length) {
-      return res.status(404).json({ message: 'Keyword not found.' });
+    if (!keywordRows.recordset.length) {
+      return res.status(404).json({ message: 'Keyword group not found.' });
     }
-    const replayId = keywordRow.recordset[0].replay_id;
 
-    // حذف الكلمة المفتاحية
     await pool.request()
-      .input('keywordId', sql.Int, keywordId)
+      .input('replayId', sql.Int, replayId)
       .input('sessionId', sql.Int, sessionId)
       .query(`
         DELETE FROM Keywords
-        WHERE id = @keywordId
-          AND sessionId = @sessionId
+        WHERE replay_id = @replayId AND sessionId = @sessionId
       `);
 
-    // التأكد مما إذا كان الـ replay مستخدمًا بعد حذف هذه الكلمة
     const checkReplay = await pool.request()
       .input('replayId', sql.Int, replayId)
       .query(`
@@ -308,17 +314,16 @@ export const deleteKeyword = async (req: Request, res: Response) => {
       `);
 
     if (checkReplay.recordset[0].cnt === 0) {
-      // حذف الوسائط
       await pool.request()
         .input('replayId', sql.Int, replayId)
         .query(`DELETE FROM ReplayMedia WHERE replayId = @replayId`);
-      // حذف سجل الـ Replays
+
       await pool.request()
         .input('replayId', sql.Int, replayId)
         .query(`DELETE FROM Replays WHERE id = @replayId`);
     }
 
-    return res.status(200).json({ message: 'Keyword deleted successfully.' });
+    return res.status(200).json({ message: 'Keyword group deleted successfully.' });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
       return res.status(404).json({ message: 'Session not found.' });
@@ -326,7 +331,7 @@ export const deleteKeyword = async (req: Request, res: Response) => {
     if (error.message === 'Forbidden') {
       return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
     }
-    console.error('Error deleting keyword:', error);
-    return res.status(500).json({ message: 'Error deleting keyword.' });
+    console.error('Error deleting keyword group:', error);
+    return res.status(500).json({ message: 'Error deleting keyword group.' });
   }
 };

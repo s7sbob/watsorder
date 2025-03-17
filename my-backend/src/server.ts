@@ -10,7 +10,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import swaggerUi from 'swagger-ui-express';
 
-import { initializeExistingSessions } from './controllers/sessionController';
+import { initializeExistingSessions } from './controllers/session';
 
 // استيراد المسارات
 import orderRoutes from './routes/orderRoutes';
