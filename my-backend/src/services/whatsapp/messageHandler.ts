@@ -688,16 +688,15 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
         }
       }
 
-// 3) منطق الرسائل الدورية (Greeting)
-      // ------------------------------
-      // (A) اكتشف ما إذا كانت الرسالة أمر Menu Bot أم لا
+ // ================== (3) منطق الرسائل الدورية (Greeting) ==================
+      // ------------- أولاً: اكتشاف ما إذا كانت الرسالة أمر Menu Bot أم لا -------------
       const isCommand =
         ['NEWORDER', 'SHOWCATEGORIES', 'VIEWCART', 'CARTCONFIRM'].some(cmd => upperText === cmd) ||
         upperText.startsWith('CATEGORY_') ||
         upperText.startsWith('PRODUCT_') ||
         upperText.startsWith('REMOVEPRODUCT_');
 
-      // ====== (1) أولاً: إرسال الـ Greeting إن كان مفعّلاً ======
+      // ------------- (A) إرسال Greeting (إن وجد) قبل رسالة الملاحظة -------------
       if (greetingActive && !isCommand) {
         const existingOrder = await pool.request()
           .input('sessionId', sql.Int, sessionId)
@@ -725,7 +724,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
             canSendGreeting = true;
           } else {
             const lastSent = new Date(greetingLogRow.recordset[0].lastSentAt);
-            const diffMs = now.getTime() - lastSent.getTime();
+            const diffMs = new Date().getTime() - lastSent.getTime();
             const diffMinutes = diffMs / 1000 / 60;
             if (diffMinutes >= 60) {
               canSendGreeting = true;
@@ -758,7 +757,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
         }
       }
 
-      // ====== (2) ثانيًا: إرسال رسالة الـ MenuBot التوضيحية ======
+      // ------------- (B) إرسال الرسالة التوضيحية للـ Menu Bot (ملاحظة يرجى الضغط...) -------------
       if (menuBotActive &&
           (await pool.request()
             .input('sessionId', sql.Int, sessionId)
@@ -783,6 +782,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
             WHERE sessionId = @sessionId
               AND phoneNumber = @specialPhone
           `);
+
         let canSendMenuBot = false;
         if (!menuBotLogRow.recordset.length) {
           canSendMenuBot = true;
@@ -794,6 +794,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
             canSendMenuBot = true;
           }
         }
+
         if (canSendMenuBot) {
           const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الإرسال
 
