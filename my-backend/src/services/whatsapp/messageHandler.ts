@@ -688,76 +688,16 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
         }
       }
 
-      // 3) منطق الرسائل الدورية (Greeting)
-const isCommand =
+// 3) منطق الرسائل الدورية (Greeting)
+      // ------------------------------
+      // (A) اكتشف ما إذا كانت الرسالة أمر Menu Bot أم لا
+      const isCommand =
         ['NEWORDER', 'SHOWCATEGORIES', 'VIEWCART', 'CARTCONFIRM'].some(cmd => upperText === cmd) ||
         upperText.startsWith('CATEGORY_') ||
         upperText.startsWith('PRODUCT_') ||
         upperText.startsWith('REMOVEPRODUCT_');
-  
-      if (menuBotActive && (await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .query(`
-              SELECT TOP 1 id 
-              FROM Orders 
-              WHERE sessionId = @sessionId 
-                AND customerPhoneNumber = @custPhone
-                AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
-            `)).recordset.length === 0 && !isCommand) {
-        const specialPhoneForMenuBot = customerPhone + '-menubot';
-        const now = new Date();
-        const menuBotLogRow = await pool.request()
-          .input('sessionId', sql.Int, sessionId)
-          .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
-          .query(`
-            SELECT lastSentAt
-            FROM GreetingLog
-            WHERE sessionId = @sessionId
-              AND phoneNumber = @specialPhone
-          `);
-        let canSendMenuBot = false;
-        if (!menuBotLogRow.recordset.length) {
-          canSendMenuBot = true;
-        } else {
-          const lastSent = new Date(menuBotLogRow.recordset[0].lastSentAt);
-          const diffMs = now.getTime() - lastSent.getTime();
-          const diffMinutes = diffMs / 1000 / 60;
-          if (diffMinutes >= 60) {
-            canSendMenuBot = true;
-          }
-        }
-        if (canSendMenuBot) {
-          const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الإرسال
 
-*لتسجيل طلب جديد*
-wa.me/${phoneNumber}?text=NEWORDER
-`;
-          await client.sendMessage(msg.from, menuBotGuide);
-          if (!menuBotLogRow.recordset.length) {
-            await pool.request()
-              .input('sessionId', sql.Int, sessionId)
-              .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
-              .input('now', sql.DateTime, now)
-              .query(`
-                INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
-                VALUES (@sessionId, @specialPhone, @now)
-              `);
-          } else {
-            await pool.request()
-              .input('sessionId', sql.Int, sessionId)
-              .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
-              .input('now', sql.DateTime, now)
-              .query(`
-                UPDATE GreetingLog
-                SET lastSentAt = @now
-                WHERE sessionId = @sessionId
-                  AND phoneNumber = @specialPhone
-              `);
-          }
-        }
-      }
-  
+      // ====== (1) أولاً: إرسال الـ Greeting إن كان مفعّلاً ======
       if (greetingActive && !isCommand) {
         const existingOrder = await pool.request()
           .input('sessionId', sql.Int, sessionId)
@@ -817,7 +757,74 @@ wa.me/${phoneNumber}?text=NEWORDER
           }
         }
       }
-  
+
+      // ====== (2) ثانيًا: إرسال رسالة الـ MenuBot التوضيحية ======
+      if (menuBotActive &&
+          (await pool.request()
+            .input('sessionId', sql.Int, sessionId)
+            .input('custPhone', sql.NVarChar, customerPhone)
+            .query(`
+              SELECT TOP 1 id 
+              FROM Orders 
+              WHERE sessionId = @sessionId 
+                AND customerPhoneNumber = @custPhone
+                AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
+            `)).recordset.length === 0 &&
+          !isCommand) {
+
+        const specialPhoneForMenuBot = customerPhone + '-menubot';
+        const now = new Date();
+        const menuBotLogRow = await pool.request()
+          .input('sessionId', sql.Int, sessionId)
+          .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
+          .query(`
+            SELECT lastSentAt
+            FROM GreetingLog
+            WHERE sessionId = @sessionId
+              AND phoneNumber = @specialPhone
+          `);
+        let canSendMenuBot = false;
+        if (!menuBotLogRow.recordset.length) {
+          canSendMenuBot = true;
+        } else {
+          const lastSent = new Date(menuBotLogRow.recordset[0].lastSentAt);
+          const diffMs = now.getTime() - lastSent.getTime();
+          const diffMinutes = diffMs / 1000 / 60;
+          if (diffMinutes >= 60) {
+            canSendMenuBot = true;
+          }
+        }
+        if (canSendMenuBot) {
+          const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الإرسال
+
+*لتسجيل طلب جديد*
+wa.me/${phoneNumber}?text=NEWORDER
+`;
+          await client.sendMessage(msg.from, menuBotGuide);
+
+          if (!menuBotLogRow.recordset.length) {
+            await pool.request()
+              .input('sessionId', sql.Int, sessionId)
+              .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
+              .input('now', sql.DateTime, now)
+              .query(`
+                INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
+                VALUES (@sessionId, @specialPhone, @now)
+              `);
+          } else {
+            await pool.request()
+              .input('sessionId', sql.Int, sessionId)
+              .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
+              .input('now', sql.DateTime, now)
+              .query(`
+                UPDATE GreetingLog
+                SET lastSentAt = @now
+                WHERE sessionId = @sessionId
+                  AND phoneNumber = @specialPhone
+              `);
+          }
+        }
+      }
 
     } catch (error) {
       console.error('Error handling menuBot message:', error);
