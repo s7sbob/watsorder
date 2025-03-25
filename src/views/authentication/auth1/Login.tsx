@@ -1,5 +1,4 @@
 // src/views/pages/authentication/Login.tsx
-
 import { Link } from 'react-router-dom';
 import { Grid, Box, Stack, Typography } from '@mui/material';
 import PageContainer from 'src/components/container/PageContainer';
@@ -39,24 +38,17 @@ const Login = () => (
             justifyContent="center"
             height="calc(100vh - 75px)"
             sx={{
-              display: {
-                xs: 'none',
-                lg: 'flex',
-              },
+              display: { xs: 'none', lg: 'flex' },
             }}
           >
             <img
               src={img1}
               alt="bg"
-              style={{
-                width: '100%',
-                maxWidth: '500px',
-              }}
+              style={{ width: '100%', maxWidth: '500px' }}
             />
           </Box>
         </Box>
       </Grid>
-
       <Grid
         item
         xs={12}
@@ -69,7 +61,6 @@ const Login = () => (
       >
         <Box p={4} sx={{ width: '100%', maxWidth: 400 }}>
           <AuthLogin />
-
           <Stack direction="row" spacing={1} mt={3} justifyContent="center">
             <Typography color="textSecondary" variant="h6" fontWeight="500">
               New to WatsOrder?
@@ -78,12 +69,22 @@ const Login = () => (
               component={Link}
               to="/auth/register"
               fontWeight="500"
-              sx={{
-                textDecoration: 'none',
-                color: 'primary.main',
-              }}
+              sx={{ textDecoration: 'none', color: 'primary.main' }}
             >
               Create an account
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={1} mt={2} justifyContent="center">
+            <Typography color="textSecondary" variant="h6" fontWeight="500">
+              Forgot Password?
+            </Typography>
+            <Typography
+              component={Link}
+              to="/auth/forgot-password"
+              fontWeight="500"
+              sx={{ textDecoration: 'none', color: 'primary.main' }}
+            >
+              Reset it here
             </Typography>
           </Stack>
         </Box>

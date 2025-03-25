@@ -10,8 +10,10 @@ import {
   Message as MessageIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
+import SettingsIcon from '@mui/icons-material/Settings';
 import AddUserDialog from '../components/AddUserDialog';
 import EditUserDialog from '../components/EditUserDialog';
+import RegistrationNotificationSettingsDialog from './RegistrationNotificationSettingsDialog';
 import { UserContext } from 'src/context/UserContext';
 
 export interface User {
@@ -36,6 +38,7 @@ const AdminUsersPage: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = useState<boolean>(false);
   const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState<boolean>(false);
 
   // التأكد من أن المستخدم الحالي مشرف
   if (!userContext || !userContext.isAdmin()) {
@@ -177,15 +180,24 @@ const AdminUsersPage: React.FC = () => {
       <Typography variant="h4" gutterBottom>
         {t('manageUsers') as string}
       </Typography>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<AddIcon />}
-        onClick={() => setAddDialogOpen(true)}
-        sx={{ mb: 2 }}
-      >
-        {t('addUser') as string}
-      </Button>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => setAddDialogOpen(true)}
+        >
+          {t('addUser') as string}
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={<SettingsIcon />}
+          onClick={() => setSettingsDialogOpen(true)}
+        >
+          Registration Notification Settings
+        </Button>
+      </Box>
       {loading ? (
         <CircularProgress />
       ) : (
@@ -213,6 +225,10 @@ const AdminUsersPage: React.FC = () => {
           onSuccess={handleEditUserSuccess}
         />
       )}
+      <RegistrationNotificationSettingsDialog
+        open={settingsDialogOpen}
+        onClose={() => setSettingsDialogOpen(false)}
+      />
     </Box>
   );
 };

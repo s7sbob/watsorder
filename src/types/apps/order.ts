@@ -9,7 +9,7 @@ export interface OrderItemType {
 export interface OrderType {
   id: number
   sessionId: number
-  customerPhone: string         // ← عدّلنا التسمية هنا لتكون customerPhone
+  customerPhone?: string         // ← عدّلنا التسمية هنا لتكون customerPhone
   customerName?: string
   deliveryAddress: string | null
   totalPrice: number | null

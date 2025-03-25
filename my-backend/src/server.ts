@@ -22,6 +22,7 @@ import bulkImportRoutes from './routes/bulkImportRoutes';
 import orderListingRoutes from './routes/orderListingRoutes';
 import featureRoutes from './routes/featureRoutes';
 import featureAdminRoutes from './routes/featureAdminRoutes';
+import registrationNotificationRoutes from './routes/registrationNotification.routes';
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use('/api/orders', orderListingRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/features', featureRoutes);
 app.use('/api/admin/features', featureAdminRoutes);
+app.use('/api', registrationNotificationRoutes);
 
 // خدمة الملفات الثابتة
 app.use('/keywords-images', express.static('keywords-images'));

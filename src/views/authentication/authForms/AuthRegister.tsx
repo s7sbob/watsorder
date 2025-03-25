@@ -1,4 +1,3 @@
-// src/views/pages/authForms/AuthRegisterFlow.tsx
 import React, { useState } from 'react';
 import axiosServices from 'src/utils/axios';
 import {
@@ -17,7 +16,7 @@ import {
 import CustomTextField from 'src/components/forms/theme-elements/CustomTextField';
 import CustomFormLabel from 'src/components/forms/theme-elements/CustomFormLabel';
 import CountryPhoneSelector from '../auth1/CountryPhoneSelector'; // رقم الهاتف الرئيسي
-import CountrySelector from '../auth1/CountrySelector'; // لاستخدامه في اختيار الدولة
+import CountrySelector from '../auth1/CountrySelector'; // لتعيين الدولة
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,7 +24,7 @@ import { useNavigate } from 'react-router-dom';
 const OtpContainer = styled('div')({
   display: 'flex',
   justifyContent: 'center',
-  gap: '4px', // تقليل المسافة بين خانات OTP
+  gap: '4px',
 });
 const OtpInput = styled(TextField)({
   width: 45,
@@ -38,25 +37,27 @@ function AuthRegister() {
   const [fullPhone, setFullPhone] = useState('');
   const [password, setPassword] = useState('');
 
-  // الحقول الجديدة (اختيارية)
+  // الحقول الإضافية (اختيارية)
   const [companyName, setCompanyName] = useState('');
-  const [, setCountry] = useState(''); // سيستخدم CountrySelector لتعيين الدولة
+  const [, setCountry] = useState(''); // سيتم تعيين الدولة عبر CountrySelector
   const [address, setAddress] = useState('');
   const [contactFullPhone, setContactFullPhone] = useState('');
 
+  // الحقول الخاصة بالـ OTP
   const [openOtpDialog, setOpenOtpDialog] = useState(false);
   const [otpValues, setOtpValues] = useState(['', '', '', '']);
+
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
+  // إرسال طلب تسجيل أولي (يتم إرسال OTP)
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
 
-    // تحقق من الحقول الأساسية فقط
     if (!name) {
       setError('Please enter your name.');
       return;
@@ -81,6 +82,7 @@ function AuthRegister() {
     }
   };
 
+  // تغيير قيمة خانة OTP
   const handleChangeOtp = (index: number, value: string) => {
     if (value.length > 1) return;
     const newArr = [...otpValues];
@@ -92,6 +94,7 @@ function AuthRegister() {
     }
   };
 
+  // عند الضغط على زر التحقق من OTP
   const handleVerifyClick = async () => {
     const code = otpValues.join('');
     if (code.length < 4) {
@@ -99,7 +102,8 @@ function AuthRegister() {
       return;
     }
     try {
-      const resp = await axiosServices.post('/api/auth/register', {
+      // استدعاء API التسجيل الذي يشمل التحقق من OTP وإنشاء الحساب
+      const registerResp = await axiosServices.post('/api/auth/register', {
         phoneNumber: fullPhone,
         name,
         password,
@@ -108,8 +112,18 @@ function AuthRegister() {
         address,          // اختياري
         contactPhone: contactFullPhone, // اختياري
       });
+
+      // بعد نجاح التسجيل يتم إخفاء نافذة OTP
       setOpenOtpDialog(false);
-      setSuccessMsg(resp.data.message || 'Registered successfully!');
+
+      // بعد نجاح التسجيل يتم استدعاء API تنبيه التسجيل لإرسال بيانات المستخدم الجديد
+      await axiosServices.post('/api/registration-notification/notify', {
+        userName: name,
+        userPhone: fullPhone,
+        additionalData: `Company: ${companyName}, Address: ${address}, Contact: ${contactFullPhone}`,
+      });
+
+      setSuccessMsg(registerResp.data.message || 'Registered successfully!');
       navigate('/auth/login');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'OTP verification failed.');
@@ -117,6 +131,7 @@ function AuthRegister() {
     }
   };
 
+  // إعادة إرسال رمز OTP
   const handleResendCode = async () => {
     setError(null);
     setSuccessMsg(null);
@@ -137,7 +152,6 @@ function AuthRegister() {
           Create a New Account
         </Typography>
 
-        {/* تقليل المسافات الرأسية */}
         <Divider sx={{ mb: 1 }} />
 
         {error && (
@@ -151,7 +165,6 @@ function AuthRegister() {
           </Alert>
         )}
 
-        {/* استخدام Stack مع spacing صغير لتقليل المسافات بين الحقول */}
         <Stack spacing={0} mt={1}>
           <Box>
             <CustomFormLabel htmlFor="name">Full Name</CustomFormLabel>
@@ -160,7 +173,7 @@ function AuthRegister() {
               variant="outlined"
               fullWidth
               value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setName(e.target.value)}
             />
           </Box>
 
@@ -179,11 +192,11 @@ function AuthRegister() {
               variant="outlined"
               fullWidth
               value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setPassword(e.target.value)}
             />
           </Box>
 
-          {/* الحقول الجديدة اختيارية */}
+          {/* الحقول الاختيارية */}
           <Box>
             <CustomFormLabel htmlFor="companyName">Company Name (Optional)</CustomFormLabel>
             <CustomTextField
@@ -191,14 +204,13 @@ function AuthRegister() {
               variant="outlined"
               fullWidth
               value={companyName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyName(e.target.value)}
+              onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setCompanyName(e.target.value)}
             />
           </Box>
           <Box>
             <CustomFormLabel htmlFor="countrySelector">Country (Optional)</CustomFormLabel>
             <CountrySelector
               onChange={(country) => {
-                // تخزين اسم الدولة فقط
                 setCountry(country.label);
               }}
             />
@@ -210,7 +222,7 @@ function AuthRegister() {
               variant="outlined"
               fullWidth
               value={address}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value)}
+              onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setAddress(e.target.value)}
             />
           </Box>
           <Box>
@@ -256,7 +268,7 @@ function AuthRegister() {
                 key={idx}
                 id={`otp-${idx}`}
                 value={val}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChangeOtp(idx, e.target.value)}
+                onChange={(e) => handleChangeOtp(idx, e.target.value)}
               />
             ))}
           </OtpContainer>

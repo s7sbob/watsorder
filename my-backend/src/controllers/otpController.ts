@@ -105,7 +105,7 @@ export const sendRegistrationOtp = async (req: Request, res: Response) => {
     }
 
     // ابحث عن واتساب sessionId=1
-    const FIXED_SESSION_ID = 2;
+    const FIXED_SESSION_ID = Number(process.env.FIXED_SESSION_ID );
     const client = whatsappClients[FIXED_SESSION_ID];
     if (!client) {
       return res.status(400).json({ message: `WhatsApp session with ID=${FIXED_SESSION_ID} is not initialized.` });

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { IconEye, IconReceipt, IconCheck } from '@tabler/icons-react';
 import { OrderType } from 'src/types/apps/order';
+import { formatPhoneNumber } from 'src/utils/formatPhone';
 
 interface OrderCardProps {
   order: OrderType;
@@ -14,12 +15,12 @@ interface OrderCardProps {
 const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails, onViewInvoice, onConfirmClick }) => {
   const [blink, setBlink] = useState(false);
 
-  // إذا كان الطلب غير مؤكد نقوم بتشغيل مؤقت لتغيير قيمة blink
+  // If order is not confirmed, toggle background color every second.
   useEffect(() => {
     if (!order.finalConfirmed) {
       const intervalId = setInterval(() => {
         setBlink(prev => !prev);
-      }, 1000); // تغيير كل ثانية
+      }, 1000);
       return () => clearInterval(intervalId);
     }
   }, [order.finalConfirmed]);
@@ -40,7 +41,9 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails, onViewInvoi
           <strong>Customer Name:</strong> {order.customerName}
         </Typography>
       )}
-      <Typography variant="body2">Phone: {order.customerPhone}</Typography>
+      <Typography variant="body2">
+        <strong>Customer Phone:</strong> {formatPhoneNumber(order.customerPhone)}
+      </Typography>
       {order.deliveryAddress && (
         <Typography variant="body2">Address: {order.deliveryAddress}</Typography>
       )}

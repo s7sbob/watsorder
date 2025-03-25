@@ -15,21 +15,23 @@ import { OrderType } from 'src/types/apps/order';
 
 const OrdersPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { orders, loading, error } = useSelector((state: AppState) => state.order);
+  // Using "confirmedOrders" from our state
+  const { confirmedOrders, loading, error } = useSelector((state: AppState) => state.order);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  // Renamed state variable for clarity
   const [orderDetails, setOrderDetails] = useState<OrderType | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null);
 
-  // ====== [Socket.io setup using imported socket] ======
+  // ====== Socket.io setup ======
   useEffect(() => {
     const handleNewOrder = (data: any) => {
       console.log('New order event received:', data);
       dispatch(fetchConfirmedOrders());
-      triggerAlarm(); // تشغيل التنبيه عند وصول طلب جديد
+      triggerAlarm(); // Trigger alarm on new order arrival
     };
 
     const handleOrderConfirmed = (data: { orderId: number }) => {
@@ -46,24 +48,23 @@ const OrdersPage: React.FC = () => {
     };
   }, [dispatch]);
 
-  // ====== [Alarm repeating effect] ======
-  // إذا كان هناك طلب جديد (غير مؤكد) نعيد تشغيل التنبيه بشكل دوري
-  const filteredNewOrders = orders.filter((order: OrderType) => !order.finalConfirmed);
+  // ====== Alarm effect ======
+  const filteredNewOrders = confirmedOrders.filter((order: OrderType) => !order.finalConfirmed);
   useEffect(() => {
     if (filteredNewOrders.length > 0) {
       const intervalId = setInterval(() => {
         triggerAlarm();
-      }, 5000); // كل 5 ثوانٍ (يمكنك تعديل الوقت)
+      }, 5000); // every 5 seconds
       return () => clearInterval(intervalId);
     }
   }, [filteredNewOrders]);
 
-  // دالة التنبيه: تستخدم الاهتزاز وتشغيل الصوت
+  // Trigger alarm using vibration and sound
   const triggerAlarm = () => {
     if (navigator.vibrate) {
       navigator.vibrate(200);
     }
-    const audio = new Audio('/notification.mp3'); // تأكد من وجود الملف في مجلد public
+    const audio = new Audio('/notification.mp3'); // Ensure the file exists in public folder
     audio.play().catch(err => console.error('Error playing sound:', err));
   };
 
@@ -71,9 +72,9 @@ const OrdersPage: React.FC = () => {
     dispatch(fetchConfirmedOrders());
   }, [dispatch]);
 
-  // تصفية الطلبات حسب البحث
-  const filteredOrders = orders.filter((order: OrderType) => {
-    const phoneMatch = order.customerPhone.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filter orders based on search term
+  const filteredOrders = confirmedOrders.filter((order: OrderType) => {
+    const phoneMatch = order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase());
     const addressMatch =
       order.deliveryAddress &&
       order.deliveryAddress.toLowerCase().includes(searchTerm.toLowerCase());
@@ -83,7 +84,7 @@ const OrdersPage: React.FC = () => {
   const acceptedOrders = filteredOrders.filter((o: OrderType) => o.finalConfirmed);
   const newOrders = filteredOrders.filter((o: OrderType) => !o.finalConfirmed);
 
-  // ====== [Handlers] ======
+  // ====== Handlers ======
   const handleViewDetails = async (orderId: number) => {
     try {
       const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`);
@@ -173,7 +174,7 @@ const OrdersPage: React.FC = () => {
 
       <OrderDetailsDialog
         open={detailsDialogOpen}
-        orderDetails={orderDetails}
+        orderDetails={orderDetails}  
         onClose={() => setDetailsDialogOpen(false)}
       />
 

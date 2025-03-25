@@ -75,8 +75,7 @@ const ForgotPassword = () => (
           </Typography>
 
           <Typography color="textSecondary" variant="subtitle2" fontWeight="400" mt={2}>
-            Please enter the email address associated with your account and We will email you a link
-            to reset your password.
+          Enter the phone number associated with your account. We will send you an OTP to verify your identity.
           </Typography>
           <AuthForgotPassword />
         </Box>

@@ -17,7 +17,7 @@ const InvoiceDialog: React.FC<InvoiceDialogProps> = ({ open, invoiceDetails, onC
         {invoiceDetails && (
           <Box>
             <Typography>
-              <strong>Customer Phone:</strong> {invoiceDetails.customerPhoneNumber}
+              <strong>Customer Phone:</strong> {invoiceDetails.customerPhone}
             </Typography>
             <Typography>
               <strong>Delivery Address:</strong> {invoiceDetails.deliveryAddress}
