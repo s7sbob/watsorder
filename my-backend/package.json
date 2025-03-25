@@ -23,6 +23,7 @@
     "node-cron": "^3.0.3",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
+    "typeorm": "^0.3.21",
     "whatsapp-web.js": "^1.26.0"
   },
   "devDependencies": {
