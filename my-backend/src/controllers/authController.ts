@@ -222,13 +222,9 @@ export const sendForgotPasswordOtp = async (req: Request, res: Response): Promis
  * Endpoint لإعادة تعيين كلمة المرور بعد التحقق من OTP.
  */
 export const resetPassword = async (req: Request, res: Response): Promise<Response> => {
-  const { phoneNumber, otpCode, newPassword } = req.body;
+  const { phoneNumber, newPassword } = req.body;
   try {
     const pool = await getConnection();
-    // تحقق من OTP (في التطبيق الحقيقي استخدم خدمة OTP للتحقق)
-    if (otpCode !== '1234') { // هنا مجرد مثال؛ استبدله بمنطق التحقق الفعلي
-      return res.status(400).json({ message: 'رمز التحقق غير صحيح.' });
-    }
     // التأكد من وجود المستخدم
     const userResult = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)

@@ -1,12 +1,13 @@
-// src/views/pages/authForms/AuthForgotPassword.tsx
 import React, { useState } from 'react';
-import { Box, Button, Stack, Typography, Alert, Dialog, DialogTitle, DialogContent, Divider } from '@mui/material';
+import { Box, Button, Stack, Typography, Alert, Dialog, DialogTitle, DialogContent, Divider, IconButton, InputAdornment } from '@mui/material';
 import axiosServices from 'src/utils/axios';
 import CustomTextField from 'src/components/forms/theme-elements/CustomTextField';
 import CustomFormLabel from 'src/components/forms/theme-elements/CustomFormLabel';
 import CountryPhoneSelector from '../auth1/CountryPhoneSelector';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 const OtpContainer = styled('div')({
   display: 'flex',
@@ -19,11 +20,11 @@ const OtpInput = styled(CustomTextField)({
 });
 
 const AuthForgotPassword: React.FC = () => {
-  // Basic state for phone number and OTP
+  // حالات تخزين رقم الهاتف والـ OTP وكلمة المرور الجديدة
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
   const [otpCode, setOtpCode] = useState(['', '', '', '']);
-  // Stage 1: OTP stage; Stage 2: New password stage
+  // المرحلة 1: خطوة إدخال OTP؛ المرحلة 2: خطوة إدخال كلمة المرور الجديدة
   const [otpStage, setOtpStage] = useState(1);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,9 +32,13 @@ const AuthForgotPassword: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // حالات إظهار/إخفاء كلمة المرور
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const navigate = useNavigate();
 
-  // Send OTP for password reset
+  // إرسال OTP لإعادة تعيين كلمة المرور
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -45,7 +50,7 @@ const AuthForgotPassword: React.FC = () => {
     try {
       const res = await axiosServices.post('/api/auth/forgot-password/send-otp', { phoneNumber });
       setSuccessMsg(res.data.message || 'OTP has been sent successfully.');
-      // Open the dialog and set OTP stage to 1
+      // فتح الديالوج وتحديد المرحلة الأولى لإدخال OTP
       setOtpStage(1);
       setOtpDialogOpen(true);
     } catch (err: any) {
@@ -54,7 +59,7 @@ const AuthForgotPassword: React.FC = () => {
     }
   };
 
-  // Handle OTP input change
+  // التعامل مع تغيير حقل OTP
   const handleChangeOtp = (index: number, value: string) => {
     if (value.length > 1) return;
     const newArr = [...otpCode];
@@ -66,7 +71,7 @@ const AuthForgotPassword: React.FC = () => {
     }
   };
 
-  // Verify OTP without resetting password
+  // التحقق من OTP بدون إعادة تعيين كلمة المرور
   const handleVerifyOtp = async () => {
     setError(null);
     setSuccessMsg(null);
@@ -76,13 +81,13 @@ const AuthForgotPassword: React.FC = () => {
       return;
     }
     try {
-      // Call an endpoint that verifies OTP only (make sure you implement this in your backend)
+      // استدعاء endpoint للتحقق من OTP فقط
       const res = await axiosServices.post('/api/auth/forgot-password/verify-otp', {
         phoneNumber,
         otpCode: code,
       });
       setSuccessMsg(res.data.message || 'OTP verified successfully.');
-      // Move to the password entry stage
+      // الانتقال إلى مرحلة إدخال كلمة المرور الجديدة
       setOtpStage(2);
     } catch (err: any) {
       console.error('OTP verification error:', err);
@@ -90,7 +95,7 @@ const AuthForgotPassword: React.FC = () => {
     }
   };
 
-  // Reset password after OTP verification
+  // إعادة تعيين كلمة المرور بعد التحقق من OTP
   const handleResetPassword = async () => {
     setError(null);
     setSuccessMsg(null);
@@ -103,7 +108,7 @@ const AuthForgotPassword: React.FC = () => {
       return;
     }
     try {
-      // Now call the endpoint to reset the password
+      // استدعاء endpoint إعادة تعيين كلمة المرور بدون فحص OTP مرة أخرى
       const res = await axiosServices.post('/api/auth/forgot-password/reset', {
         phoneNumber,
         newPassword,
@@ -117,14 +122,14 @@ const AuthForgotPassword: React.FC = () => {
     }
   };
 
-  // Resend OTP
+  // إعادة إرسال OTP
   const handleResendOtp = async () => {
     setError(null);
     setSuccessMsg(null);
     try {
       const res = await axiosServices.post('/api/auth/forgot-password/send-otp', { phoneNumber });
       setSuccessMsg(res.data.message || 'OTP has been resent successfully.');
-      // Reset OTP fields
+      // إعادة ضبط حقول OTP
       setOtpCode(['', '', '', '']);
     } catch (err: any) {
       console.error('Resend OTP error:', err);
@@ -132,7 +137,7 @@ const AuthForgotPassword: React.FC = () => {
     }
   };
 
-  // Cancel the OTP dialog and reset state
+  // إلغاء الديالوج وإعادة ضبط الحالات
   const handleCancelOtp = () => {
     setOtpDialogOpen(false);
     setOtpCode(['', '', '', '']);
@@ -144,12 +149,6 @@ const AuthForgotPassword: React.FC = () => {
   return (
     <Box>
       <form onSubmit={handleSendOtp}>
-        <Typography variant="h4" fontWeight="700" mb={1}>
-          Forgot Your Password?
-        </Typography>
-        <Typography variant="body1" mb={2}>
-          Enter the phone number associated with your account. We will send you an OTP to verify your identity.
-        </Typography>
         <CountryPhoneSelector
           onChange={(val: string) => setPhoneNumber(val)}
           defaultCountryCode="+20"
@@ -216,20 +215,38 @@ const AuthForgotPassword: React.FC = () => {
                 <CustomFormLabel htmlFor="newPassword">New Password</CustomFormLabel>
                 <CustomTextField
                   id="newPassword"
-                  type="password"
+                  type={showNewPassword ? 'text' : 'password'}
                   fullWidth
                   value={newPassword}
                   onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setNewPassword(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end">
+                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Box>
               <Box mt={2}>
                 <CustomFormLabel htmlFor="confirmPassword">Confirm New Password</CustomFormLabel>
                 <CustomTextField
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   fullWidth
                   value={confirmPassword}
                   onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setConfirmPassword(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Box>
               {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
