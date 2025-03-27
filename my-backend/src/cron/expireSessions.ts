@@ -9,7 +9,7 @@ const FIXED_SESSION_ID = Number(process.env.FIXED_SESSION_ID);
 const FIXED_CONTACT_NUMBER = Number(process.env.FIXED_CONTACT_NUMBER);
 
 // تُنفّذ العملية يوميًا عند منتصف الليل
-cron.schedule(' * * * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
   try {
     const pool = await getConnection();
     const now = new Date();

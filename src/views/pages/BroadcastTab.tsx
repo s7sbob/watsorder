@@ -116,14 +116,9 @@ const BroadcastTab: React.FC<{ sessionId: number }> = ({ sessionId }) => {
       return
     }
     try {
-      const finalMessage = phoneNumbers.map(phoneNumber =>
-        message
-          .replace('${recipientPhone}', phoneNumber)
-          .replace('${currentDateTime}', getCurrentDateTime())
-      )
       await axiosServices.post(`/api/sessions/${sessionId}/broadcast`, {
         phoneNumbers,
-        message: finalMessage.join(' '),
+        message,
         randomNumbers,
         media
       })

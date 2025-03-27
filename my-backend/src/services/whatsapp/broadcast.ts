@@ -34,16 +34,22 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
     }
     for (const phoneNumber of phoneNumbers) {
       const randomDelay = randomNumbers[Math.floor(Math.random() * randomNumbers.length)];
-      if (media && Array.isArray(media) && media.length > 0) {
+    
+      if (media && media.length > 0) {
+        // أرسل كل ميديا بكابشن فارغ:
         for (const singleMedia of media) {
           const mediaMsg = new MessageMedia(singleMedia.mimetype, singleMedia.base64, singleMedia.filename);
-          await sendMessageWithDelay(client, phoneNumber, '* *', randomDelay, mediaMsg);
+          await sendMessageWithDelay(client, phoneNumber, '', randomDelay, mediaMsg);
         }
-        if (message && message.trim()) {
-          await sendMessageWithDelay(client, phoneNumber, `${message}`, randomDelay);
+        // ثم أرسل رسالة نصية واحدة:
+        if (message?.trim()) {
+          await sendMessageWithDelay(client, phoneNumber, message.trim(), randomDelay);
         }
       } else {
-        await sendMessageWithDelay(client, phoneNumber, `${message}`, randomDelay);
+        // لا توجد ميديا => أرسل نص فقط
+        if (message?.trim()) {
+          await sendMessageWithDelay(client, phoneNumber, message.trim(), randomDelay);
+        }
       }
     }
     res.status(200).json({ message: 'Broadcast started successfully' });

@@ -2,7 +2,9 @@
 import { Client, Message } from 'whatsapp-web.js';
 import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
-import fs from 'fs';
+
+// ⭐ نستبدل استيراد fs من 'fs' إلى 'fs/promises' حتى نستخدم الدوال async
+import fs from 'fs/promises';
 import path from 'path';
 import { io } from '../../server';
 
@@ -13,6 +15,7 @@ import {
   getCustomerAddresses,
   saveCustomerAddress
 } from './customerInfo';
+import { MessageMedia } from 'whatsapp-web.js'; // نضيف هذا الاستيراد المباشر بدلا من require()
 
 export const registerMessageHandler = (client: Client, sessionId: number) => {
   // دالة تنسيق النص بالخط العريض
@@ -29,6 +32,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
           FROM Sessions
           WHERE id = @sessionId
         `);
+
       if (!sessionRow.recordset.length) {
         console.log('Session not found in DB for message handling.');
         return;
@@ -61,11 +65,14 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
             JOIN Replays r ON k.replay_id = r.id
             WHERE k.sessionId = @sessionId
           `);
-          const foundKeywordRow = keywordsRes.recordset.find((row: any) =>
-            text.toLowerCase().includes(row.keyword?.toLowerCase())
-          );
-          
+
+        // البحث عن الكلمة الدلالية في نص الرسالة
+        const foundKeywordRow = keywordsRes.recordset.find((row: any) =>
+          text.toLowerCase().includes(row.keyword?.toLowerCase())
+        );
+        
         if (foundKeywordRow) {
+          // قراءة الميديا الخاصة بالرد
           const mediaRes = await pool.request()
             .input('replayId', sql.Int, foundKeywordRow.replayId)
             .query(`
@@ -73,18 +80,29 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               FROM ReplayMedia
               WHERE replayId = @replayId
             `);
+
+          // إرسال النص (إن وجد)
           if (foundKeywordRow.replyText) {
             await client.sendMessage(msg.from, `*${foundKeywordRow.replyText}*`);
           }
+
+          // هنا التعديل الأهم
+          // بدل:   const fileData = fs.readFileSync(m.filePath);
+          // نستخدم الدوال غير المتزامنة من fs/promises:
+
           for (const m of mediaRes.recordset) {
-            const fileData = fs.readFileSync(m.filePath);
-            const base64 = fileData.toString('base64');
-            const mediaMsg = new (require('whatsapp-web.js').MessageMedia)(
-              'image/jpeg',
-              base64,
-              path.basename(m.filePath)
-            );
-            await client.sendMessage(msg.from, mediaMsg);
+            try {
+              const fileData = await fs.readFile(m.filePath); // لا متزامن
+              const base64 = fileData.toString('base64');
+              const mediaMsg = new MessageMedia(
+                'image/jpeg',
+                base64,
+                path.basename(m.filePath)
+              );
+              await client.sendMessage(msg.from, mediaMsg);
+            } catch (err) {
+              console.error(`Failed to read or send file: ${m.filePath}`, err);
+            }
           }
           return;
         }
@@ -398,7 +416,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!orderRes.recordset.length) {
-            // لا يوجد طلب مفتوح؛ يمكن تجاهل الرسالة
+            // لا يوجد طلب مفتوح؛ يمكن تجاهل الرسالة أو إعطاء رد مناسب
           } else {
             const { id: orderId, status, tempProductId } = orderRes.recordset[0];
             
@@ -517,7 +535,10 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
                     `);
                   clearOrderTimeout(orderId);
                   scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
-                  await client.sendMessage(msg.from, (`*تم اختيار العنوان*:\n${selected.address}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`));
+                  await client.sendMessage(
+                    msg.from,
+                    (`*تم اختيار العنوان*:\n${selected.address}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`)
+                  );
                 } else {
                   await client.sendMessage(msg.from, bold('العنوان المختار غير موجود.'));
                 }
@@ -538,7 +559,10 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
                   `);
                 clearOrderTimeout(orderId);
                 scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
-                await client.sendMessage(msg.from, (`*تم حفظ عنوانك الجديد*:\n${newAddress}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`));
+                await client.sendMessage(
+                  msg.from,
+                  (`*تم حفظ عنوانك الجديد*:\n${newAddress}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`)
+                );
                 return;
               }
             }
@@ -568,7 +592,6 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
                     WHERE id = @sessionId
                   `);
                 if (sessionData.recordset.length) {
-                  // نعيد جدولته أو حسب المطلوب
                   const sessionPhone = sessionData.recordset[0].phoneNumber;
                   scheduleOrderTimeout(orderId, sessionId, client, sessionPhone);
                 }
@@ -595,13 +618,13 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
                         JOIN Products p ON p.id = oi.productId
                         WHERE oi.orderId = @orderId
                       `);
-                    orderDetailsMsg = `*تم استلام طلب جديد.*
-*رقم الطلب*: ${order.id}
-*اسم العميل*: ${order.customerName || 'غير متوفر'}
-*رقم العميل*: ${order.customerPhoneNumber || 'غير متوفر'}
-*العنوان*: ${order.deliveryAddress || 'غير متوفر'}
-*الإجمالي*: ${order.totalPrice || 0}
-*تفاصيل الطلب*:\n`;
+                    orderDetailsMsg = `*تم استلام طلب جديد.*\n`
+                      + `*رقم الطلب*: ${order.id}\n`
+                      + `*اسم العميل*: ${order.customerName || 'غير متوفر'}\n`
+                      + `*رقم العميل*: ${order.customerPhoneNumber || 'غير متوفر'}\n`
+                      + `*العنوان*: ${order.deliveryAddress || 'غير متوفر'}\n`
+                      + `*الإجمالي*: ${order.totalPrice || 0}\n`
+                      + `*تفاصيل الطلب*:\n`;
                     orderItemsQuery.recordset.forEach((item: any) => {
                       orderDetailsMsg += `*${item.product_name}* x *${item.quantity}* = *${item.price * item.quantity}*\n`;
                     });
@@ -657,20 +680,20 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
                         JOIN Products p ON p.id = oi.productId
                         WHERE oi.orderId = @orderId
                       `);
-                    orderDetailsMsg = `تم استلام طلب جديد.
-رقم الطلب: ${order.id}
-اسم العميل: ${order.customerName || 'غير متوفر'}
-رقم العميل: ${order.customerPhoneNumber || 'غير متوفر'}
-العنوان: ${order.deliveryAddress || 'غير متوفر'}
-الإجمالي: ${order.totalPrice || 0}
-التفاصيل:\n`;
+                    orderDetailsMsg = `تم استلام طلب جديد.\n`
+                      + `رقم الطلب: ${order.id}\n`
+                      + `اسم العميل: ${order.customerName || 'غير متوفر'}\n`
+                      + `رقم العميل: ${order.customerPhoneNumber || 'غير متوفر'}\n`
+                      + `العنوان: ${order.deliveryAddress || 'غير متوفر'}\n`
+                      + `الإجمالي: ${order.totalPrice || 0}\n`
+                      + `التفاصيل:\n`;
                     orderItemsQuery.recordset.forEach((item: any) => {
                       orderDetailsMsg += `*${item.quantity} x ${item.product_name} = ${item.price * item.quantity}\n`;
                     });
                   } else {
-                    orderDetailsMsg = `تم استلام طلب جديد.
-رقم الطلب: ${orderId}
-يرجى مراجعة التفاصيل.`;
+                    orderDetailsMsg = `تم استلام طلب جديد.\n`
+                      + `رقم الطلب: ${orderId}\n`
+                      + `يرجى مراجعة التفاصيل.`;
                   }
                   await client.sendMessage(altRecipient, orderDetailsMsg);
                 }
@@ -688,7 +711,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
         }
       }
 
- // ================== (3) منطق الرسائل الدورية (Greeting) ==================
+      // ================== (3) منطق الرسائل الدورية (Greeting) ==================
       // ------------- أولاً: اكتشاف ما إذا كانت الرسالة أمر Menu Bot أم لا -------------
       const isCommand =
         ['NEWORDER', 'SHOWCATEGORIES', 'VIEWCART', 'CARTCONFIRM'].some(cmd => upperText === cmd) ||
@@ -758,18 +781,20 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
       }
 
       // ------------- (B) إرسال الرسالة التوضيحية للـ Menu Bot (ملاحظة يرجى الضغط...) -------------
-      if (menuBotActive &&
-          (await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .query(`
-              SELECT TOP 1 id 
-              FROM Orders 
-              WHERE sessionId = @sessionId 
-                AND customerPhoneNumber = @custPhone
-                AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
-            `)).recordset.length === 0 &&
-          !isCommand) {
+      if (
+        menuBotActive &&
+        (await pool.request()
+          .input('sessionId', sql.Int, sessionId)
+          .input('custPhone', sql.NVarChar, customerPhone)
+          .query(`
+            SELECT TOP 1 id 
+            FROM Orders 
+            WHERE sessionId = @sessionId 
+              AND customerPhoneNumber = @custPhone
+              AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
+          `)).recordset.length === 0 &&
+        !isCommand
+      ) {
 
         const specialPhoneForMenuBot = customerPhone + '-menubot';
         const now = new Date();
