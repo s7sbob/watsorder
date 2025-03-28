@@ -183,7 +183,9 @@
       "fields": {
         "categoryName": "اسم الفئة"
       }
-    }
+    },
+    "errorUpdatingCategory": "حدث خطأ أثناء تحديث التصنيف."
+
   },
 
   "AddDataPopup": {
@@ -195,9 +197,14 @@
   },
 
   "CategoryList": {
-    "confirmDelete": "هل تريد حذف هذه الفئة؟",
-    "errorDeleting": "حدث خطأ أثناء حذف الفئة.",
-    "errorUpdating": "حدث خطأ أثناء تحديث الفئة.",
+    "confirmDeleteTitle": "هل أنت متأكد؟",
+    "confirmDeleteText": "هذا الإجراء لا يمكن التراجع عنه.",
+    "confirmDeleteConfirm": "نعم، احذفها!",
+    "confirmDeleteCancel": "إلغاء",
+    "errorDeleting": "حدث خطأ أثناء حذف التصنيف.",
+    "errorUpdating": "حدث خطأ أثناء تحديث التصنيف.",
+    "reorderError": "حدث خطأ أثناء تحديث الترتيب. سيتم استرجاع التغييرات.",
+    "toggleError": "حدث خطأ أثناء تحديث الحالة. سيتم استرجاع التغييرات.",
     "save": "حفظ",
     "filterLabel": "بحث الاقسام"
   },
@@ -208,6 +215,8 @@
     },
     "errorFetchingCategories": "حدث خطأ أثناء جلب الفئات.",
     "errorAddingProduct": "حدث خطأ أثناء إضافة المنتج.",
+    "errorDeletingProduct": "حدث خطأ أثناء حذف المنتج.",
+    "errorUpdatingProduct": "حدث خطأ أثناء تحديث المنتج.",
     "popup": {
       "title": "إضافة منتج",
       "fields": {
@@ -215,8 +224,18 @@
         "category": "الفئة",
         "price": "السعر"
       }
-    }
+    },
+    "selectProductToEdit": "من فضلك اختر منتج للتعديل."
+
   },
+  "ProductTreeView": {
+    "reorderError": "حدث خطأ أثناء تحديث الترتيب. سيتم استرجاع التغييرات.",
+    "toggleError": "حدث خطأ أثناء تحديث الحالة. سيتم استرجاع التغييرات."
+  },
+  "confirmDeleteTitle": "هل أنت متأكد؟",
+  "confirmDeleteText": "هذا الإجراء لا يمكن التراجع عنه.",
+  "confirmDeleteConfirm": "نعم، احذفها!",
+  "confirmDeleteCancel": "إلغاء",
 
   "ProductList": {
     "confirmDelete": "هل تريد حذف هذا المنتج؟",

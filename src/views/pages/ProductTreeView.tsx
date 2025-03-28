@@ -1,6 +1,6 @@
 // src/views/pages/session/ProductTreeView.tsx
 import React, { useState, useEffect } from 'react';
-import { Box, IconButton, Paper, Typography, Switch } from '@mui/material';
+import { Box, IconButton, Paper, Typography, Switch, TextField } from '@mui/material';
 import { TreeView, TreeItem } from '@mui/lab';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -43,6 +43,7 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+  const [searchText, setSearchText] = useState('');
 
   // جلب التصنيفات
   const fetchCategories = async () => {
@@ -82,7 +83,16 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
     productsByCategory[product.category_id].push(product);
   });
 
-  // التعامل مع السحب والإفلات داخل كل فئة
+  // تطبيق البحث على التصنيفات والمنتجات
+  const filteredCategories = categories.filter(category => {
+    const catMatches = category.category_name.toLowerCase().includes(searchText.toLowerCase());
+    const productsForCat = productsByCategory[category.id] || [];
+    const filteredProds = productsForCat.filter(product =>
+      product.product_name.toLowerCase().includes(searchText.toLowerCase())
+    );
+    return catMatches || filteredProds.length > 0;
+  });
+
   const handleDragEnd = async (result: DropResult, categoryId: number) => {
     if (!result.destination) return;
     const prevProducts = [...products];
@@ -127,19 +137,16 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
     }
   };
 
-  // تحديد العنصر عند الضغط
   const handleSelectItem = (item: SelectedItem) => {
     setSelectedItem(item);
   };
 
-  // زر التعديل مفعل بس للمنتجات
   const handleEditClick = () => {
     if (selectedItem && selectedItem.type === 'product') {
       onEdit(selectedItem);
     }
   };
 
-  // زر الحذف مفعل بس للمنتجات
   const handleDeleteClick = async () => {
     if (selectedItem && selectedItem.type === 'product') {
       const confirmed = await Swal.fire({
@@ -159,6 +166,16 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
 
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
+      {/* حقل البحث */}
+      <Box mb={2}>
+        <TextField
+          label={t('ProductList.filterLabel') || "Search"}
+          variant="outlined"
+          fullWidth
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </Box>
       {/* أيقونات التعديل والحذف ثابتة في الأعلى */}
       <Box display="flex" alignItems="center" mb={2}>
         <IconButton onClick={handleEditClick} disabled={!selectedItem || selectedItem.type !== 'product'}>
@@ -168,87 +185,94 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
           <DeleteIcon />
         </IconButton>
       </Box>
-
       <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />}>
-        {categories.map(category => (
-          <TreeItem
-            key={`category-${category.id}`}
-            nodeId={`category-${category.id}`}
-            label={
-              <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'category', data: category })}>
-                <Typography>{category.category_name}</Typography>
-                <Box display="flex" alignItems="center">
-                  <Switch
-                    checked={category.isActive}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      // نحتاج لدالة toggle للتصنيف لو أردت إضافة ميزة toggle للتصنيفات
-                      // مثال: handleToggleCategory(category, e.target.checked)
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  {!category.isActive && (
-                    <Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                      Disabled
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            }
-          >
-            <DragDropContext onDragEnd={(result) => handleDragEnd(result, category.id)}>
-              <Droppable droppableId={`droppable-${category.id}`}>
-                {(provided) => (
-                  <Box ref={provided.innerRef} {...provided.droppableProps}>
-                    {(productsByCategory[category.id] || []).map((product, index) => (
-                      <Draggable key={product.id.toString()} draggableId={`product-${product.id}`} index={index}>
-                        {(providedDraggable) => (
-                          <TreeItem
-                            key={`product-${product.id}`}
-                            nodeId={`product-${product.id}`}
-                            label={
-                              <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'product', data: product })}>
-                                <Typography>{`${product.order} - ${product.product_name}  (${product.price ?? 'N/A'})`}</Typography>
-                                <Box display="flex" alignItems="center">
-                                  <Switch
-                                    checked={product.isActive}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleProduct(product, e.target.checked);
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                  {!product.isActive && (
-                                    <Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                                      Disabled
-                                    </Typography>
-                                  )}
-                                </Box>
-                              </Box>
-                            }
-                            ref={providedDraggable.innerRef}
-                            {...providedDraggable.draggableProps}
-                            {...providedDraggable.dragHandleProps}
-                            sx={{
-                              backgroundColor:
-                                selectedItem &&
-                                selectedItem.type === 'product' &&
-                                selectedItem.data.id === product.id
-                                  ? '#e0e0e0'
-                                  : 'inherit',
-                              mb: 1,
-                            }}
-                          />
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+        {filteredCategories.map(category => {
+          // داخل كل فئة، نحسب المنتجات التي تتطابق مع البحث
+          const productsForCat = productsByCategory[category.id] || [];
+          const filteredProductsForCat = searchText
+            ? productsForCat.filter(product =>
+                product.product_name.toLowerCase().includes(searchText.toLowerCase())
+              )
+            : productsForCat;
+          return (
+            <TreeItem
+              key={`category-${category.id}`}
+              nodeId={`category-${category.id}`}
+              label={
+                <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'category', data: category })}>
+                  <Typography>{category.category_name}</Typography>
+                  <Box display="flex" alignItems="center">
+                    <Switch
+                      checked={category.isActive}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        // يمكنك إضافة دالة toggle للتصنيف هنا لو أردت
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    {!category.isActive && (
+                      <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                        Disabled
+                      </Typography>
+                    )}
                   </Box>
-                )}
-              </Droppable>
-            </DragDropContext>
-          </TreeItem>
-        ))}
+                </Box>
+              }
+            >
+              <DragDropContext onDragEnd={(result) => handleDragEnd(result, category.id)}>
+                <Droppable droppableId={`droppable-${category.id}`}>
+                  {(provided) => (
+                    <Box ref={provided.innerRef} {...provided.droppableProps}>
+                      {filteredProductsForCat.map((product, index) => (
+                        <Draggable key={product.id.toString()} draggableId={`product-${product.id}`} index={index}>
+                          {(providedDraggable) => (
+                            <TreeItem
+                              key={`product-${product.id}`}
+                              nodeId={`product-${product.id}`}
+                              label={
+                                <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'product', data: product })}>
+                                  <Typography>{`${product.order} - ${product.product_name}  ($${product.price ?? 'N/A'})`}</Typography>
+                                  <Box display="flex" alignItems="center">
+                                    <Switch
+                                      checked={product.isActive}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleProduct(product, e.target.checked);
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    {!product.isActive && (
+                                      <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                                        Disabled
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Box>
+                              }
+                              ref={providedDraggable.innerRef}
+                              {...providedDraggable.draggableProps}
+                              {...providedDraggable.dragHandleProps}
+                              sx={{
+                                backgroundColor:
+                                  selectedItem &&
+                                  selectedItem.type === 'product' &&
+                                  selectedItem.data.id === product.id
+                                    ? '#e0e0e0'
+                                    : 'inherit',
+                                mb: 1,
+                              }}
+                            />
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </Box>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </TreeItem>
+          );
+        })}
       </TreeView>
     </Paper>
   );

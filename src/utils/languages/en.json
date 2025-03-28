@@ -179,7 +179,9 @@
         "fields": {
           "categoryName": "Category Name"
         }
-      }
+      },
+      "errorUpdatingCategory": "Error updating category."
+
     },
     "AddDataPopup": {
       "buttons": {
@@ -189,12 +191,26 @@
       }
     },
     "CategoryList": {
-      "confirmDelete": "Are you sure you want to delete this category?",
+      "confirmDeleteTitle": "Are you sure?",
+      "confirmDeleteText": "This action cannot be undone.",
+      "confirmDeleteConfirm": "Yes, delete it!",
+      "confirmDeleteCancel": "Cancel",
       "errorDeleting": "Error deleting category.",
       "errorUpdating": "Error updating category.",
+      "reorderError": "Error updating order. Reverting changes.",
+      "toggleError": "Error updating status. Reverting changes.",
       "save": "Save",
       "filterLabel": "Search Category"
     },
+    "ProductTreeView": {
+      "reorderError": "Error updating order. Reverting changes.",
+      "toggleError": "Error updating status. Reverting changes."
+    },
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteText": "This action cannot be undone.",
+    "confirmDeleteConfirm": "Yes, delete it!",
+    "confirmDeleteCancel": "Cancel",
+  
     "ProductsTab": {
       "buttons": {
         "addProduct": "Add Product"
@@ -208,7 +224,9 @@
           "category": "Category",
           "price": "Price"
         }
-      }
+      },
+      "selectProductToEdit": "Please select a product to edit."
+
     },
     "ProductList": {
       "confirmDelete": "Are you sure you want to delete this product?",

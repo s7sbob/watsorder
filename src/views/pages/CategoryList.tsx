@@ -1,6 +1,6 @@
 // src/views/pages/session/CategoryList.tsx
 import React, { useEffect, useState } from 'react';
-import { Box, IconButton, Typography, Switch } from '@mui/material';
+import { Box, IconButton, Typography, Switch, TextField, Paper } from '@mui/material';
 import { TreeView, TreeItem } from '@mui/lab';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import EditIcon from '@mui/icons-material/Edit';
@@ -25,7 +25,8 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-
+  const [searchText, setSearchText] = useState('');
+  
   const fetchCategories = async () => {
     try {
       const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
@@ -116,8 +117,21 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
     }
   };
 
+
   return (
+        <Paper elevation={3} sx={{ p: 2 }}>
+    
     <Box>
+            {/* حقل البحث */}
+            <Box mb={2}>
+        <TextField
+          label={t('CategoryList.filterLabel') || "Search"}
+          variant="outlined"
+          fullWidth
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </Box>
       {/* أزرار التعديل والحذف ثابتة في الأعلى */}
       <Box display="flex" alignItems="center" mb={2}>
         <IconButton onClick={handleEdit} disabled={!selectedCategoryId}>
@@ -180,6 +194,8 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
         </Droppable>
       </DragDropContext>
     </Box>
+        </Paper>
+    
   );
 };
 
