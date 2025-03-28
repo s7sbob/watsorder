@@ -18,11 +18,13 @@ const EditProductPopup: React.FC<EditProductPopupProps> = ({ open, onClose, onSu
     { label: 'Category', name: 'category_id', options: productCategories }
   ];
 
-  // تأكيد ملء الحقول الافتراضية بناءً على المنتج المحدد
-  const preFilledFields = fields.map(field => ({
-    ...field,
-    defaultValue: product ? `${product[field.name as keyof Product]}` : ''
-}));
+  const preFilledFields = fields.map(field => {
+    if (field.name === 'category_id') {
+      // نحول قيمة category_id إلى string
+      return { ...field, defaultValue: product.category_id.toString() };
+    }
+    return { ...field, defaultValue: product ? `${product[field.name as keyof Product]}` : '' };
+  });
 
   return (
     <AddDataPopup

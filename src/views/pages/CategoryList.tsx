@@ -144,7 +144,7 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
                       nodeId={cat.id.toString()}
                       label={
                         <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelect(cat.id)}>
-                          <Typography>{cat.category_name}</Typography>
+                          <Typography>{cat.order} - {cat.category_name}</Typography>
                           <Box display="flex" alignItems="center">
                             <Switch
                               checked={cat.isActive}

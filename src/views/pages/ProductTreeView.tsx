@@ -208,7 +208,7 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
                             nodeId={`product-${product.id}`}
                             label={
                               <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'product', data: product })}>
-                                <Typography>{`${product.product_name} ($${product.price ?? 'N/A'})`}</Typography>
+                                <Typography>{`${product.order} - ${product.product_name}  (${product.price ?? 'N/A'})`}</Typography>
                                 <Box display="flex" alignItems="center">
                                   <Switch
                                     checked={product.isActive}

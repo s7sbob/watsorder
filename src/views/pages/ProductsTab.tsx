@@ -1,5 +1,5 @@
 // src/views/pages/session/ProductsTab.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button } from '@mui/material';
 import ProductTreeView, { SelectedItem } from './ProductTreeView';
 import AddDataPopup from './AddDataPopup';
@@ -20,15 +20,23 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
   const [refresh, setRefresh] = useState(false);
   const [lastCategoryId, setLastCategoryId] = useState<number | null>(null);
 
+  // تحميل التصنيفات عند تحميل الصفحة (أو عند تغير الـ sessionId)
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
+        const cats = response.data.map((c: any) => ({ value: c.id, label: c.category_name }));
+        setProductCategories(cats);
+      } catch (error) {
+        console.error('Error fetching categories', error);
+      }
+    };
+    if (sessionId) loadCategories();
+  }, [sessionId]);
+
   const handleOpenAddProduct = async () => {
-    try {
-      const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
-      const cats = response.data.map((c: any) => ({ value: c.id, label: c.category_name }));
-      setProductCategories(cats);
-      setOpenAddPopup(true);
-    } catch (error) {
-      alert(t('ProductsTab.errorFetchingCategories'));
-    }
+    // التصنيفات تم تحميلها مسبقاً بواسطة useEffect
+    setOpenAddPopup(true);
   };
 
   const handleAddProduct = async (data: any) => {
@@ -44,8 +52,19 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
     }
   };
 
-  const handleEditProduct = (item: SelectedItem) => {
+  const handleEditProduct = async (item: SelectedItem) => {
     if (item && item.type === 'product') {
+      // لو لم يكن لدينا التصنيفات، نجرب تحميلها مرة أخرى
+      if (productCategories.length === 0) {
+        try {
+          const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
+          const cats = response.data.map((c: any) => ({ value: c.id, label: c.category_name }));
+          setProductCategories(cats);
+        } catch (error) {
+          alert(t('ProductsTab.errorFetchingCategories'));
+          return;
+        }
+      }
       setSelectedItem(item);
       setOpenEditPopup(true);
     } else {
