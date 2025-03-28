@@ -189,24 +189,24 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
           // (2) حقل select
           else if (field.options) {
             return (
-              <TextField
-                select
-                key={field.name}
-                margin="dense"
-                label={field.label}
-                name={field.name}
-                fullWidth
-                variant="outlined"
-                onChange={handleTextChange}
-                sx={{ mt: 2, ...field.style }}
-                value={formData[field.name] || ''}
-              >
-                {field.options.map(option => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+<TextField
+  select
+  key={field.name}
+  margin="dense"
+  label={field.label}
+  name={field.name}
+  fullWidth
+  variant="outlined"
+  onChange={handleTextChange}
+  sx={{ mt: 2, ...field.style }}
+  value={formData[field.name] || ''}
+>
+  {field.options.map(option => (
+    <MenuItem key={option.value} value={option.value.toString()}>
+      {option.label}
+    </MenuItem>
+  ))}
+</TextField>
             );
           }
           // (3) حقل رفع ملفات

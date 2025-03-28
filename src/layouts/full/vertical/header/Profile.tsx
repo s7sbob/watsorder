@@ -1,6 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import React, { useState } from 'react';
+// src/components/Profile.tsx
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Box,
@@ -12,15 +11,21 @@ import {
   Stack
 } from '@mui/material';
 import LogoutButton from './LogoutButton'; // تأكد من مسار الاستيراد الصحيح
-
-
 import { IconMail } from '@tabler/icons-react';
-
 import ProfileImg from 'src/assets/images/profile/user-1.jpg';
+import { UserContext } from 'src/context/UserContext';
 
 const Profile = () => {
-  const [anchorEl2, setAnchorEl2] = useState(null);
-  const handleClick2 = (event: any) => {
+  const [anchorEl2, setAnchorEl2] = useState<null | HTMLElement>(null);
+  
+  // التأكد من وجود الـ context قبل استخدامه
+  const userContext = useContext(UserContext);
+  if (!userContext) {
+    throw new Error("UserContext is not provided");
+  }
+  const { currentUser } = userContext;
+
+  const handleClick2 = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl2(event.currentTarget);
   };
   const handleClose2 = () => {
@@ -31,7 +36,7 @@ const Profile = () => {
     <Box>
       <IconButton
         size="large"
-        aria-label="show 11 new notifications"
+        aria-label="show notifications"
         color="inherit"
         aria-controls="msgs-menu"
         aria-haspopup="true"
@@ -44,16 +49,13 @@ const Profile = () => {
       >
         <Avatar
           src={ProfileImg}
-          alt={ProfileImg}
+          alt="Profile Image"
           sx={{
             width: 35,
             height: 35,
           }}
         />
       </IconButton>
-      {/* ------------------------------------------- */}
-      {/* Message Dropdown */}
-      {/* ------------------------------------------- */}
       <Menu
         id="msgs-menu"
         anchorEl={anchorEl2}
@@ -71,13 +73,17 @@ const Profile = () => {
       >
         <Typography variant="h5">User Profile</Typography>
         <Stack direction="row" py={3} spacing={2} alignItems="center">
-          <Avatar src={ProfileImg} alt={ProfileImg} sx={{ width: 95, height: 95 }} />
+          <Avatar
+            src={ProfileImg}
+            alt="Profile Image"
+            sx={{ width: 95, height: 95 }}
+          />
           <Box>
             <Typography variant="subtitle2" color="textPrimary" fontWeight={600}>
-              Mathew Anderson
+              {currentUser ? currentUser.name : "Guest"}
             </Typography>
             <Typography variant="subtitle2" color="textSecondary">
-            Designer
+              {currentUser ? currentUser.subscriptionType : "User"}
             </Typography>
             <Typography
               variant="subtitle2"
@@ -87,13 +93,13 @@ const Profile = () => {
               gap={1}
             >
               <IconMail width={15} height={15} />
-              info@modernize.com
+              {currentUser ? currentUser.phoneNumber : ""}
             </Typography>
           </Box>
         </Stack>
         <Box mt={2}>
           <Button to="/auth/login" variant="outlined" color="primary" component={Link} fullWidth>
-          <LogoutButton />
+            <LogoutButton />
           </Button>
         </Box>
       </Menu>

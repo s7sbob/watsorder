@@ -1,143 +1,184 @@
-// src/views/pages/session/Categories/CategoryList.tsx
+// src/views/pages/session/CategoryList.tsx
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
-  TextField,
-  Button,
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Box, IconButton, Typography, Switch } from '@mui/material';
+import { TreeView, TreeItem } from '@mui/lab';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import axiosServices from 'src/utils/axios';
+import Swal from 'sweetalert2';
 import { useTranslation } from 'react-i18next';
 
-interface Category {
+export interface Category {
   id: number;
   category_name: string;
+  isActive: boolean;
+  order: number;
 }
 
 interface CategoryListProps {
   sessionId: number;
+  onEdit: (category: Category) => void;
 }
 
-const CategoryList: React.FC<CategoryListProps> = ({ sessionId }) => {
+const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [filterText, setFilterText] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
   const fetchCategories = async () => {
     try {
       const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
-      setCategories(response.data);
+      // ترتيب التصنيفات حسب order
+      const sorted = response.data.sort((a: Category, b: Category) => a.order - b.order);
+      setCategories(sorted);
     } catch (error) {
       console.error('Error fetching categories', error);
     }
   };
 
   useEffect(() => {
-    fetchCategories();
+    if (sessionId) {
+      fetchCategories();
+    }
   }, [sessionId]);
 
-  // فلترة التصنيفات حسب filterText
-  const filteredCategories = categories.filter((cat) =>
-    cat.category_name.toLowerCase().includes(filterText.toLowerCase())
-  );
+  const handleSelect = (id: number) => {
+    setSelectedCategoryId(id);
+  };
 
-  const handleDelete = async (categoryId: number) => {
-    if (!window.confirm(t('CategoryList.confirmDelete') as string)) return;
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const prevCategories = [...categories];
+    const reordered = Array.from(categories);
+    const [removed] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, removed);
+
+    const updatedCategories = reordered.map((item, index) => ({ ...item, order: index + 1 }));
+    setCategories(updatedCategories);
+
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/category/${categoryId}/delete`);
-      fetchCategories();
+      await axiosServices.post(`/api/sessions/${sessionId}/categories/reorder`, { categories: updatedCategories });
     } catch (error) {
-      console.error('Error deleting category', error);
-      alert(t('CategoryList.errorDeleting'));
+      console.error('Error updating order', error);
+      setCategories(prevCategories);
+      Swal.fire(t('CategoryList.reorderError') || 'Error updating order. Reverting changes.');
     }
   };
 
-  const handleEdit = (category: Category) => {
-    setEditingCategoryId(category.id);
-    setNewCategoryName(category.category_name);
-  };
-
-  const handleUpdate = async () => {
-    if (editingCategoryId === null) return;
+  const handleToggleCategory = async (category: Category, newValue: boolean) => {
+    const prevCategories = [...categories];
+    const updatedCategories = categories.map(cat =>
+      cat.id === category.id ? { ...cat, isActive: newValue } : cat
+    );
+    setCategories(updatedCategories);
     try {
-      await axiosServices.post(
-        `/api/sessions/${sessionId}/category/${editingCategoryId}/update`,
-        {
-          category_name: newCategoryName,
-        }
-      );
-      setEditingCategoryId(null);
-      setNewCategoryName('');
-      fetchCategories();
+      await axiosServices.post(`/api/sessions/${sessionId}/category/${category.id}/update`, {
+        category_name: category.category_name,
+        isActive: newValue,
+        order: category.order
+      });
     } catch (error) {
-      console.error('Error updating category', error);
-      alert(t('CategoryList.errorUpdating'));
+      console.error('Error toggling category', error);
+      setCategories(prevCategories);
+      Swal.fire(t('CategoryList.toggleError') || 'Error updating status. Reverting changes.');
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditingCategoryId(null);
-    setNewCategoryName('');
+  const handleDelete = async () => {
+    if (!selectedCategoryId) return;
+    const confirmed = await Swal.fire({
+      title: t('CategoryList.confirmDeleteTitle') || 'Are you sure?',
+      text: t('CategoryList.confirmDeleteText') || 'This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('CategoryList.confirmDeleteConfirm') || 'Yes, delete it!',
+      cancelButtonText: t('CategoryList.confirmDeleteCancel') || 'Cancel'
+    });
+    if (confirmed.isConfirmed) {
+      try {
+        await axiosServices.post(`/api/sessions/${sessionId}/category/${selectedCategoryId}/delete`);
+        setSelectedCategoryId(null);
+        fetchCategories();
+      } catch (error) {
+        console.error('Error deleting category', error);
+        Swal.fire(t('CategoryList.errorDeleting') || 'Error deleting category');
+      }
+    }
+  };
+
+  const handleEdit = () => {
+    if (!selectedCategoryId) return;
+    const category = categories.find(c => c.id === selectedCategoryId);
+    if (category) {
+      onEdit(category);
+    }
   };
 
   return (
     <Box>
-      {/* حقل الفلتر */}
-      <TextField
-        label={t('CategoryList.filterLabel')}
-        variant="outlined"
-        size="small"
-        fullWidth
-        sx={{ mb: 2 }}
-        value={filterText}
-        onChange={(e) => setFilterText(e.target.value)}
-      />
+      {/* أزرار التعديل والحذف ثابتة في الأعلى */}
+      <Box display="flex" alignItems="center" mb={2}>
+        <IconButton onClick={handleEdit} disabled={!selectedCategoryId}>
+          <EditIcon />
+        </IconButton>
+        <IconButton onClick={handleDelete} disabled={!selectedCategoryId}>
+          <DeleteIcon />
+        </IconButton>
+      </Box>
 
-      <List>
-        {filteredCategories.map((cat) => (
-          <ListItem key={cat.id}>
-            {editingCategoryId === cat.id ? (
-              <>
-                <TextField
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  variant="outlined"
-                  size="small"
-                  sx={{ mr: 1 }}
-                />
-                <Button
-                  onClick={handleUpdate}
-                  variant="contained"
-                  color="primary"
-                  sx={{ mr: 1 }}
-                >
-                  {t('CategoryList.save')}
-                </Button>
-                <Button onClick={handleCancelEdit} variant="outlined" color="secondary">
-                  {t('CategoryList.cancel')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <ListItemText primary={cat.category_name} />
-                <IconButton onClick={() => handleEdit(cat)} sx={{ mr: 1 }}>
-                  <EditIcon />
-                </IconButton>
-                <IconButton onClick={() => handleDelete(cat.id)}>
-                  <DeleteIcon />
-                </IconButton>
-              </>
-            )}
-          </ListItem>
-        ))}
-      </List>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="categoryList">
+          {(provided) => (
+            <TreeView
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              defaultCollapseIcon={<Typography>-</Typography>}
+              defaultExpandIcon={<Typography>+</Typography>}
+            >
+              {categories.map((cat, index) => (
+                <Draggable key={cat.id.toString()} draggableId={cat.id.toString()} index={index}>
+                  {(providedDraggable) => (
+                    <TreeItem
+                      nodeId={cat.id.toString()}
+                      label={
+                        <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelect(cat.id)}>
+                          <Typography>{cat.category_name}</Typography>
+                          <Box display="flex" alignItems="center">
+                            <Switch
+                              checked={cat.isActive}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleToggleCategory(cat, e.target.checked);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            {!cat.isActive && (
+                              <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                                Disabled
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      }
+                      ref={providedDraggable.innerRef}
+                      {...providedDraggable.draggableProps}
+                      {...providedDraggable.dragHandleProps}
+                      style={{
+                        backgroundColor: selectedCategoryId === cat.id ? '#e0e0e0' : 'inherit',
+                        marginBottom: 4,
+                        ...providedDraggable.draggableProps.style
+                      }}
+                    />
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </TreeView>
+          )}
+        </Droppable>
+      </DragDropContext>
     </Box>
   );
 };

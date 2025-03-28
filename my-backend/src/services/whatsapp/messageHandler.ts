@@ -175,15 +175,16 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!openOrder.recordset.length) {
-            await client.sendMessage(msg.from, bold('لا يوجد طلب مفتوح. استخدم NEWORDER لفتح طلب جديد.'));
+            await client.sendMessage(msg.from, `*لا يوجد طلب مفتوح. أبدأ طلب جديد أولا*`+`\n`+`wa.me/${phoneNumber}?text=NEWORDER`);
             return;
           }
           const categories = await pool.request()
             .input('sessionId', sql.Int, sessionId)
             .query(`
-              SELECT id, category_name
-              FROM Categories
-              WHERE sessionId = @sessionId
+            SELECT id, category_name
+            FROM Categories
+            WHERE sessionId = @sessionId AND isActive = 1
+            ORDER BY [order] ASC
             `);
           if (!categories.recordset.length) {
             await client.sendMessage(msg.from, bold('لا توجد أصناف متاحة.'));
@@ -204,10 +205,12 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
             .input('sessionId', sql.Int, sessionId)
             .input('catId', sql.Int, catId)
             .query(`
-              SELECT id, product_name, price
-              FROM Products
-              WHERE sessionId = @sessionId
-                AND category_id = @catId
+            SELECT id, product_name, price
+            FROM Products
+            WHERE sessionId = @sessionId 
+              AND category_id = @catId
+              AND isActive = 1
+            ORDER BY [order] ASC
             `);
           if (!productsData.recordset.length) {
             await client.sendMessage(msg.from, bold('لا توجد منتجات في هذا التصنيف.'));
@@ -236,7 +239,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!orderRow.recordset.length) {
-            await client.sendMessage(msg.from, bold('لا يوجد طلب مفتوح. استخدم NEWORDER أولاً.'));
+            await client.sendMessage(msg.from, `*لا يوجد طلب مفتوح. أبدأ طلب جديد أولا*`+`\n`+`wa.me/${phoneNumber}?text=NEWORDER`);
             return;
           }
           const orderId = orderRow.recordset[0].id;
@@ -270,7 +273,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!orderRow.recordset.length) {
-            await client.sendMessage(msg.from, bold('لا يوجد طلب مفتوح.'));
+            await client.sendMessage(msg.from, `*لا يوجد طلب مفتوح. أبدأ طلب جديد أولا*`+`\n`+`wa.me/${phoneNumber}?text=NEWORDER`);
             return;
           }
           const orderId = orderRow.recordset[0].id;
@@ -299,7 +302,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!orderRow.recordset.length) {
-            await client.sendMessage(msg.from, bold('لا يوجد طلب مفتوح.'));
+            await client.sendMessage(msg.from, `*لا يوجد طلب مفتوح. أبدأ طلب جديد أولا*`+`\n`+`wa.me/${phoneNumber}?text=NEWORDER`);
             return;
           }
           const orderId = orderRow.recordset[0].id;
@@ -351,7 +354,7 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!orderRow.recordset.length) {
-            await client.sendMessage(msg.from, bold('لا يوجد طلب مفتوح.'));
+            await client.sendMessage(msg.from, `*لا يوجد طلب مفتوح. أبدأ طلب جديد أولا*`+`\n`+`wa.me/${phoneNumber}?text=NEWORDER`);
             return;
           }
           const orderId = orderRow.recordset[0].id;
@@ -416,8 +419,9 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
               ORDER BY id DESC
             `);
           if (!orderRes.recordset.length) {
-            // لا يوجد طلب مفتوح؛ يمكن تجاهل الرسالة أو إعطاء رد مناسب
-          } else {
+            await client.sendMessage(msg.from, `*لا يوجد طلب مفتوح. أبدأ طلب جديد أولا*`+`\n`+`wa.me/${phoneNumber}?text=NEWORDER`);
+            return;
+            } else {
             const { id: orderId, status, tempProductId } = orderRes.recordset[0];
             
             // حالة AWAITING_QUANTITY

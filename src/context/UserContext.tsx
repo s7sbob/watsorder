@@ -1,6 +1,7 @@
 // src/context/UserContext.tsx
 import React, { createContext, useEffect, useState } from "react";
 import axios from "../utils/axios";
+import {jwtDecode} from "jwt-decode";
 
 export interface User {
   id: number;
@@ -40,7 +41,15 @@ export interface UserFeature {
   featureName: string;
 }
 
-interface UserContextType {
+interface DecodedToken {
+  id: number;
+  phoneNumber: string;
+  subscriptionType: string;
+  name: string;
+  // يمكن إضافة المزيد من الحقول حسب محتوى التوكن
+}
+
+export interface UserContextType {
   users: User[];
   currentUser: User | null;
   isAdmin: () => boolean;
@@ -62,6 +71,7 @@ interface UserContextType {
   addFeatureToUser: (userId: number, data: { featureId: number; startDate: string; endDate?: string }) => Promise<void>;
   updateUserFeature: (userFeatureId: number, data: Partial<UserFeature>) => Promise<void>;
   deleteUserFeature: (userFeatureId: number) => Promise<void>;
+  setUserFromToken: (token: string) => void;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -89,8 +99,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // قمنا بالتعليق هنا لتجنب استدعاء /api/users عند تحميل الصفحة
   useEffect(() => {
-    fetchUsers();
+    // fetchUsers();
   }, []);
 
   const isAdmin = (): boolean => {
@@ -215,6 +226,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // الدالة الجديدة لفك تشفير التوكن وتخزين بيانات المستخدم في currentUser
+  const setUserFromToken = (token: string) => {
+    try {
+      const decoded: DecodedToken = jwtDecode(token);
+      const user: User = {
+        id: decoded.id,
+        phoneNumber: decoded.phoneNumber,
+        name: decoded.name,
+        subscriptionType: decoded.subscriptionType,
+        password: "",            // لا حاجة لتخزين الباسوورد
+        subscriptionStart: "",
+        subscriptionEnd: "",
+        status: "",
+      };
+      setCurrentUser(user);
+    } catch (error) {
+      console.error("خطأ في فك تشفير التوكن:", error);
+    }
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -238,11 +269,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchUserFeatures,
         addFeatureToUser,
         updateUserFeature,
-        deleteUserFeature
+        deleteUserFeature,
+        setUserFromToken,
       }}
     >
       {children}
     </UserContext.Provider>
   );
 };
-

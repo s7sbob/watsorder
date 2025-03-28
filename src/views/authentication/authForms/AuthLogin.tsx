@@ -1,6 +1,5 @@
 // src/views/pages/authForms/AuthLogin.tsx
-
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
@@ -22,6 +21,7 @@ import { setToken } from 'src/store/auth/AuthSlice';
 
 // استيراد مكون اختيار الدولة + إدخال الرقم
 import CountryPhoneSelector from '../auth1/CountryPhoneSelector';
+import { UserContext } from 'src/context/UserContext';
 
 const AuthLogin = () => {
   const [fullPhone, setFullPhone] = useState('');
@@ -30,6 +30,9 @@ const AuthLogin = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // استدعاء الـ UserContext للحصول على دالة setUserFromToken
+  const userContext = useContext(UserContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,11 +47,17 @@ const AuthLogin = () => {
       const { token } = response.data;
 
       if (token) {
+        // خزّن التوكن في Redux
         dispatch(setToken(token));
+
+        // فك تشفير التوكن وتخزين بيانات المستخدم في UserContext
+        userContext?.setUserFromToken(token);
+
+        // إعادة التوجيه بعد تسجيل الدخول
         navigate('/apps/sessions');
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'An error occurred. Please try again.');
+      setError(err?.response?.data?.message || 'حدث خطأ. يرجى المحاولة مرة أخرى.');
     }
   };
 
@@ -95,15 +104,7 @@ const AuthLogin = () => {
               label="Remember this Device"
             />
           </FormGroup>
-          {/* إذا لديك صفحة نسيان كلمة المرور */}
-          {/* <Typography
-            component={Link}
-            to="/auth/forgot-password"
-            fontWeight="500"
-            sx={{ textDecoration: 'none', color: 'primary.main' }}
-          >
-            Forgot Password?
-          </Typography> */}
+          {/* يمكنك إضافة رابط "نسيت كلمة المرور" هنا إذا كان مطلوباً */}
         </Stack>
       </Stack>
 

@@ -4,7 +4,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useSelector, useDispatch } from 'src/store/Store';
 import { setDarkMode, toggleMobileSidebar } from 'src/store/customizer/CustomizerSlice';
 import { IconMoon, IconSun } from '@tabler/icons-react';
-import Notifications from './Notification';
+// import Notifications from './Notification';
 import Profile from './Profile';
 import Language from './Language';
 import { AppState } from 'src/store/Store';
@@ -68,7 +68,7 @@ const Header = () => {
               <IconSun size="21" stroke="1.5" onClick={() => dispatch(setDarkMode('light'))} />
             )}
           </IconButton>
-          <Notifications />
+          {/* <Notifications /> */}
           <Profile />
         </Stack>
       </ToolbarStyled>

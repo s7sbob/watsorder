@@ -218,3 +218,107 @@ export const getAllOrdersForUser = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error fetching all orders.' })
   }
 }
+
+
+
+export const getOrdersByDateRange = async (req: Request, res: Response) => {
+  try {
+    // تأكد من وجود req.user
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authorized. No token or invalid token.' });
+    }
+
+    const userId = req.user.id;
+    const pool = await getConnection();
+
+    // جلب الجلسات الخاصة بالمستخدم
+    const sessionsResult = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query(`
+        SELECT id
+        FROM Sessions
+        WHERE userId = @userId
+      `);
+
+    if (!sessionsResult.recordset.length) {
+      return res.status(200).json([]);
+    }
+
+    const sessionIds = sessionsResult.recordset.map((row: any) => row.id);
+    const inClause = sessionIds.join(',');
+
+    // الحصول على startDate و endDate من الـ query params
+    const { startDate, endDate } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: 'startDate and endDate query parameters are required' });
+    }
+
+    // جلب الطلبات التي تقع ضمن الفترة المحددة
+    const ordersQuery = `
+      SELECT
+        o.*,
+        s.phoneNumber AS sessionPhone
+      FROM Orders o
+      JOIN Sessions s ON s.id = o.sessionId
+      WHERE o.sessionId IN (${inClause})
+        AND o.createdAt BETWEEN @startDate AND @endDate
+      ORDER BY o.createdAt DESC
+    `;
+    const ordersResult = await pool.request()
+      .input('startDate', sql.DateTime, new Date(startDate as string))
+      .input('endDate', sql.DateTime, new Date(endDate as string))
+      .query(ordersQuery);
+
+    if (!ordersResult.recordset.length) {
+      return res.status(200).json([]);
+    }
+
+    // جلب عناصر الطلب وربطها بالطلبات
+    const orderIds = ordersResult.recordset.map((ord: any) => ord.id);
+    const inOrders = orderIds.join(',');
+    const itemsQuery = `
+      SELECT 
+        oi.orderId,
+        oi.quantity,
+        p.product_name,
+        p.price,
+        p.product_internal_code,
+        c.id AS category_id,
+        c.category_name,
+        c.category_internal_code
+      FROM OrderItems oi
+      JOIN Products p ON p.id = oi.productId
+      JOIN Categories c ON c.id = p.category_id
+      WHERE oi.orderId IN (${inOrders})
+    `;
+    const itemsResult = await pool.request().query(itemsQuery);
+
+    const allOrdersData = ordersResult.recordset.map((ord: any) => {
+      const orderItems = itemsResult.recordset.filter((it: any) => it.orderId === ord.id);
+      return {
+        id: ord.id,
+        sessionId: ord.sessionId,
+        customerPhone: ord.customerPhoneNumber,
+        customerName: ord.customerName,
+        status: ord.status,
+        deliveryAddress: ord.deliveryAddress,
+        totalPrice: ord.totalPrice,
+        createdAt: ord.createdAt,
+        items: orderItems.map((it: any) => ({
+          productName: it.product_name,
+          productInternalCode: it.product_internal_code,
+          categoryId: it.category_id,
+          categoryName: it.category_name,
+          categoryInternalCode: it.category_internal_code,
+          quantity: it.quantity,
+          price: it.price
+        }))
+      };
+    });
+
+    return res.status(200).json(allOrdersData);
+  } catch (error) {
+    console.error('Error fetching orders by date range:', error);
+    return res.status(500).json({ message: 'Error fetching orders by date range.' });
+  }
+};

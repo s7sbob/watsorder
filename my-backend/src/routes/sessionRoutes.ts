@@ -32,7 +32,9 @@ import {
   forcePauseSession,
   forceStartSession,
   getGreeting,
-  updateAlternateWhatsAppNumber
+  updateAlternateWhatsAppNumber,
+  reorderCategories,
+  reorderProducts
 } from '../controllers/session'
 import { authenticateToken } from '../middleware/authMiddleware'
 import { upload } from '../middleware/uploadMiddleware'
@@ -95,6 +97,9 @@ router.post('/:sessionId/category/:categoryId/update', authenticateToken, update
 // [POST] حذف الفئة (بدلًا من DELETE)
 router.post('/:sessionId/category/:categoryId/delete', authenticateToken, deleteCategory)
 
+// [POST] لل Reorder
+router.post('/:sessionId/categories/reorder', authenticateToken, reorderCategories);
+
 //----------------------------------
 // المنتجات (Products)
 //----------------------------------
@@ -111,6 +116,9 @@ router.post('/:sessionId/product/:productId/update', authenticateToken, updatePr
 // [POST] حذف منتج (بدلًا من DELETE)
 router.post('/:sessionId/product/:productId/delete', authenticateToken, deleteProduct)
 
+
+// [POST] لل Reorder
+router.post('/:sessionId/products/reorder', authenticateToken, reorderProducts);
 //----------------------------------
 // الكلمات المفتاحية (Keywords)
 //----------------------------------

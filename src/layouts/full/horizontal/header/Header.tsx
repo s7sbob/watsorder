@@ -15,7 +15,7 @@ import {
 import { useSelector, useDispatch } from 'src/store/Store';
 import {  setDarkMode } from 'src/store/customizer/CustomizerSlice';
 import {  IconMoon, IconSun } from '@tabler/icons-react';
-import Notifications from 'src/layouts/full/vertical/header/Notification';
+// import Notifications from 'src/layouts/full/vertical/header/Notification';
 import Profile from 'src/layouts/full/vertical/header/Profile';
 import Language from 'src/layouts/full/vertical/header/Language';
 import Navigation from 'src/layouts/full/vertical/header/Navigation';
@@ -80,7 +80,7 @@ const Header = () => {
               <IconSun size="21" stroke="1.5" onClick={() => dispatch(setDarkMode('light'))} />
             )}
           </IconButton>
-          <Notifications />
+          {/* <Notifications /> */}
 
           <Profile />
         </Stack>
