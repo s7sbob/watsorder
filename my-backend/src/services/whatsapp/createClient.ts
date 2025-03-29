@@ -1,6 +1,6 @@
 // src/services/whatsapp/createClient.ts
 import { Client, LocalAuth } from 'whatsapp-web.js';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db2';
 import * as sql from 'mssql';
 import { io } from '../../server';
 import { whatsappClients } from './whatsappClientsStore';
@@ -18,7 +18,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
   client.on('qr', async (qr) => {
     console.log(`QR Code for session ${sessionId}:`, qr);
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('qr', sql.NVarChar, qr)
@@ -32,7 +32,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
 
   client.on('authenticated', async () => {
     console.log(`Session ${sessionId} authenticated.`);
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -49,7 +49,7 @@ export const createWhatsAppClientForSession = async (sessionId: number, sessionI
       const fullWhatsAppID = client.info?.wid?._serialized;
       if (fullWhatsAppID) {
         const purePhoneNumber = fullWhatsAppID.replace('@c.us', '');
-        const pool = await getConnection();
+        const pool = await poolPromise;
         await pool.request()
           .input('sessionId', sql.Int, sessionId)
           .input('phoneNumber', sql.NVarChar, purePhoneNumber)

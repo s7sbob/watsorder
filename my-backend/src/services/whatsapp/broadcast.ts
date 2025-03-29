@@ -1,7 +1,7 @@
 // src/services/whatsapp/broadcast.ts
 import { Client, MessageMedia } from 'whatsapp-web.js';
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db2';
 import * as sql from 'mssql';
 import { whatsappClients } from './whatsappClientsStore';
 
@@ -14,7 +14,7 @@ export const broadcastMessage = async (req: Request, res: Response, sessionId: n
     return res.status(400).json({ message: 'Invalid input data' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`

@@ -1,5 +1,5 @@
 // src/services/whatsapp/orderTimeouts.ts
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db2';
 import * as sql from 'mssql';
 import { Client } from 'whatsapp-web.js';
 
@@ -20,7 +20,7 @@ export const scheduleOrderTimeout = async (
   const delay = 5 * 60 * 1000; // 5 دقائق بالمللي ثانية
   const timeout = setTimeout(async () => {
     try {
-      const pool = await getConnection();
+      const pool = await poolPromise;
       // استعلام يشمل رقم العميل الذي تحدث مع البوت
       const orderRes = await pool.request()
         .input('orderId', sql.Int, orderId)
@@ -33,11 +33,10 @@ export const scheduleOrderTimeout = async (
             .input('orderId', sql.Int, orderId)
             .query(`DELETE FROM Orders WHERE id = @orderId`);
           
-          // نستخدم رقم العميل لتحديد chatId (الذي هو الشخص الذي كان يتحدث مع البوت)
+          // نستخدم رقم العميل لتحديد chatId
           const customerPhone = orderRes.recordset[0].customerPhoneNumber;
           if (customerPhone) {
             const chatId = `${customerPhone}@c.us`;
-            // هنا نعرض sessionPhone في نص الرسالة
             const notificationMsg = `تم الغاء طلبك لعدم الاستكمال
 *يمكنك الآن بدء طلب جديد*
 wa.me/${sessionPhone}?text=NEWORDER`;

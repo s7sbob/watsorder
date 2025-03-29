@@ -1,12 +1,12 @@
 // src/services/whatsapp/customerInfo.ts
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db2';
 import * as sql from 'mssql';
 
 /**
  * استرجاع الاسم المسجل لرقم الهاتف (إن وجد)
  */
 export const getCustomerName = async (customerPhone: string): Promise<string | null> => {
-  const pool = await getConnection();
+  const pool = await poolPromise;
   const result = await pool.request()
     .input('custPhone', sql.NVarChar, customerPhone)
     .query(`SELECT name FROM CustomerInfo WHERE phoneNumber = @custPhone`);
@@ -20,7 +20,7 @@ export const getCustomerName = async (customerPhone: string): Promise<string | n
  * حفظ أو تحديث اسم العميل
  */
 export const saveCustomerName = async (customerPhone: string, name: string): Promise<void> => {
-  const pool = await getConnection();
+  const pool = await poolPromise;
   const result = await pool.request()
     .input('custPhone', sql.NVarChar, customerPhone)
     .query(`SELECT name FROM CustomerInfo WHERE phoneNumber = @custPhone`);
@@ -41,7 +41,7 @@ export const saveCustomerName = async (customerPhone: string, name: string): Pro
  * استرجاع العناوين المسجلة لرقم الهاتف
  */
 export const getCustomerAddresses = async (customerPhone: string): Promise<{ id: number, address: string }[]> => {
-  const pool = await getConnection();
+  const pool = await poolPromise;
   const result = await pool.request()
     .input('custPhone', sql.NVarChar, customerPhone)
     .query(`SELECT id, address FROM CustomerAddresses WHERE phoneNumber = @custPhone`);
@@ -52,7 +52,7 @@ export const getCustomerAddresses = async (customerPhone: string): Promise<{ id:
  * حفظ عنوان جديد لرقم الهاتف
  */
 export const saveCustomerAddress = async (customerPhone: string, address: string): Promise<void> => {
-  const pool = await getConnection();
+  const pool = await poolPromise;
   await pool.request()
     .input('custPhone', sql.NVarChar, customerPhone)
     .input('address', sql.NVarChar, address)
