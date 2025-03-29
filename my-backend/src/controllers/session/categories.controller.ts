@@ -5,7 +5,7 @@ import { checkSessionOwnershipForCatProd } from './helpers';
 
 export const addCategory = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
-  const { category_name, isActive = false, order = 0 } = req.body;
+  const { category_name, isActive = true, order = 0 } = req.body;
 
   if (!category_name) {
     return res.status(400).json({ message: 'category_name is required.' });
