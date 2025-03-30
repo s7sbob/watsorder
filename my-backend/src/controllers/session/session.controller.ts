@@ -320,7 +320,7 @@ export const confirmPaymentWithExpire = async (req: Request, res: Response) => {
 
     if (result.recordset.length > 0) {
       const sessionIdentifier = result.recordset[0].sessionIdentifier
-      await createWhatsAppClientForSession(sessionId, sessionIdentifier)
+      // await createWhatsAppClientForSession(sessionId, sessionIdentifier)
     }
     return res.status(200).json({ message: 'Payment confirmed and expire date set. Session is now ready.' })
   } catch (error) {
@@ -357,7 +357,7 @@ export const renewSubscription = async (req: Request, res: Response) => {
 
     if (result.recordset.length > 0) {
       const sessionIdentifier = result.recordset[0].sessionIdentifier
-      await createWhatsAppClientForSession(sessionId, sessionIdentifier)
+      // await createWhatsAppClientForSession(sessionId, sessionIdentifier)
     }
 
     return res.status(200).json({ message: 'Subscription renewed, session is now ready.' })

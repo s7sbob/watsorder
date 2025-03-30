@@ -34,7 +34,9 @@ import {
   getGreeting,
   updateAlternateWhatsAppNumber,
   reorderCategories,
-  reorderProducts
+  reorderProducts,
+  startQrForSession,
+  cancelQrForSession
 } from '../controllers/session'
 import { authenticateToken } from '../middleware/authMiddleware'
 import { upload } from '../middleware/uploadMiddleware'
@@ -76,6 +78,12 @@ router.post('/:id/menu-bot/update', authenticateToken, updateMenuBotStatus)
 
 // جلب QR (GET عادي)
 router.get('/:id/qr', authenticateToken, getQrForSession)
+
+// [POST] بدء عملية توليد QR عند الضغط على زر "Show QR Code"
+router.post('/:id/start-qr', authenticateToken, startQrForSession)
+
+// [POST] إلغاء عملية توليد QR وإيقاف الجلسة عند إغلاق المستخدم للـ popup
+router.post('/:id/cancel-qr', authenticateToken, cancelQrForSession)
 
 //----------------------------------
 // إرسال برودكاست (كان POST منذ البداية فلم نغيره)

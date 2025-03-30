@@ -69,7 +69,7 @@ export const forceStartSession = async (req: Request, res: Response) => {
 
     // استيراد دالة الإنشاء (بحسب موقعها لديك)
     const { createWhatsAppClientForSession } = await import('../whatsappClients');
-    await createWhatsAppClientForSession(sessionId, sessionIdentifier);
+    // await createWhatsAppClientForSession(sessionId, sessionIdentifier);
 
     await pool.request()
       .input('sessionId', sql.Int, sessionId)

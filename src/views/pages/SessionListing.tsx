@@ -107,13 +107,18 @@ const SessionListing = () => {
   const [selectedSession, setSelectedSession] = useState<SessionType | null>(null)
   const [isQrLoading, setIsQrLoading] = useState(false)
 
-  // Socket listener
+  // Socket listener مع شرط لإغلاق الـ popup تلقائيًا عند نجاح المسح
   useEffect(() => {
     const handleSessionUpdate = (data: { sessionId: number; status: string; qrCode?: string }) => {
       if (qrDialogOpen && selectedSession && selectedSession.id === data.sessionId) {
         setSelectedSession(prev =>
           prev ? { ...prev, status: data.status, qrCode: data.qrCode } : null
         )
+        if (data.status === 'Connected') {
+          // إغلاق الـ popup تلقائيًا عند اكتمال عملية المسح
+          setQrDialogOpen(false)
+          setSelectedSession(null)
+        }
       }
       if (!qrDialogOpen && data.status !== 'Waiting for QR Code') {
         dispatch(updateSession({ sessionId: data.sessionId, changes: { status: data.status, qrCode: data.qrCode } }))
@@ -131,18 +136,23 @@ const SessionListing = () => {
     dispatch(fetchSessions())
   }, [dispatch])
 
-  // عند الضغط على زر "Show QR Code" لا يتم تحويل الحالة مباشرة إلى Connected
+  // عند الضغط على زر "Show QR Code" يتم استدعاء endpoint start-qr
   const handleShowQr = async (session: SessionType) => {
     try {
+      // تحديث حالة الجلسة محلياً
       const updatedSession = { ...session, status: 'Waiting for QR Code', qrCode: undefined }
       setSelectedSession(updatedSession)
       setQrDialogOpen(true)
       setIsQrLoading(true)
 
+      // بدء عملية توليد QR عبر endpoint الجديد
+      await axiosServices.post(`/api/sessions/${session.id}/start-qr`)
+
+      // بعد بدء العملية نقوم باسترجاع رمز الـ QR
       const response = await axiosServices.get(`/api/sessions/${session.id}/qr`)
       const qrData = response.data.qr
 
-      // نعرض رمز الـ QR دون تغيير الحالة (تظل "Waiting for QR Code") 
+      // عرض رمز الـ QR مع بقاء الحالة "Waiting for QR Code"
       setSelectedSession(prev => prev ? { ...prev, qrCode: qrData } : null)
       dispatch(updateSession({ sessionId: session.id, changes: { qrCode: qrData, status: 'Waiting for QR Code' } }))
       setIsQrLoading(false)
@@ -156,7 +166,7 @@ const SessionListing = () => {
     }
   }
 
-  // عند إغلاق الـ dialog بدون إتمام المسح
+  // عند إغلاق الـ dialog بدون إتمام المسح: استدعاء endpoint cancel-qr لإلغاء العملية
   const handleCloseQrDialog = async () => {
     if (selectedSession) {
       try {
