@@ -1,7 +1,7 @@
 // src/views/pages/session/CategoryList.tsx
 import React, { useEffect, useState } from 'react';
 import { Box, IconButton, Typography, Switch, TextField, Paper } from '@mui/material';
-import { TreeView, TreeItem } from '@mui/lab';
+import { TreeView, TreeItem } from '@mui/x-tree-view';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';

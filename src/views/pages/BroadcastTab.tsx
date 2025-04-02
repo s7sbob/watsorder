@@ -104,10 +104,6 @@ const BroadcastTab: React.FC<{ sessionId: number }> = ({ sessionId }) => {
     }))
   }
 
-  const getCurrentDateTime = () => {
-    const now = new Date()
-    return `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`
-  }
 
   const handleBroadcastSubmit = async () => {
     const { phoneNumbers, message, randomNumbers, media } = broadcastData

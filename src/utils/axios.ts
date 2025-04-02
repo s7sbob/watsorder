@@ -3,9 +3,9 @@ import axios from 'axios'
 import { getCookie } from './cookieHelpers'
 
 const axiosServices = axios.create({
-  baseURL: 'https://api.watsorder.com', // أو أي مسار للـ backend
-  // baseURL: 'http://localhost:5000', // أو أي مسار للـ backend
-
+  // baseURL: 'https://api.watsorder.com', // أو أي مسار للـ backend
+  baseURL: 'http://localhost:5000', // أو أي مسار للـ backend
+  // baseURL: 'http://147.189.175.71:5000/', // أو أي مسار للـ backend
   headers: {
     'Content-Type': 'application/json'
   }
