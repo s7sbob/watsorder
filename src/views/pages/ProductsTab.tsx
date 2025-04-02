@@ -20,7 +20,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
   const [refresh, setRefresh] = useState(false);
   const [lastCategoryId, setLastCategoryId] = useState<number | null>(null);
 
-  // تحميل التصنيفات عند تحميل الصفحة (أو عند تغير الـ sessionId)
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -35,12 +34,14 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
   }, [sessionId]);
 
   const handleOpenAddProduct = async () => {
-    // التصنيفات تم تحميلها مسبقاً بواسطة useEffect
     setOpenAddPopup(true);
   };
 
   const handleAddProduct = async (data: any) => {
     try {
+      if (data.isActive === undefined) {
+        data.isActive = true;
+      }
       await axiosServices.post(`/api/sessions/${sessionId}/product`, data);
       setOpenAddPopup(false);
       setRefresh(!refresh);
@@ -54,7 +55,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
 
   const handleEditProduct = async (item: SelectedItem) => {
     if (item && item.type === 'product') {
-      // لو لم يكن لدينا التصنيفات، نجرب تحميلها مرة أخرى
       if (productCategories.length === 0) {
         try {
           const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
@@ -86,6 +86,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
   const handleUpdateProduct = async (data: any) => {
     if (selectedItem && selectedItem.type === 'product') {
       try {
+        if (data.isActive === undefined) {
+          data.isActive = true;
+        }
         await axiosServices.post(`/api/sessions/${sessionId}/product/${selectedItem.data.id}/update`, data);
         setOpenEditPopup(false);
         setSelectedItem(null);
@@ -137,7 +140,10 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
       {openEditPopup && selectedItem && selectedItem.type === 'product' && (
         <EditProductPopup
           open={openEditPopup}
-          onClose={() => { setOpenEditPopup(false); setSelectedItem(null); }}
+          onClose={() => {
+            setOpenEditPopup(false);
+            setSelectedItem(null);
+          }}
           onSubmit={handleUpdateProduct}
           product={selectedItem.data}
           productCategories={productCategories}

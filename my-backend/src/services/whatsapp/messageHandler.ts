@@ -17,19 +17,19 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
       const sessionRow = await pool.request()
         .input('sessionId', sql.Int, sessionId)
         .query(`
-          SELECT botActive, menuBotActive, phoneNumber, greetingActive, greetingMessage
+          SELECT botActive, menuBotActive, phoneNumber, alternateWhatsAppNumber, greetingActive, greetingMessage
           FROM Sessions
           WHERE id = @sessionId
         `);
       if (!sessionRow.recordset.length) {
-        console.log(`Session not found in DB for message handling.`);
+        console.log("Session not found in DB for message handling.");
         return;
       }
       if (msg.from.endsWith('@g.us')) {
-        console.log(`Message from group ignored.`);
+        console.log("Message from group ignored.");
         return;
       }
-      const { botActive, menuBotActive, phoneNumber, greetingActive, greetingMessage } = sessionRow.recordset[0];
+      const { botActive, menuBotActive, phoneNumber, alternateWhatsAppNumber, greetingActive, greetingMessage } = sessionRow.recordset[0];
       const text = msg.body.trim();
       const upperText = text.toUpperCase();
       const customerPhone = msg.from.split('@')[0];
@@ -40,9 +40,19 @@ export const registerMessageHandler = (client: Client, sessionId: number) => {
         if (handled) return;
       }
 
-      // (2) معالجة أوامر المنيو بوت
+      // (2) معالجة أوامر المنيو بوت مع تمرير الرقم البديل إن وجد
       if (menuBotActive) {
-        const handled = await handleMenuBot({ client, msg, text, upperText, pool, sessionId, customerPhone, phoneNumber });
+        const handled = await handleMenuBot({
+          client,
+          msg,
+          text,
+          upperText,
+          pool,
+          sessionId,
+          customerPhone,
+          phoneNumber,
+          alternateWhatsAppNumber
+        });
         if (handled) return;
       }
 

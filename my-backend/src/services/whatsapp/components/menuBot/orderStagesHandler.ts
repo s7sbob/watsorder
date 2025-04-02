@@ -10,7 +10,8 @@ interface OrderStagesParams {
   sessionId: number;
   customerPhone: string;
   upperText: string;
-  phoneNumber: string;
+  phoneNumber: string; // الرقم الرئيسي المستخدم في روابط الطلب
+  alternateWhatsAppNumber?: string; // الرقم البديل لو موجود
 }
 
 export const handleOrderStages = async ({
@@ -20,7 +21,8 @@ export const handleOrderStages = async ({
   sessionId,
   customerPhone,
   upperText,
-  phoneNumber
+  phoneNumber,
+  alternateWhatsAppNumber
 }: OrderStagesParams): Promise<boolean> => {
   const bold = (txt: string) => `*${txt}*`;
   const orderRes = await pool.request()
@@ -39,7 +41,7 @@ export const handleOrderStages = async ({
   }
   const { id: orderId, status, tempProductId } = orderRes.recordset[0];
 
-  // حالة AWAITING_QUANTITY
+  // حالة AWAITING_QUANTITY: عند إدخال الكمية وإضافة المنتج للسلة
   if (status === 'AWAITING_QUANTITY' && tempProductId) {
     const quantityNum = parseInt(upperText);
     if (isNaN(quantityNum) || quantityNum <= 0) {
@@ -62,31 +64,44 @@ export const handleOrderStages = async ({
         SET status = @status, tempProductId = NULL
         WHERE id = @orderId
       `);
-    const cartSummaryRes = await pool.request()
+    clearOrderTimeout(orderId);
+    scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
+
+    // استرجاع تفاصيل السلة
+    const itemsRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
-        SELECT 
-          SUM(oi.quantity) as totalQty,
-          SUM(oi.quantity * p.price) as totalPrice
+        SELECT oi.productId, oi.quantity, p.product_name, p.price
         FROM OrderItems oi
         JOIN Products p ON oi.productId = p.id
         WHERE oi.orderId = @orderId
       `);
-    const totalQty = cartSummaryRes.recordset[0].totalQty || 0;
-    const totalPrice = cartSummaryRes.recordset[0].totalPrice || 0;
-    clearOrderTimeout(orderId);
-    scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
-    let addedMsg = `*تم إضافة المنتج للسلة.*\n===========================\n`;
-    addedMsg += `*يوجد عدد (${totalQty}) صنف بقيمة (${totalPrice}) داخل سلة المشتريات*\n`;
-    addedMsg += `*لعرض السلة وتنفيذ الطلب :*\n`;
-    addedMsg += `wa.me/${phoneNumber}?text=VIEWCART\n\n`;
-    addedMsg += `*لإضافة منتج آخر:*\n`;
+    let totalPrice = 0;
+    let cartItemsMsg = '';
+    for (const row of itemsRes.recordset) {
+      const linePrice = (row.price || 0) * row.quantity;
+      totalPrice += linePrice;
+      cartItemsMsg += `${bold(`${row.quantity} x ${row.product_name} => ${linePrice} ج`)}\n`;
+      cartItemsMsg += `للحذف: wa.me/${phoneNumber}?text=REMOVEPRODUCT_${row.productId}\n\n`;
+    }
+
+    let addedMsg = `${bold('تم إضافة المنتج للسلة.')}\n`;
+    addedMsg += `===========================\n`;
+    addedMsg += `${bold('سلة المشتريات:')}\n`;
+    addedMsg += `===========================\n`;
+    addedMsg += cartItemsMsg;
+    addedMsg += `\n${bold(`الإجمالي: ${totalPrice} ج`)}\n`;
+    addedMsg += `===========================\n`;
+    addedMsg += `${bold('لتنفيذ الطلب:')}\n`;
+    addedMsg += `wa.me/${phoneNumber}?text=CARTCONFIRM\n\n`;
+    addedMsg += `${bold('لإضافة منتج آخر:')}\n`;
     addedMsg += `wa.me/${phoneNumber}?text=SHOWCATEGORIES`;
+    
     await client.sendMessage(msg.from, addedMsg);
     return true;
   }
 
-  // حالة AWAITING_NAME
+  // حالة AWAITING_NAME: استقبال اسم العميل
   if (status === 'AWAITING_NAME') {
     const newName = msg.body.trim();
     await saveCustomerName(customerPhone, newName);
@@ -104,7 +119,7 @@ export const handleOrderStages = async ({
     scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
     const addresses = await getCustomerAddresses(customerPhone);
     if (addresses.length > 0) {
-      let addrMsg = `مرحبا *${newName}*، اختر احد العناوين المسجلة أو اضف عنوان جديد` + '\n===========================\n';
+      let addrMsg = `مرحبا *${newName}*، اختر احد العناوين المسجلة أو اضف عنوان جديد\n===========================\n`;
       addresses.forEach(addr => {
         addrMsg += `${addr.address}\n`;
         addrMsg += `wa.me/${phoneNumber}?text=ADDRESS_${addr.id}\n\n`;
@@ -117,7 +132,7 @@ export const handleOrderStages = async ({
     return true;
   }
 
-  // حالة AWAITING_ADDRESS
+  // حالة AWAITING_ADDRESS: استقبال أو اختيار عنوان
   if (status === 'AWAITING_ADDRESS') {
     if (upperText === 'NEWADDRESS') {
       await client.sendMessage(msg.from, bold('برجاء إرسال العنوان الجديد'));
@@ -142,7 +157,7 @@ export const handleOrderStages = async ({
         scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
         await client.sendMessage(
           msg.from,
-          (`*تم اختيار العنوان*:\n${selected.address}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`)
+          `${bold('تم اختيار العنوان')}:\n${selected.address}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`
         );
       } else {
         await client.sendMessage(msg.from, bold('العنوان المختار غير موجود.'));
@@ -165,13 +180,13 @@ export const handleOrderStages = async ({
       scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
       await client.sendMessage(
         msg.from,
-        (`*تم حفظ عنوانك الجديد*:\n${newAddress}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`)
+        `${bold('تم حفظ عنوانك الجديد')}:\n${newAddress}\n===========================\nبرجاء إرسال الموقع *(أو اضغط على الرابط للتخطي)*: wa.me/${phoneNumber}?text=SKIP_LOCATION`
       );
       return true;
     }
   }
 
-  // حالة AWAITING_LOCATION
+  // حالة AWAITING_LOCATION: استقبال الموقع أو تخطيه
   if (status === 'AWAITING_LOCATION') {
     const upperTextLocation = msg.body.trim().toUpperCase();
     if (upperTextLocation === 'SKIP_LOCATION') {
@@ -185,6 +200,9 @@ export const handleOrderStages = async ({
         `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'));
+      if (alternateWhatsAppNumber) {
+        await sendOrderDetailsToAlternate(client, pool, orderId, alternateWhatsAppNumber, phoneNumber);
+      }
       return true;
     } else if (msg.type === 'location' && msg.location) {
       const { latitude, longitude } = msg.location;
@@ -202,6 +220,9 @@ export const handleOrderStages = async ({
         `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'));
+      if (alternateWhatsAppNumber) {
+        await sendOrderDetailsToAlternate(client, pool, orderId, alternateWhatsAppNumber, phoneNumber);
+      }
       return true;
     } else {
       await client.sendMessage(
@@ -212,4 +233,31 @@ export const handleOrderStages = async ({
     }
   }
   return false;
+};
+
+const sendOrderDetailsToAlternate = async (
+  client: Client,
+  pool: any,
+  orderId: number,
+  alternateWhatsAppNumber: string,
+  mainPhoneNumber: string
+) => {
+  const itemsRes = await pool.request()
+    .input('orderId', sql.Int, orderId)
+    .query(`
+      SELECT oi.productId, oi.quantity, p.product_name, p.price
+      FROM OrderItems oi
+      JOIN Products p ON oi.productId = p.id
+      WHERE oi.orderId = @orderId
+    `);
+  if (!itemsRes.recordset.length) return;
+  let total = 0;
+  let summaryMsg = `طلب جديد تم تأكيده\n===========================\n`;
+  for (const row of itemsRes.recordset) {
+    const linePrice = (row.price || 0) * row.quantity;
+    total += linePrice;
+    summaryMsg += `${row.quantity} x ${row.product_name} => ${linePrice} ج\n`;
+  }
+  summaryMsg += `الإجمالي: ${total} ج\n===========================\n`;
+  await client.sendMessage(`${alternateWhatsAppNumber}@c.us`, summaryMsg);
 };

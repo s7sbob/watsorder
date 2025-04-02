@@ -51,7 +51,7 @@ export const handleShowCategories = async ({
   let catMsg = bold('اختر الصنف لإضافة منتجات:') + '\n===========================\n';
   for (const cat of categories.recordset) {
     catMsg += bold(cat.category_name) + '\n';
-    catMsg += `wa.me/${phoneNumber}?text=CATEGORY_${cat.id}\n\n`;
+    catMsg += `wa.me/${phoneNumber}?text=CATEGORY_${cat.id}\n`;
   }
   await client.sendMessage(msg.from, catMsg);
   return true;

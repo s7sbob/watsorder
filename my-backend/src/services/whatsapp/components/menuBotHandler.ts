@@ -1,6 +1,5 @@
 import { Client, Message } from 'whatsapp-web.js';
 import * as sql from 'mssql';
-
 import { handleNewOrder } from './menuBot/newOrderHandler';
 import { handleShowCategories } from './menuBot/showCategoriesHandler';
 import { handleCategory } from './menuBot/categoryHandler';
@@ -19,6 +18,7 @@ interface MenuBotHandlerParams {
   sessionId: number;
   customerPhone: string;
   phoneNumber: string;
+  alternateWhatsAppNumber?: string;
 }
 
 export const handleMenuBot = async ({
@@ -29,7 +29,8 @@ export const handleMenuBot = async ({
   pool,
   sessionId,
   customerPhone,
-  phoneNumber
+  phoneNumber,
+  alternateWhatsAppNumber
 }: MenuBotHandlerParams): Promise<boolean> => {
   if (upperText === 'NEWORDER') {
     const handled = await handleNewOrder({ client, msg, pool, sessionId, customerPhone, phoneNumber });
@@ -53,8 +54,17 @@ export const handleMenuBot = async ({
     const handled = await handleCartConfirm({ client, msg, pool, sessionId, customerPhone, phoneNumber });
     if (handled) return true;
   } else {
-    // معالجة المراحل المتبقية للطلب
-    const handled = await handleOrderStages({ client, msg, pool, sessionId, customerPhone, upperText, phoneNumber });
+    // معالجة المراحل المتبقية للطلب مع تمرير الرقم البديل
+    const handled = await handleOrderStages({
+      client,
+      msg,
+      pool,
+      sessionId,
+      customerPhone,
+      upperText,
+      phoneNumber,
+      alternateWhatsAppNumber
+    });
     if (handled) return true;
   }
   return false;

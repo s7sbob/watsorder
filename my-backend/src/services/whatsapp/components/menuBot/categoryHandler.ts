@@ -39,7 +39,7 @@ export const handleCategory = async ({
   let prodMsg = bold('برجاء إختيار المنتج') + '\n===========================\n';
   for (const p of productsData.recordset) {
     prodMsg += bold(`${p.product_name} (${p.price}ج)`) + '\n';
-    prodMsg += `wa.me/${phoneNumber}?text=PRODUCT_${p.id}\n\n`;
+    prodMsg += `wa.me/${phoneNumber}?text=PRODUCT_${p.id}\n`;
   }
   await client.sendMessage(msg.from, prodMsg);
   return true;
