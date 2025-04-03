@@ -428,9 +428,11 @@ const SessionListing = () => {
                       </>
                     ) : (
                       <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
-                        <Button variant='outlined' size='small' onClick={() => handleShowQr(session)}>
-                          Link Whatsapp Device
-                        </Button>
+                        {(session.status === 'Ready' || session.status === 'Waiting for QR Code') && (
+                          <Button variant='outlined' size='small' onClick={() => handleShowQr(session)}>
+                            Link Whatsapp Device
+                          </Button>
+                        )}
                         <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color='primary'>
                           <SettingsIcon />
                         </IconButton>
