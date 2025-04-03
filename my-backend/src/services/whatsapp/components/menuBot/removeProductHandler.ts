@@ -21,7 +21,8 @@ export const handleRemoveProduct = async ({
   phoneNumber
 }: RemoveProductParams): Promise<boolean> => {
   const bold = (txt: string) => `*${txt}*`;
-  const productId = parseInt(upperText.replace('REMOVEPRODUCT_', ''));
+  // استخدام البادئة المختصرة "RP_" بدلاً من "REMOVEPRODUCT_"
+  const productId = parseInt(upperText.replace('RP_', ''));
   const orderRow = await pool.request()
     .input('sessionId', sql.Int, sessionId)
     .input('custPhone', sql.NVarChar, customerPhone)

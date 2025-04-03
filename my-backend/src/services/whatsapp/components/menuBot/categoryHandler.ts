@@ -19,8 +19,8 @@ export const handleCategory = async ({
   phoneNumber
 }: CategoryParams): Promise<boolean> => {
   const bold = (txt: string) => `*${txt}*`;
-  // استخراج معرف القسم
-  const catId = parseInt(upperText.replace('CATEGORY_', ''));
+  // استخدام البادئة المختصرة "C_" بدلاً من "CATEGORY_"
+  const catId = parseInt(upperText.replace('C_', ''));
   const productsData = await pool.request()
     .input('sessionId', sql.Int, sessionId)
     .input('catId', sql.Int, catId)
@@ -39,7 +39,8 @@ export const handleCategory = async ({
   let prodMsg = bold('برجاء إختيار المنتج') + '\n===========================\n';
   for (const p of productsData.recordset) {
     prodMsg += bold(`${p.product_name} (${p.price}ج)`) + '\n';
-    prodMsg += `wa.me/${phoneNumber}?text=PRODUCT_${p.id}\n`;
+    // إرسال رابط المنتج مع البادئة المختصرة "P_"
+    prodMsg += `wa.me/${phoneNumber}?text=P_${p.id}\n`;
   }
   await client.sendMessage(msg.from, prodMsg);
   return true;

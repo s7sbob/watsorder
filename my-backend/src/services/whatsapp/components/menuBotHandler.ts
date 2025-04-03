@@ -38,13 +38,13 @@ export const handleMenuBot = async ({
   } else if (upperText === 'SHOWCATEGORIES') {
     const handled = await handleShowCategories({ client, msg, pool, sessionId, customerPhone, phoneNumber });
     if (handled) return true;
-  } else if (upperText.startsWith('CATEGORY_')) {
+  } else if (upperText.startsWith('C_')) {
     const handled = await handleCategory({ client, msg, pool, sessionId, upperText, phoneNumber });
     if (handled) return true;
-  } else if (upperText.startsWith('PRODUCT_')) {
+  } else if (upperText.startsWith('P_')) {
     const handled = await handleProduct({ client, msg, pool, sessionId, customerPhone, upperText, phoneNumber });
     if (handled) return true;
-  } else if (upperText.startsWith('REMOVEPRODUCT_')) {
+  } else if (upperText.startsWith('RP_')) {
     const handled = await handleRemoveProduct({ client, msg, pool, sessionId, customerPhone, upperText, phoneNumber });
     if (handled) return true;
   } else if (upperText === 'VIEWCART') {

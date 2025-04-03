@@ -53,7 +53,8 @@ export const handleViewCart = async ({
     const linePrice = (row.price || 0) * row.quantity;
     total += linePrice;
     cartMsg += bold(`${row.quantity} x ${row.product_name} => ${linePrice} ج`) + '\n';
-    cartMsg += `للحذف: wa.me/${phoneNumber}?text=REMOVEPRODUCT_${row.productId}\n\n`;
+    // إرسال رابط حذف المنتج مع البادئة المختصرة "RP_"
+    cartMsg += `للحذف: wa.me/${phoneNumber}?text=RP_${row.productId}\n\n`;
   }
   cartMsg += bold(`الإجمالي: ${total} ج`) + '\n===========================\n';
   cartMsg += bold('لتنفيذ الطلب:') + '\n';

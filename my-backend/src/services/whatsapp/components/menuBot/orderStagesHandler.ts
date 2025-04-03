@@ -82,7 +82,7 @@ export const handleOrderStages = async ({
       const linePrice = (row.price || 0) * row.quantity;
       totalPrice += linePrice;
       cartItemsMsg += `${bold(`${row.quantity} x ${row.product_name} => ${linePrice} ج`)}\n`;
-      cartItemsMsg += `للحذف: wa.me/${phoneNumber}?text=REMOVEPRODUCT_${row.productId}\n\n`;
+      cartItemsMsg += `للحذف: wa.me/${phoneNumber}?text=RP_${row.productId}\n\n`;
     }
 
     let addedMsg = `${bold('تم إضافة المنتج للسلة.')}\n`;
@@ -198,6 +198,15 @@ export const handleOrderStages = async ({
           SET status = @status
           WHERE id = @orderId
         `);
+      // إعادة تعيين عداد الترحيب بحذف سجل GreetingLog
+      await pool.request()
+        .input('sessionId', sql.Int, sessionId)
+        .input('custPhone', sql.NVarChar, customerPhone)
+        .query(`
+          DELETE FROM GreetingLog
+          WHERE sessionId = @sessionId
+            AND phoneNumber = @custPhone
+        `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'));
       if (alternateWhatsAppNumber) {
@@ -217,6 +226,15 @@ export const handleOrderStages = async ({
               deliveryLng = @lng,
               status = @status
           WHERE id = @orderId
+        `);
+      // إعادة تعيين عداد الترحيب بحذف سجل GreetingLog
+      await pool.request()
+        .input('sessionId', sql.Int, sessionId)
+        .input('custPhone', sql.NVarChar, customerPhone)
+        .query(`
+          DELETE FROM GreetingLog
+          WHERE sessionId = @sessionId
+            AND phoneNumber = @custPhone
         `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'));

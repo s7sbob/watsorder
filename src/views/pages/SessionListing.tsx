@@ -1,5 +1,3 @@
-// src/views/.... /SessionListing.tsx
-
 import { useEffect, useState } from 'react'
 import {
   Box,
@@ -136,7 +134,7 @@ const SessionListing = () => {
     dispatch(fetchSessions())
   }, [dispatch])
 
-  // عند الضغط على زر "Show QR Code" يتم استدعاء endpoint start-qr
+  // عند الضغط على زر "Link Whatsapp Device" يتم استدعاء endpoint start-qr
   const handleShowQr = async (session: SessionType) => {
     try {
       // تحديث حالة الجلسة محلياً
@@ -362,7 +360,6 @@ const SessionListing = () => {
               const isRejected = session.status === 'Payment Rejected'
               const isPaid = session.status === 'Paid'
               const isReady = session.status === 'Ready'
-              const isWaitingForQrCode = session.status === 'Waiting for QR Code'
               const isStoppedByAdmin = session.status === 'Stopped by Admin'
               const isWaitingForPayment = session.status === 'Waiting for Payment'
               const isTerminated = session.status === 'Terminated'
@@ -380,17 +377,11 @@ const SessionListing = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={session.status}
+                      label={session.status === 'Waiting for QR Code' ? 'Waiting to Link a Whatsapp Device' : session.status}
                       color={isReady ? 'success' : isPaid ? 'warning' : isRejected || isExpired || isStoppedByAdmin ? 'error' : 'primary'}
                     />
                   </TableCell>
                   <TableCell align='right'>
-                    { /* عرض زر "Show QR Code" إذا كانت الحالة Ready أو Waiting for QR Code */ }
-                    {(isReady || isWaitingForQrCode) && (
-                      <Button variant='outlined' size='small' onClick={() => handleShowQr(session)}>
-                        {t('SessionListing.buttons.showQRCode')}
-                      </Button>
-                    )}
                     {isWaitingForPayment ? (
                       <Box>
                         <Button variant='contained' color='warning' onClick={() => handlePayForWaitingSession(session)}>
@@ -437,6 +428,9 @@ const SessionListing = () => {
                       </>
                     ) : (
                       <Box sx={{ display: 'inline-flex', gap: 1, alignItems: 'center' }}>
+                        <Button variant='outlined' size='small' onClick={() => handleShowQr(session)}>
+                          Link Whatsapp Device
+                        </Button>
                         <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color='primary'>
                           <SettingsIcon />
                         </IconButton>

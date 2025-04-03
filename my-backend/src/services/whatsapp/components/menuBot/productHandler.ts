@@ -22,8 +22,8 @@ export const handleProduct = async ({
   phoneNumber
 }: ProductParams): Promise<boolean> => {
   const bold = (txt: string) => `*${txt}*`;
-  // استخراج معرف المنتج
-  const productId = parseInt(upperText.replace('PRODUCT_', ''));
+  // استخدام البادئة المختصرة "P_" بدلاً من "PRODUCT_"
+  const productId = parseInt(upperText.replace('P_', ''));
   const orderRow = await pool.request()
     .input('sessionId', sql.Int, sessionId)
     .input('custPhone', sql.NVarChar, customerPhone)
