@@ -2,7 +2,6 @@
 import React, { createContext, useEffect, useState } from "react";
 import axios from "../utils/axios";
 import { jwtDecode } from "jwt-decode";
-import { getCookie, setCookie, deleteCookie } from "src/utils/cookieHelpers";
 
 export interface User {
   id: number;
@@ -73,26 +72,14 @@ export interface UserContextType {
   updateUserFeature: (userFeatureId: number, data: Partial<UserFeature>) => Promise<void>;
   deleteUserFeature: (userFeatureId: number) => Promise<void>;
   setUserFromToken: (token: string) => void;
-  logoutUser: () => void;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>([]);
-  // استرجاع بيانات المستخدم من الـ cookies عند التهيئة
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const userCookie = getCookie('userContext');
-    if (userCookie) {
-      try {
-        return JSON.parse(userCookie);
-      } catch (error) {
-        console.error("Error parsing userContext cookie", error);
-        return null;
-      }
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
   const [subscriptionLogsMap, setSubscriptionLogsMap] = useState<Record<number, SubscriptionLog[]>>({});
   const [features, setFeatures] = useState<Feature[]>([]);
   const [userFeatures, setUserFeatures] = useState<UserFeature[]>([]);
@@ -260,20 +247,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // دالة لتسجيل الخروج: تُفرغ بيانات المستخدم وتُمسح الـ cookie
-  const logoutUser = () => {
-    setCurrentUser(null);
-    deleteCookie('userContext');
-  };
 
-  // تحديث الـ cookie عند تغيير currentUser
-  useEffect(() => {
-    if (currentUser) {
-      setCookie('userContext', JSON.stringify(currentUser));
-    } else {
-      deleteCookie('userContext');
-    }
-  }, [currentUser]);
+
 
   return (
     <UserContext.Provider
@@ -300,7 +275,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserFeature,
         deleteUserFeature,
         setUserFromToken,
-        logoutUser,
       }}
     >
       {children}

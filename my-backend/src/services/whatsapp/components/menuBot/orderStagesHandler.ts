@@ -234,7 +234,7 @@ export const handleOrderStages = async ({
         .query(`
           DELETE FROM GreetingLog
           WHERE sessionId = @sessionId
-            AND phoneNumber = @custPhone
+           AND (phoneNumber = @custPhone OR phoneNumber = (@custPhone + '-menubot'))
         `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'));
