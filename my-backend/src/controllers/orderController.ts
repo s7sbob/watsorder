@@ -36,8 +36,20 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
 
     const inClause = sessionIds.join(',')
     const ordersQuery = `
-      SELECT o.*,
-             s.phoneNumber AS sessionPhone
+      SELECT 
+        o.id,
+        o.sessionId,
+        o.customerPhoneNumber AS customerPhone,
+        o.customerName,
+        o.deliveryAddress,
+        o.totalPrice,
+        o.prepTime,
+        o.deliveryFee,
+        o.serviceFee,
+        o.taxValue,
+        o.finalConfirmed,
+        o.createdAt,
+        s.phoneNumber AS sessionPhone
       FROM Orders o
       JOIN Sessions s ON s.id = o.sessionId
       WHERE o.sessionId IN (${inClause})
@@ -54,7 +66,11 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
 
     const inOrders = orderIds.join(',')
     const itemsQuery = `
-      SELECT oi.orderId, oi.quantity, p.product_name, p.price
+      SELECT 
+        oi.orderId, 
+        oi.quantity, 
+        p.product_name, 
+        p.price
       FROM OrderItems oi
       JOIN Products p ON p.id = oi.productId
       WHERE oi.orderId IN (${inOrders})
@@ -66,7 +82,7 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
       return {
         id: ord.id,
         sessionId: ord.sessionId,
-        customerPhone: ord.customerPhoneNumber,
+        customerPhone: ord.customerPhone, // alias من customerPhoneNumber
         customerName: ord.customerName,
         deliveryAddress: ord.deliveryAddress,
         totalPrice: ord.totalPrice,
@@ -101,7 +117,6 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid order ID.' })
     }
 
-    // تحقق من وجود user
     if (!req.user) {
       return res.status(401).json({ message: 'No user payload found.' })
     }
@@ -109,13 +124,26 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     const { prepTime, deliveryFee, taxValue } = req.body
     const pool = await getConnection()
 
-    // جلب order + معلومات الـ session owner
+    // جلب بيانات الطلب مع بيانات الجلسة بشكل صريح مع عمل alias للأعمدة
     const orderRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
-        SELECT o.*,
-               s.phoneNumber AS sessionPhone,
-               s.userId AS sessionOwner
+        SELECT 
+          o.id,
+          o.sessionId,
+          o.customerPhoneNumber AS customerPhone,
+          o.customerName,
+          o.deliveryAddress,
+          o.totalPrice,
+          o.prepTime,
+          o.deliveryFee,
+          o.serviceFee,
+          o.taxValue,
+          o.finalConfirmed,
+          o.createdAt,
+          s.phoneNumber AS sessionPhone,
+          s.userId AS sessionOwner,
+          s.id AS sessionIdFromSession
         FROM Orders o
         JOIN Sessions s ON s.id = o.sessionId
         WHERE o.id = @orderId
@@ -126,19 +154,19 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     }
     const orderRow = orderRes.recordset[0]
 
-    // سماح للمالك فقط (بدلًا من admin)
+    // السماح للمالك فقط (بدلاً من admin)
     if (req.user.id !== orderRow.sessionOwner) {
       return res.status(403).json({
         message: 'Forbidden: Only the session owner can confirm this order.'
       })
     }
 
-    // تحديث معلومات الطلب
+    // تحديث معلومات الطلب لتأكيده
     await pool.request()
       .input('orderId', sql.Int, orderId)
       .input('prepTime', sql.Int, prepTime || null)
-      .input('deliveryFee', sql.Decimal(18,2), deliveryFee || 0)
-      .input('taxValue', sql.Decimal(18,2), taxValue || 0)
+      .input('deliveryFee', sql.Decimal(18, 2), deliveryFee || 0)
+      .input('taxValue', sql.Decimal(18, 2), taxValue || 0)
       .query(`
         UPDATE Orders
         SET prepTime = @prepTime,
@@ -148,11 +176,14 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
         WHERE id = @orderId
       `)
 
-    // جلب عناصر الطلب لحساب الاجمالي ...
+    // جلب عناصر الطلب لحساب الإجمالي وإنشاء نص الرسالة
     const itemsRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
-        SELECT oi.quantity, p.product_name, p.price
+        SELECT 
+          oi.quantity, 
+          p.product_name, 
+          p.price
         FROM OrderItems oi
         JOIN Products p ON p.id = oi.productId
         WHERE oi.orderId = @orderId
@@ -183,25 +214,18 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
       `=======================\n` +
       `*الإجمالى:* ${finalTotal}\n`
 
-    // محاولة إرسال رسالة واتساب للعميل
-    try {
-      const client = whatsappClients[orderRow.sessionId]
-      if (!client) {
-        console.error('WhatsApp client not found for sessionId:', orderRow.sessionId)
-        return res.status(200).json({
-          message: 'Order confirmed, but WhatsApp client not found to send message.'
-        })
-      }
-
-      const finalRecipient = orderRow.customerPhoneNumber + '@c.us'
-      await client.sendMessage(finalRecipient, msgText)
-    } catch (sendErr) {
-      console.error('Error sending WhatsApp message:', sendErr)
-      // لا نعيد 500 لأجل إرسالة واتساب فاشلة – فنحن confirmنا فعليًا
+    // استخدام sessionId من بيانات الجلسة (العمود sessionIdFromSession) للبحث عن عميل الواتساب
+    const client = whatsappClients[orderRow.sessionIdFromSession]
+    if (!client) {
+      console.error('WhatsApp client not found for sessionId:', orderRow.sessionIdFromSession)
       return res.status(200).json({
-        message: 'Order confirmed, but failed to send WhatsApp message to customer.'
+        message: 'Order confirmed, but WhatsApp client not found to send message.'
       })
     }
+
+    // إرسال رسالة واتساب باستخدام رقم العميل (customerPhone) مع إضافة اللاحقة '@c.us'
+    const finalRecipient = orderRow.customerPhone + '@c.us'
+    await client.sendMessage(finalRecipient, msgText)
 
     return res.status(200).json({ message: 'Order confirmed and notification sent to customer.' })
   } catch (error) {
@@ -222,9 +246,21 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     const orderRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
-        SELECT o.*,
-               s.phoneNumber AS sessionPhone,
-               s.userId AS sessionOwner
+        SELECT 
+          o.id,
+          o.sessionId,
+          o.customerPhoneNumber AS customerPhone,
+          o.customerName,
+          o.deliveryAddress,
+          o.totalPrice,
+          o.prepTime,
+          o.deliveryFee,
+          o.serviceFee,
+          o.taxValue,
+          o.finalConfirmed,
+          o.createdAt,
+          s.phoneNumber AS sessionPhone,
+          s.userId AS sessionOwner
         FROM Orders o
         JOIN Sessions s ON s.id = o.sessionId
         WHERE o.id = @orderId
@@ -234,7 +270,6 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     }
     const order = orderRes.recordset[0]
 
-    // تحقق من صلاحية المستخدم: إما admin أو صاحب الجلسة
     if (!req.user) {
       return res.status(401).json({ message: 'No user payload found.' })
     }
@@ -245,7 +280,10 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     const itemsRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
-        SELECT oi.quantity, p.product_name, p.price
+        SELECT 
+          oi.quantity, 
+          p.product_name, 
+          p.price
         FROM OrderItems oi
         JOIN Products p ON p.id = oi.productId
         WHERE oi.orderId = @orderId

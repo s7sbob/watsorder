@@ -2,6 +2,7 @@ import { Client, Message } from 'whatsapp-web.js';
 import * as sql from 'mssql';
 import { clearOrderTimeout, scheduleOrderTimeout } from '../../orderTimeouts';
 import { saveCustomerName, saveCustomerAddress, getCustomerAddresses } from '../../customerInfo';
+import { io } from '../../../../server';
 
 interface OrderStagesParams {
   client: Client;
@@ -82,8 +83,18 @@ export const handleOrderStages = async ({
       const linePrice = (row.price || 0) * row.quantity;
       totalPrice += linePrice;
       cartItemsMsg += `${bold(`${row.quantity} x ${row.product_name} => ${linePrice} ج`)}\n`;
-      cartItemsMsg += `للحذف: wa.me/${phoneNumber}?text=RP_${row.productId}\n\n`;
+      cartItemsMsg += `للحذف: wa.me/${phoneNumber}?text=RP_${row.productId}`;
     }
+
+    // تحديث إجمالي السعر في جدول Orders
+    await pool.request()
+      .input('orderId', sql.Int, orderId)
+      .input('totalPrice', sql.Decimal(18, 2), totalPrice)
+      .query(`
+        UPDATE Orders
+        SET totalPrice = @totalPrice
+        WHERE id = @orderId
+      `);
 
     let addedMsg = `${bold('تم إضافة المنتج للسلة.')}\n`;
     addedMsg += `===========================\n`;
@@ -209,6 +220,8 @@ export const handleOrderStages = async ({
         `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم تأكيد الطلب بنجاح بدون الموقع!'));
+      // إصدار حدث socket لإعلام الواجهة بأن الطلب تأكد
+      io.emit('orderConfirmed', { orderId });
       if (alternateWhatsAppNumber) {
         await sendOrderDetailsToAlternate(client, pool, orderId, alternateWhatsAppNumber, phoneNumber);
       }
@@ -238,6 +251,8 @@ export const handleOrderStages = async ({
         `);
       clearOrderTimeout(orderId);
       await client.sendMessage(msg.from, bold('تم إرسال الطلب بنجاح!'));
+      // إصدار حدث socket لإعلام الواجهة بأن الطلب تأكد
+      io.emit('orderConfirmed', { orderId });
       if (alternateWhatsAppNumber) {
         await sendOrderDetailsToAlternate(client, pool, orderId, alternateWhatsAppNumber, phoneNumber);
       }
@@ -260,6 +275,18 @@ const sendOrderDetailsToAlternate = async (
   alternateWhatsAppNumber: string,
   mainPhoneNumber: string
 ) => {
+  // استرجاع تفاصيل الطلب (اسم العميل، رقم الهاتف، العنوان) باستخدام أسماء الأعمدة الصحيحة
+  const orderRes = await pool.request()
+    .input('orderId', sql.Int, orderId)
+    .query(`
+      SELECT customerName, customerPhoneNumber AS customerPhone, deliveryAddress AS address
+      FROM Orders
+      WHERE id = @orderId
+    `);
+  if (!orderRes.recordset.length) return;
+  const orderDetails = orderRes.recordset[0];
+
+  // استرجاع الأصناف في الطلب
   const itemsRes = await pool.request()
     .input('orderId', sql.Int, orderId)
     .query(`
@@ -269,13 +296,21 @@ const sendOrderDetailsToAlternate = async (
       WHERE oi.orderId = @orderId
     `);
   if (!itemsRes.recordset.length) return;
+
   let total = 0;
   let summaryMsg = `طلب جديد تم تأكيده\n===========================\n`;
+  summaryMsg += `اسم العميل: ${orderDetails.customerName}\n`;
+  summaryMsg += `رقم الهاتف: ${orderDetails.customerPhone}\n`;
+  summaryMsg += `العنوان: ${orderDetails.address}\n`;
+  summaryMsg += `---------------------------\n`;
+
   for (const row of itemsRes.recordset) {
     const linePrice = (row.price || 0) * row.quantity;
     total += linePrice;
     summaryMsg += `${row.quantity} x ${row.product_name} => ${linePrice} ج\n`;
   }
+  summaryMsg += `---------------------------\n`;
   summaryMsg += `الإجمالي: ${total} ج\n===========================\n`;
+  
   await client.sendMessage(`${alternateWhatsAppNumber}@c.us`, summaryMsg);
 };

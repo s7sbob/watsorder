@@ -146,7 +146,7 @@
     "PaymentInstructions": {
       "title": "Payment Instructions",
       "subTitle": "Follow the steps to complete your payment",
-      "vodafoneCash": "Pay with Vodafone Cash: ...",
+      "vodafoneCash": "Pay with Vodafone Cash: 01018031116",
       "selectedPlan": "Selected Plan",
       "planPrice": "Total to pay",
       "uploadProofFirst": "Upload Payment Proof First",

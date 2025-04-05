@@ -12,10 +12,7 @@ import OrderDetailsDialog from './OrderDetailsDialog'
 import InvoiceDialog from './InvoiceDialog'
 import ConfirmOrderDialog from './ConfirmOrderDialog'
 import { OrderType } from 'src/types/apps/order'
-import {
-  fetchConfirmedOrders,
-  confirmOrderByRestaurant
-} from 'src/store/apps/orders/OrderSlice'
+import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice'
 
 // الترجمة
 import { useTranslation } from 'react-i18next'
@@ -37,7 +34,7 @@ const NewOrdersPage: React.FC = () => {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null)
 
-  // للصوت عند قدوم طلب
+  // للصوت عند ورود طلب جديد
   const audioRef = useRef<HTMLAudioElement | null>(null)
   useEffect(() => {
     audioRef.current = new Audio('/notification.mp3')
@@ -48,7 +45,7 @@ const NewOrdersPage: React.FC = () => {
     const handleNewOrder = (data: OrderType) => {
       console.log('New order event received:', data)
       dispatch(fetchConfirmedOrders())
-      triggerAlarm()
+      triggerAlarm() // يتم تشغيل الصوت في البداية عند ورود طلب جديد
     }
 
     const handleOrderConfirmed = (data: { orderId: number }) => {
@@ -59,6 +56,7 @@ const NewOrdersPage: React.FC = () => {
     socket.on('newOrder', handleNewOrder)
     socket.on('orderConfirmed', handleOrderConfirmed)
 
+    console.log('Socket listeners added.')
     return () => {
       socket.off('newOrder', handleNewOrder)
       socket.off('orderConfirmed', handleOrderConfirmed)
@@ -70,16 +68,17 @@ const NewOrdersPage: React.FC = () => {
       navigator.vibrate(200)
     }
     if (audioRef.current) {
+      audioRef.current.loop = true
       audioRef.current.play().catch(err => console.error('Error playing sound:', err))
     }
   }
 
-  // جلب الطلبات عند الدخول للصفحة
+  // جلب الطلبات عند دخول الصفحة
   useEffect(() => {
     dispatch(fetchConfirmedOrders())
   }, [dispatch])
 
-  // هل الطلب من تاريخ اليوم؟
+  // دالة للتحقق إذا كان التاريخ هو تاريخ اليوم
   function isToday(dateString: string | undefined): boolean {
     if (!dateString) return false
     const dateObj = new Date(dateString)
@@ -87,10 +86,9 @@ const NewOrdersPage: React.FC = () => {
     return dateObj.toLocaleDateString() === now.toLocaleDateString()
   }
 
-  // فلترة الطلبات من قائمة confirmedOrders:
-  // - الجزء الأيمن (Accepted Today) = finalConfirmed = true + تاريخ اليوم
-  // - الجزء الأيمن (New Today)      = finalConfirmed = false + تاريخ اليوم
-
+  // فلترة الطلبات:
+  // - Accepted (Today): finalConfirmed = true + تاريخ اليوم
+  // - New (Today): finalConfirmed = false + تاريخ اليوم
   const todaysAccepted = confirmedOrders.filter(
     o => o.finalConfirmed === true && isToday(o.createdAt)
   )
@@ -98,7 +96,7 @@ const NewOrdersPage: React.FC = () => {
     o => o.finalConfirmed === false && isToday(o.createdAt)
   )
 
-  // فلترة بالبحث
+  // فلترة البحث
   const searchFilter = (order: OrderType) => {
     const phoneMatch = order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase())
     const addressMatch =
@@ -109,6 +107,22 @@ const NewOrdersPage: React.FC = () => {
 
   const filteredAccepted = todaysAccepted.filter(searchFilter)
   const filteredNew = todaysNew.filter(searchFilter)
+
+  // التحكم في الصوت: الصوت يبقى شغال طالما يوجد طلب غير مؤكد (في العمود "New")
+  useEffect(() => {
+    const unconfirmedCount = confirmedOrders.filter((o: OrderType) => o.finalConfirmed === false).length;
+    if (unconfirmedCount > 0) {
+      if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.loop = true;
+        audioRef.current.play().catch(err => console.error('Error playing sound:', err));
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+  }, [confirmedOrders]);
 
   // Handlers
   const handleViewDetails = async (orderId: number) => {
