@@ -313,6 +313,14 @@
         },
         "pageIndicator": "Page {{current}} / {{total}}"
       },
+      "CancelOrderDialog": {
+        "title": "Reject Order #{{orderId}}",
+        "reasonLabel": "Rejection Reason",
+        "buttons": {
+          "cancel": "Cancel",
+          "submit": "Submit"
+        }
+      },
       "ConfirmOrderDialog": {
         "title": "Confirm Order #{{orderId}}",
         "prepTimeLabel": "Expected Preparation Time (minutes)",
@@ -365,7 +373,8 @@
         "tooltips": {
           "viewDetails": "View Details",
           "viewInvoice": "View Invoice",
-          "restaurantConfirm": "Restaurant Confirm"
+          "restaurantConfirm": "Restaurant Confirm",
+          "restaurantReject": "Reject Order"
         }
       },
       "OrderDetailsDialog": {

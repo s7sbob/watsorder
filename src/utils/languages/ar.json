@@ -326,6 +326,14 @@
       },
       "pageIndicator": "الصفحة {{current}} / {{total}}"
     },
+    "CancelOrderDialog": {
+      "title": "رفض الطلب رقم {{orderId}}",
+      "reasonLabel": "سبب الرفض",
+      "buttons": {
+        "cancel": "إلغاء",
+        "submit": "إرسال"
+      }
+    }, 
     "ConfirmOrderDialog": {
       "title": "تأكيد الطلب #{{orderId}}",
       "prepTimeLabel": "وقت التحضير المتوقع (بالدقائق)",
@@ -378,7 +386,8 @@
       "tooltips": {
         "viewDetails": "عرض التفاصيل",
         "viewInvoice": "عرض الفاتورة",
-        "restaurantConfirm": "تأكيد من المطعم"
+        "restaurantConfirm": "تأكيد من المطعم",
+        "restaurantReject": "رفض الطلب"
       }
     },
     "OrderDetailsDialog": {
