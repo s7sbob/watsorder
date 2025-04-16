@@ -37,7 +37,7 @@ export const handleCartConfirm = async ({
     return true;
   }
   const orderId = orderRow.recordset[0].id;
-  const customerName = await getCustomerName(customerPhone);
+  const customerName = await getCustomerName(sessionId, customerPhone);
   if (customerName == null) {
     await pool.request()
       .input('orderId', sql.Int, orderId)
@@ -65,7 +65,7 @@ export const handleCartConfirm = async ({
       `);
     clearOrderTimeout(orderId);
     scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
-    const addresses = await getCustomerAddresses(customerPhone);
+    const addresses = await getCustomerAddresses(sessionId, customerPhone);
     if (addresses.length > 0) {
       let addrMsg = bold(`مرحبا ${customerName}. اختر احد العناوين المسجلة أو اضف عنوان جديد`) + '\n===========================\n';
       addresses.forEach(addr => {

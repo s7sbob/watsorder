@@ -13,49 +13,44 @@ import InvoiceDialog from './InvoiceDialog'
 import ConfirmOrderDialog from './ConfirmOrderDialog'
 import { OrderType } from 'src/types/apps/order'
 import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice'
-
-// الترجمة
 import { useTranslation } from 'react-i18next'
 
 const NewOrdersPage: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useDispatch<AppDispatch>()
-
-  // نأخذ الطلبات كلّها من confirmedOrders (والتي قد تكون finalConfirmed=false أو true)
   const { confirmedOrders, loading, error } = useSelector((state: AppState) => state.order)
-
-  // بحث
+  
   const [searchTerm, setSearchTerm] = useState('')
 
-  // حوارات
+  // Dialogs and details state
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [orderDetails, setOrderDetails] = useState<OrderType | null>(null)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null)
 
-  // للصوت عند ورود طلب جديد
+  // Initialize audio for notification
   const audioRef = useRef<HTMLAudioElement | null>(null)
   useEffect(() => {
     audioRef.current = new Audio('/notification.mp3')
   }, [])
 
-  // Socket
+  // Socket events
   useEffect(() => {
     const handleNewOrder = (data: OrderType) => {
       console.log('New order event received:', data)
       dispatch(fetchConfirmedOrders())
-      triggerAlarm() // يتم تشغيل الصوت في البداية عند ورود طلب جديد
+      triggerAlarm()
     }
-
+  
     const handleOrderConfirmed = (data: { orderId: number }) => {
       console.log('Order Confirmed event received:', data)
       dispatch(fetchConfirmedOrders())
     }
-
+  
     socket.on('newOrder', handleNewOrder)
     socket.on('orderConfirmed', handleOrderConfirmed)
-
+  
     console.log('Socket listeners added.')
     return () => {
       socket.off('newOrder', handleNewOrder)
@@ -73,12 +68,12 @@ const NewOrdersPage: React.FC = () => {
     }
   }
 
-  // جلب الطلبات عند دخول الصفحة
+  // Fetch orders when page loads
   useEffect(() => {
     dispatch(fetchConfirmedOrders())
   }, [dispatch])
 
-  // دالة للتحقق إذا كان التاريخ هو تاريخ اليوم
+  // Helper: Check if date is today
   function isToday(dateString: string | undefined): boolean {
     if (!dateString) return false
     const dateObj = new Date(dateString)
@@ -86,17 +81,15 @@ const NewOrdersPage: React.FC = () => {
     return dateObj.toLocaleDateString() === now.toLocaleDateString()
   }
 
-  // فلترة الطلبات:
-  // - Accepted (Today): finalConfirmed = true + تاريخ اليوم
-  // - New (Today): finalConfirmed = false + تاريخ اليوم
+  // Filtering orders:
+  // - Accepted (Today): finalConfirmed = true + today's date
+  // - New: finalConfirmed = false (all new orders regardless of date)
   const todaysAccepted = confirmedOrders.filter(
     o => o.finalConfirmed === true && isToday(o.createdAt)
   )
-  const todaysNew = confirmedOrders.filter(
-    o => o.finalConfirmed === false && isToday(o.createdAt)
-  )
+  const newOrders = confirmedOrders.filter(o => o.finalConfirmed === false)
 
-  // فلترة البحث
+  // Apply search filter to both lists
   const searchFilter = (order: OrderType) => {
     const phoneMatch = order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase())
     const addressMatch =
@@ -104,27 +97,26 @@ const NewOrdersPage: React.FC = () => {
       order.deliveryAddress.toLowerCase().includes(searchTerm.toLowerCase())
     return phoneMatch || addressMatch
   }
-
   const filteredAccepted = todaysAccepted.filter(searchFilter)
-  const filteredNew = todaysNew.filter(searchFilter)
+  const filteredNew = newOrders.filter(searchFilter)
 
-  // التحكم في الصوت: الصوت يبقى شغال طالما يوجد طلب غير مؤكد (في العمود "New")
+  // Control alarm sound based on new orders count
   useEffect(() => {
-    const unconfirmedCount = confirmedOrders.filter((o: OrderType) => o.finalConfirmed === false).length;
+    const unconfirmedCount = confirmedOrders.filter((o: OrderType) => o.finalConfirmed === false).length
     if (unconfirmedCount > 0) {
       if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.loop = true;
-        audioRef.current.play().catch(err => console.error('Error playing sound:', err));
+        audioRef.current.loop = true
+        audioRef.current.play().catch(err => console.error('Error playing sound:', err))
       }
     } else {
       if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
       }
     }
-  }, [confirmedOrders]);
+  }, [confirmedOrders])
 
-  // Handlers
+  // Handlers for order actions
   const handleViewDetails = async (orderId: number) => {
     try {
       const res = await axiosServices.get<OrderType>(`/api/orders/${orderId}`)
@@ -171,7 +163,7 @@ const NewOrdersPage: React.FC = () => {
         {t('Orders.NewOrdersPage.title')}
       </Typography>
 
-      {/* شريط البحث */}
+      {/* Search bar */}
       <Box mb={3}>
         <TextField
           placeholder={t('Orders.NewOrdersPage.searchPlaceholder') ?? ''}
@@ -189,7 +181,7 @@ const NewOrdersPage: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* العمود الأيسر: Accepted (Today) */}
+        {/* Left column: Accepted (Today) */}
         <Grid item xs={12} md={6}>
           <OrdersColumn
             title='Accepted (Today)'
@@ -200,10 +192,10 @@ const NewOrdersPage: React.FC = () => {
           />
         </Grid>
 
-        {/* العمود الأيمن: New (Today) */}
+        {/* Right column: New (all new orders) */}
         <Grid item xs={12} md={6}>
           <OrdersColumn
-            title='New (Today)'
+            title='New'
             orders={filteredNew}
             onViewDetails={handleViewDetails}
             onViewInvoice={handleViewInvoice}
@@ -212,21 +204,21 @@ const NewOrdersPage: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* حوار التفاصيل */}
+      {/* Order Details Dialog */}
       <OrderDetailsDialog
         open={detailsDialogOpen}
         orderDetails={orderDetails}
         onClose={() => setDetailsDialogOpen(false)}
       />
 
-      {/* حوار الفاتورة */}
+      {/* Invoice Dialog */}
       <InvoiceDialog
         open={invoiceDialogOpen}
         invoiceDetails={invoiceDetails}
         onClose={() => setInvoiceDialogOpen(false)}
       />
 
-      {/* حوار التأكيد */}
+      {/* Confirm Order Dialog */}
       <ConfirmOrderDialog
         open={selectedOrderId !== null}
         orderId={selectedOrderId}

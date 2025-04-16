@@ -24,6 +24,7 @@ import featureRoutes from './routes/featureRoutes';
 import featureAdminRoutes from './routes/featureAdminRoutes';
 import registrationNotificationRoutes from './routes/registrationNotification.routes';
 import configRoutes from './routes/config.routes';
+import subscriptionRenewalRoutes from './routes/subscriptionRenewalRoutes';
 
 dotenv.config();
 
@@ -63,6 +64,8 @@ app.use('/api/features', featureRoutes);
 app.use('/api/admin/features', featureAdminRoutes);
 app.use('/api', registrationNotificationRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/subscriptions', subscriptionRenewalRoutes);
+
 
 // خدمة الملفات الثابتة
 app.use('/keywords-images', express.static('keywords-images'));

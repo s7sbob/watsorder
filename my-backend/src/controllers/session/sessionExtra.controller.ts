@@ -79,19 +79,36 @@ export const deleteSession = async (req: Request, res: Response) => {
   try {
     const pool = await getConnection();
 
+    // التحقق من الملكية (كما في السابق)
     await checkSessionOwnership(pool, sessionId, req.user);
 
+    // لو العميل واتساب شغّال، ندمّره
     const client = whatsappClients[sessionId];
     if (client) {
       await client.destroy();
       delete whatsappClients[sessionId];
     }
 
+    // 1) حذف الجلسة فعلياً من Sessions
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
-      .query('DELETE FROM Sessions WHERE id = @sessionId');
+      .query(`
+        DELETE FROM Sessions
+        WHERE id = @sessionId
+      `);
 
-    return res.status(200).json({ message: 'Session deleted successfully.' });
+    // 2) تحديث SubscriptionRenewals وربطها بالـ isActive=0 (لو تريد أرشفتها)
+    //    أو يمكنك تركها نشطة isActive=1 لو تحب.
+    //    هنا نفترض أنك أضفت عمود isActive=bit في SubscriptionRenewals
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        UPDATE SubscriptionRenewals
+        SET isActive = 0
+        WHERE sessionId = @sessionId
+      `);
+
+    return res.status(200).json({ message: 'Session deleted and subscription renewals archived.' });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
       return res.status(404).json({ message: 'Session not found.' });

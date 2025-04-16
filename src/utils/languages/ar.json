@@ -116,32 +116,22 @@
   },
 
   "pricingCard": {
-    "basic": {
-      "title": "أساسي",
-      "price": "700ج/شهر\n7700ج/سنة",
-      "features": ["قائمة البوت", "الأتمتة"]
-    },
-    "standered": {
-      "title": "قياسي",
-      "price": "1000ج/شهر\n11000ج/سنة",
-      "features": ["قائمة البوت", "الأتمتة", "تكامل طلبات Api"]
-    },
+    "otpPlanTitle": "خطة التحقق لمرة واحدة",
+    "allFeaturesTitle": "كل الميزات",
+    "monthly": "شهري",
+    "yearly": "سنوي",
+    "getStarted": "ابدأ الآن",
+    "save": "وفر {{saving}} جنيه",
     "otpPlan": {
-      "title": "خطة OTP",
-      "price": "500ج/شهر\n5000ج/سنة",
-      "features": ["OTP Api"]
-    },
-    "golden": {
-      "title": "ذهبية",
-      "price": "1500ج/شهر\n15000ج/سنة",
-      "features": ["قائمة البوت", "الأتمتة", "تكامل طلبات Api", "OTP Api"]
+      "feature1": "جميع ميزات التحقق لمرة واحدة",
+      "feature2": "حتى X رسالة",
+      "feature3": "تجربة مجانية لمدة 3 أيام"
     },
     "allFeatures": {
-      "title": "جميع المزايا",
-      "price": "$0 لمدة 3 أيام",
-      "features": ["3 أيام تجريبية مجانية", "وصول إلى جميع المزايا"]
-    },
-    "getStarted": "ابدأ الآن"
+      "feature1": "كل الميزات المتقدمة",
+      "feature2": "رسائل غير محدودة",
+      "feature3": "تجربة مجانية لمدة 3 أيام"
+    }
   },
 
   "PaymentInstructions": {
@@ -426,7 +416,8 @@
     "soon": "قريباً",
     "adminOnly": "خاص بالمدير",
     "adminUserList": "قائمة مستخدمي المدير",
-    "sessionsDashboard": "لوحة تحكم الجلسات"
+    "sessionsDashboard": "لوحة تحكم الجلسات",
+    "AdminSubscriptionsPage": "لوحة تحكم الأشتراكات"
   },
 
   "HomePage": {
@@ -482,5 +473,130 @@
       "startButton": "ابدأ الآن",
       "note": "إعداد واحد دون رسوم متكررة."
     }
+  },
+  "authRegister": {
+    "title": "إنشاء حساب جديد",
+    "errors": {
+      "enterName": "يرجى إدخال اسمك.",
+      "enterPhone": "يرجى إدخال رقم هاتفك.",
+      "enterPassword": "يرجى إدخال كلمة المرور.",
+      "enter4DigitCode": "يرجى إدخال الكود المكون من 4 أرقام.",
+      "otpVerificationFailed": "فشل التحقق من OTP."
+    },
+    "success": {
+      "registered": "تم التسجيل بنجاح!",
+      "codeResent": "تم إعادة إرسال الكود بنجاح. يرجى التحقق من واتسابك."
+    },
+    "label": {
+      "fullName": "الاسم الكامل",
+      "phoneNumber": "رقم الهاتف",
+      "password": "كلمة المرور",
+      "companyName": "اسم الشركة",
+      "country": "الدولة",
+      "address": "العنوان",
+      "contactPhone": "رقم جهة الاتصال"
+    },
+    "optional": "اختياري",
+    "registerButton": "تسجيل",
+    "alreadyAccount": "هل لديك حساب بالفعل؟",
+    "signIn": "تسجيل الدخول",
+    "otpDialog": {
+      "title": "تحقق من رقمك",
+      "prompt": "يرجى تأكيد رقم واتسابك عن طريق إدخال الكود الذي أرسلناه إليك",
+      "verifying": "جاري التحقق...",
+      "verify": "تحقق من الكود",
+      "resend": "أعد إرسال الكود"
+    }
+  },
+  "authLogin": {
+    "title": "مرحباً بك في واتسأوردر",
+    "errors": {
+      "generic": "حدث خطأ. يرجى المحاولة مرة أخرى."
+    },
+    "label": {
+      "phone": "رقم الهاتف (واتساب)",
+      "password": "كلمة المرور",
+      "rememberDevice": "تذكر هذا الجهاز"
+    },
+    "button": {
+      "signIn": "تسجيل الدخول"
+    },
+    "newToWatsOrder": "جديد في واتسأوردر؟",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "link": {
+      "createAccount": "إنشاء حساب",
+      "resetPassword": "أعد تعيينها هنا"
+    }
+  },
+  "authForgotPassword": {
+    "label": {
+      "phone": "رقم الهاتف المسجل",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "newUser": "مستخدم جديد ؟"
+    },
+    "errors": {
+      "enterPhone": "يرجى إدخال رقم هاتفك.",
+      "enter4DigitOtp": "يرجى إدخال رمز OTP المكون من 4 أرقام.",
+      "verifyOtp": "حدث خطأ أثناء التحقق من OTP. حاول مرة أخرى.",
+      "enterNewPasswords": "يرجى إدخال كلمة المرور الجديدة وتأكيدها.",
+      "passwordsMismatch": "كلمتا المرور غير متطابقتين.",
+      "resetPassword": "حدث خطأ أثناء إعادة تعيين كلمة المرور. حاول مرة أخرى.",
+      "sendOtp": "حدث خطأ أثناء إرسال OTP. حاول مرة أخرى.",
+      "resendOtp": "حدث خطأ أثناء إعادة إرسال OTP. حاول مرة أخرى."
+    },
+    "success": {
+      "otpSent": "تم إرسال OTP بنجاح.",
+      "otpVerified": "تم التحقق من OTP بنجاح.",
+      "otpResent": "تم إعادة إرسال OTP بنجاح.",
+      "passwordReset": "تم إعادة تعيين كلمة المرور بنجاح."
+    },
+    "button": {
+      "sendOtp": "أرسل OTP",
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "verifyOtp": "تحقق من OTP",
+      "resendOtp": "أعد إرسال OTP",
+      "cancel": "إلغاء",
+      "resetPassword": "إعادة تعيين كلمة المرور"
+    },
+    "dialog": {
+      "enterOtpTitle": "أدخل OTP",
+      "resetPasswordTitle": "إعادة تعيين كلمة المرور",
+      "enterOtpPrompt": "أدخل رمز OTP المكون من 4 أرقام المرسل إلى هاتفك.",
+      "otpVerifiedPrompt": "تم التحقق من OTP! أدخل كلمة المرور الجديدة الآن."
+    },
+    "newUser": "جديد في واتسأوردر؟",
+    "link": {
+      "createAccount": "إنشاء حساب"
+    }
+  },
+  "registerPage": {
+    "title": "تسجيل",
+    "description": "هذه صفحة التسجيل."
+  },
+  "loginPage": {
+    "title": "تسجيل الدخول",
+    "description": "هذه صفحة تسجيل الدخول.",
+    "newToWatsOrder": "جديد في واتسأوردر؟",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "link": {
+      "createAccount": "إنشاء حساب",
+      "resetPassword": "أعد تعيينها هنا"
+    }
+  },
+  "forgotPasswordPage": {
+    "title": "نسيت كلمة المرور",
+    "description": "هذه صفحة نسيت كلمة المرور.",
+    "promptTitle": "هل نسيت كلمة المرور؟",
+    "promptDescription": "أدخل رقم الهاتف المرتبط بحسابك وسنرسل لك OTP للتحقق من هويتك."
+  },
+  "countrySelector": {
+    "label": "الدولة",
+    "search": "ابحث عن دولة..."
+  },
+  "countryPhoneSelector": {
+    "label": "رقم الهاتف",
+    "placeholder": "أدخل رقم هاتفك",
+    "search": "ابحث عن دولة..."
   }
 }

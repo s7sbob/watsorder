@@ -8,6 +8,7 @@ import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { useTranslation } from 'react-i18next';
 
 const OtpContainer = styled('div')({
   display: 'flex',
@@ -20,6 +21,7 @@ const OtpInput = styled(CustomTextField)({
 });
 
 const AuthForgotPassword: React.FC = () => {
+  const { t } = useTranslation();
   // حالات تخزين رقم الهاتف والـ OTP وكلمة المرور الجديدة
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
@@ -44,18 +46,18 @@ const AuthForgotPassword: React.FC = () => {
     setError(null);
     setSuccessMsg(null);
     if (!phoneNumber) {
-      setError('Please enter your phone number.');
+      setError(t('authForgotPassword.errors.enterPhone'));
       return;
     }
     try {
       const res = await axiosServices.post('/api/auth/forgot-password/send-otp', { phoneNumber });
-      setSuccessMsg(res.data.message || 'OTP has been sent successfully.');
+      setSuccessMsg(res.data.message || t('authForgotPassword.success.otpSent'));
       // فتح الديالوج وتحديد المرحلة الأولى لإدخال OTP
       setOtpStage(1);
       setOtpDialogOpen(true);
     } catch (err: any) {
       console.error('OTP error:', err);
-      setError(err.message || 'Error sending OTP. Please try again.');
+      setError(err.message || t('authForgotPassword.errors.sendOtp'));
     }
   };
 
@@ -77,7 +79,7 @@ const AuthForgotPassword: React.FC = () => {
     setSuccessMsg(null);
     const code = otpCode.join('');
     if (code.length < 4) {
-      setError('Please enter the 4-digit OTP.');
+      setError(t('authForgotPassword.errors.enter4DigitOtp'));
       return;
     }
     try {
@@ -86,12 +88,12 @@ const AuthForgotPassword: React.FC = () => {
         phoneNumber,
         otpCode: code,
       });
-      setSuccessMsg(res.data.message || 'OTP verified successfully.');
+      setSuccessMsg(res.data.message || t('authForgotPassword.success.otpVerified'));
       // الانتقال إلى مرحلة إدخال كلمة المرور الجديدة
       setOtpStage(2);
     } catch (err: any) {
       console.error('OTP verification error:', err);
-      setError(err.message || 'Error verifying OTP. Please try again.');
+      setError(err.message || t('authForgotPassword.errors.verifyOtp'));
     }
   };
 
@@ -100,25 +102,24 @@ const AuthForgotPassword: React.FC = () => {
     setError(null);
     setSuccessMsg(null);
     if (!newPassword || !confirmPassword) {
-      setError('Please enter and confirm your new password.');
+      setError(t('authForgotPassword.errors.enterNewPasswords'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('authForgotPassword.errors.passwordsMismatch'));
       return;
     }
     try {
-      // استدعاء endpoint إعادة تعيين كلمة المرور بدون فحص OTP مرة أخرى
       const res = await axiosServices.post('/api/auth/forgot-password/reset', {
         phoneNumber,
         newPassword,
       });
-      setSuccessMsg(res.data.message || 'Password reset successfully.');
+      setSuccessMsg(res.data.message || t('authForgotPassword.success.passwordReset'));
       setOtpDialogOpen(false);
       navigate('/auth/login');
     } catch (err: any) {
       console.error('Reset password error:', err);
-      setError(err.message || 'Error resetting password. Please try again.');
+      setError(err.message || t('authForgotPassword.errors.resetPassword'));
     }
   };
 
@@ -128,12 +129,11 @@ const AuthForgotPassword: React.FC = () => {
     setSuccessMsg(null);
     try {
       const res = await axiosServices.post('/api/auth/forgot-password/send-otp', { phoneNumber });
-      setSuccessMsg(res.data.message || 'OTP has been resent successfully.');
-      // إعادة ضبط حقول OTP
+      setSuccessMsg(res.data.message || t('authForgotPassword.success.otpResent'));
       setOtpCode(['', '', '', '']);
     } catch (err: any) {
       console.error('Resend OTP error:', err);
-      setError(err.message || 'Error resending OTP. Please try again.');
+      setError(err.message || t('authForgotPassword.errors.resendOtp'));
     }
   };
 
@@ -152,34 +152,34 @@ const AuthForgotPassword: React.FC = () => {
         <CountryPhoneSelector
           onChange={(val: string) => setPhoneNumber(val)}
           defaultCountryCode="+20"
-          label="Registered Phone Number"
+          label={t('authForgotPassword.label.phone') as string}
         />
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
         {successMsg && <Alert severity="success" sx={{ mt: 2 }}>{successMsg}</Alert>}
         <Button variant="contained" color="primary" fullWidth type="submit" sx={{ mt: 2 }}>
-          Send OTP
+          {t('authForgotPassword.button.sendOtp')}
         </Button>
         <Button variant="text" fullWidth sx={{ mt: 1 }} onClick={() => navigate('/auth/login')}>
-          Back to Login
+          {t('authForgotPassword.button.backToLogin')}
         </Button>
         <Divider sx={{ my: 2 }} />
         <Typography variant="body2" align="center">
-          New to WatsOrder?{' '}
+          {t('authForgotPassword.label.newUser')}{' '}
           <Button variant="text" onClick={() => navigate('/auth/register')}>
-            Create an account
+            {t('authForgotPassword.link.createAccount')}
           </Button>
         </Typography>
       </form>
 
       <Dialog open={otpDialogOpen} onClose={handleCancelOtp} disableEscapeKeyDown>
         <DialogTitle>
-          {otpStage === 1 ? 'Enter OTP' : 'Reset Your Password'}
+          {otpStage === 1 ? t('authForgotPassword.dialog.enterOtpTitle') : t('authForgotPassword.dialog.resetPasswordTitle')}
         </DialogTitle>
         <DialogContent>
           {otpStage === 1 && (
             <>
               <Typography variant="body1" mb={1}>
-                Enter the 4-digit OTP sent to your phone.
+                {t('authForgotPassword.dialog.enterOtpPrompt')}
               </Typography>
               <OtpContainer>
                 {otpCode.map((val, idx) => (
@@ -195,24 +195,24 @@ const AuthForgotPassword: React.FC = () => {
               {successMsg && <Alert severity="success" sx={{ mt: 2 }}>{successMsg}</Alert>}
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
                 <Button variant="contained" color="primary" fullWidth onClick={handleVerifyOtp}>
-                  Verify OTP
+                  {t('authForgotPassword.button.verifyOtp')}
                 </Button>
                 <Button variant="outlined" color="secondary" fullWidth onClick={handleResendOtp}>
-                  Resend OTP
+                  {t('authForgotPassword.button.resendOtp')}
                 </Button>
               </Stack>
               <Button variant="text" color="error" fullWidth sx={{ mt: 1 }} onClick={handleCancelOtp}>
-                Cancel
+                {t('authForgotPassword.button.cancel')}
               </Button>
             </>
           )}
           {otpStage === 2 && (
             <>
               <Typography variant="body1" mb={1}>
-                OTP verified! Now, enter your new password.
+                {t('authForgotPassword.dialog.otpVerifiedPrompt')}
               </Typography>
               <Box mt={2}>
-                <CustomFormLabel htmlFor="newPassword">New Password</CustomFormLabel>
+                <CustomFormLabel htmlFor="newPassword">{t('authForgotPassword.label.newPassword')}</CustomFormLabel>
                 <CustomTextField
                   id="newPassword"
                   type={showNewPassword ? 'text' : 'password'}
@@ -231,7 +231,7 @@ const AuthForgotPassword: React.FC = () => {
                 />
               </Box>
               <Box mt={2}>
-                <CustomFormLabel htmlFor="confirmPassword">Confirm New Password</CustomFormLabel>
+                <CustomFormLabel htmlFor="confirmPassword">{t('authForgotPassword.label.confirmPassword')}</CustomFormLabel>
                 <CustomTextField
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -253,10 +253,10 @@ const AuthForgotPassword: React.FC = () => {
               {successMsg && <Alert severity="success" sx={{ mt: 2 }}>{successMsg}</Alert>}
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
                 <Button variant="contained" color="primary" fullWidth onClick={handleResetPassword}>
-                  Reset Password
+                  {t('authForgotPassword.button.resetPassword')}
                 </Button>
                 <Button variant="outlined" color="secondary" fullWidth onClick={handleCancelOtp}>
-                  Cancel
+                  {t('authForgotPassword.button.cancel')}
                 </Button>
               </Stack>
             </>

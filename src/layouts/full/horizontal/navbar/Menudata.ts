@@ -48,7 +48,7 @@ const Menuitems = [
         id: uniqueId(),
         title: 'Homepage',
         icon: IconPoint,
-        href: '/frontend-pages/homepage',
+        href: '/',
       },
       {
         id: uniqueId(),

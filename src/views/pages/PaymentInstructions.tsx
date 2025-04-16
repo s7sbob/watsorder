@@ -1,29 +1,36 @@
-// src/views/pages/PaymentInstructions.tsx
 import React, { useState } from 'react'
 import { Box, Typography, Button } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import axiosServices from 'src/utils/axios'
 import { AlertColor } from '@mui/material'
 
+interface SelectedPlan {
+  planType: string
+  billing: 'monthly' | 'yearly'
+  price: number
+}
+
 interface PaymentInstructionsProps {
   sessionId: number
-  planType: string  // أضفنا هذا؛ سيمرر من الكود الذي يستدعي PaymentInstructions
+  selectedPlan: SelectedPlan
   onDone: () => void
   onAlert?: (msg: string, severity: AlertColor) => void
 }
 
-const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({ sessionId, planType, onDone, onAlert }) => {
+const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({
+  sessionId,
+  selectedPlan,
+  onDone,
+  onAlert
+}) => {
   const { t } = useTranslation()
 
-  // ملف الصورة الذي يختاره المستخدم
+  // استخدام السعر الذي تم تمريره في الكائن
+  const { planType, billing, price } = selectedPlan
+
+  // ملف إثبات الدفع
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // هنا نحدد السعر بناءً على الخطة
-  let price = 500 // الافتراضي = 500 للـ OTP
-  if (planType === 'All Features') {
-    price = 700
-  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -40,19 +47,29 @@ const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({ sessionId, pl
     setIsSubmitting(true)
 
     try {
-      // 1) رفع الصورة (Payment Proof)
+      // 1) رفع الصورة
       const formData = new FormData()
-      formData.append('paymentProof', selectedFile) // اسم الحقل يطابق multer.single('paymentProof')
-
+      formData.append('paymentProof', selectedFile)
       await axiosServices.post(`/api/sessions/${sessionId}/payment-proof`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
 
-      // 2) بعد نجاح الرفع => إرسال الطلب لجعل الحالة Paid (مثلاً)
+      // 2) إنشاء سجل في SubscriptionRenewals مع إرسال تفاصيل الخطة المختارة
+      await axiosServices.post('/api/subscriptions', {
+        sessionId,
+        planType: planType,
+        billing,
+        amountPaid: price
+      })
+
+      // 3) تغيير حالة الجلسة إلى Paid وإرسالها للمدير
       await axiosServices.post(`/api/sessions/${sessionId}/send-to-manager`)
 
-      onAlert?.(`Payment proof uploaded successfully. Plan = ${planType}, Price = ${price} EGP`, 'success')
-      onDone() // إغلاق الـ Dialog أو عمل أي إجراء آخر
+      onAlert?.(
+        `Payment proof uploaded successfully. Plan = ${planType} (${billing}), Price = ${price} EGP`,
+        'success'
+      )
+      onDone()
     } catch (error) {
       console.error('Error submitting payment proof:', error)
       onAlert?.('Failed to submit payment proof or payment request!', 'error')
@@ -71,30 +88,28 @@ const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({ sessionId, pl
         {t('PaymentInstructions.subTitle')}
       </Typography>
 
-      {/* سطور توضح طريقة الدفع ... */}
+      {/* تعليمات طريقة الدفع */}
       <Box sx={{ mt: 2 }}>
         <Typography variant='body2' gutterBottom>
           {t('PaymentInstructions.vodafoneCash')}
         </Typography>
-        {/* ... etc ... */}
       </Box>
 
-      {/* نعرض للمستخدم قيمة السعر المطلوبة لهذه الخطة */}
+      {/* عرض الخطة المختارة وسعرها */}
       <Box sx={{ mt: 2 }}>
         <Typography variant='h6'>
-          {t('PaymentInstructions.selectedPlan')}: {planType}
+          {t('PaymentInstructions.selectedPlan')}: {planType} ({billing})
         </Typography>
         <Typography variant='h6'>
           {t('PaymentInstructions.planPrice')}: {price} EGP
         </Typography>
       </Box>
 
-      {/* حقل واحد لاختيار الملف */}
+      {/* حقل رفع إثبات الدفع */}
       <Box sx={{ mt: 2 }}>
         <input type='file' onChange={handleFileChange} />
       </Box>
 
-      {/* زر موحد لرفع إثبات الدفع وتحويل الحالة إلى Paid */}
       <Button
         variant='contained'
         color='primary'

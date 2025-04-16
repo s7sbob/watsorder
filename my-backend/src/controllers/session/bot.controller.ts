@@ -6,7 +6,7 @@ import { checkSessionOwnership } from './helpers';
 import { whatsappClients } from '../whatsappClients';
 
 /**
- * إيقاف الجلسة قسريًا
+ * إيقاف الجلسة قسريًا خاصة بال admin
  */
 export const forcePauseSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -47,7 +47,7 @@ export const forcePauseSession = async (req: Request, res: Response) => {
 };
 
 /**
- * تشغيل الجلسة قسريًا
+ * تشغيل الجلسة قسريًا خاصة بال admin
  */
 export const forceStartSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -68,7 +68,6 @@ export const forceStartSession = async (req: Request, res: Response) => {
     const sessionIdentifier = sessionResult.recordset[0].sessionIdentifier;
 
     // استيراد دالة الإنشاء (بحسب موقعها لديك)
-    const { createWhatsAppClientForSession } = await import('../whatsappClients');
     // await createWhatsAppClientForSession(sessionId, sessionIdentifier);
 
     await pool.request()

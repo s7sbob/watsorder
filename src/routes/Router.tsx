@@ -33,8 +33,8 @@ const SessionSettings = Loadable(lazy(() => import('../views/pages/SessionSettin
 // const UserDetails = Loadable(lazy(() => import('../views/pages/UserDetails')));
 const SessionManagement = Loadable(React.lazy(() => import('../views/pages/SessionManagement')));
 const PaymentInstructions = Loadable(React.lazy(() => import('../views/pages/PaymentInstructions')));
-
 const PagePricing = Loadable(lazy(() => import('../views/pages/frontend-pages/Pricing')));
+const AdminSubscriptionsPage = Loadable(lazy(() => import('../views/AdminSubscriptionsPage/pages/AdminSubscriptionsPage.tsx')));
 
 /* ****Authentication Pages**** */
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
@@ -56,7 +56,9 @@ const Router = [
       { path: '/apps/sessions', element: <Sessions /> },
       { path: '/apps/NewOrdersPage', element: <NewOrdersPage /> },
       { path: '/apps/OrdersHistoryPage', element: <OrdersHistoryPage /> },
+      { path: '/apps/AdminSubscriptionsPage', element: <AdminSubscriptionsPage /> },
 
+      
       { path: '/sessions/:sessionId/settings', element: <SessionSettings /> },
       // { path: '/users/:id/details', element: <UserDetails /> },
       {
@@ -73,8 +75,7 @@ const Router = [
   {
     element: <BlankLayout />,
     children: [
-      { path: '/', element: <Navigate to="/frontend-pages/homepage" /> },
-      { path: '/frontend-pages/homepage', element: <Homepage /> },
+      { path: '/', element: <Homepage /> },
       { path: '/landingpage', element: <Landingpage /> },
 
       { path: '/frontend-pages/about', element: <About /> },

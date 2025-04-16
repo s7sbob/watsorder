@@ -1,4 +1,3 @@
-// src/views/pages/session/ProductsTab.tsx
 import React, { useState, useEffect } from 'react';
 import { Box, Button } from '@mui/material';
 import ProductTreeView, { SelectedItem } from './ProductTreeView';

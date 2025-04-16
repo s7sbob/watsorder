@@ -1,4 +1,3 @@
-// src/views/pages/session/CategoriesTab.tsx
 import React, { useState } from 'react';
 import { Box, Button, Paper } from '@mui/material';
 import CategoryList, { Category } from './CategoryList';
@@ -83,7 +82,7 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({ sessionId }) => {
               name: 'category_name',
               autoFocus: true
             },
-            // لو حابب تسمح للمستخدم يحدد قيمة order من الواجهة ممكن تضيف الحقل ده
+            // يمكن إضافة حقل order إذا أردت السماح للمستخدم بتحديده من الواجهة
             // { label: t('CategoriesTab.popup.fields.order'), name: 'order', type: 'number' },
           ]}
         />

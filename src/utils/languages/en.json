@@ -114,35 +114,24 @@
         "save": "Save"
       }
     },
-    "pricingCard": {
-      "otpPlan": {
-      "title": "OTP Plan",
-      "price": "$0 for 3 Days",
-      "freeTrialDays": "First 3 days free",
-      "features": ["3 days free trial", "OTP-based features only"]
+"pricingCard": {
+    "otpPlanTitle": "OTP Plan",
+    "allFeaturesTitle": "All Features",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "getStarted": "Get Started",
+    "save": "Save {{saving}} EGP",
+    "otpPlan": {
+      "feature1": "All OTP features",
+      "feature2": "Up to X messages",
+      "feature3": "3 days free trial"
     },
     "allFeatures": {
-      "title": "All Features Plan",
-      "price": "$0 for 3 Days",
-      "features": ["3 days free trial", "Access all features"]
-    },
-      "basic": {
-        "title": "Basic",
-        "price": "700£/month\n7700£/year",
-        "features": ["Menu Bot", "Automation"]
-      },
-      "standered": {
-        "title": "Standard",
-        "price": "1000£/month\n11000£/year",
-        "features": ["Menu Bot", "Automation", "Orders Api Integration"]
-      },
-      "golden": {
-        "title": "Golden",
-        "price": "1500£/month\n15000£/year",
-        "features": ["Menu Bot", "Automation", "Orders Api Integration", "Otp Api"]
-      },
-      "getStarted": "Get Started"
-    },
+      "feature1": "All advanced features",
+      "feature2": "Unlimited messages",
+      "feature3": "3 days free trial"
+    }
+  },
     "PaymentInstructions": {
       "title": "Payment Instructions",
       "subTitle": "Follow the steps to complete your payment",
@@ -413,7 +402,8 @@
       "soon": "Soon",
       "adminOnly": "Admin Only",
       "adminUserList": "Admin UserList",
-      "sessionsDashboard": "Sessions Dashboard"
+      "sessionsDashboard": "Sessions Dashboard",
+      "AdminSubscriptionsPage": "Admin Subscriptions Page"
     },
  
     "HomePage": {
@@ -469,7 +459,129 @@
         "startButton": "Get Started Today",
         "note": "One-time setup with no recurring fees."
       }
+    },
+    "authRegister": {
+    "title": "Create a New Account",
+    "errors": {
+      "enterName": "Please enter your name.",
+      "enterPhone": "Please enter your phone number.",
+      "enterPassword": "Please enter your password.",
+      "enter4DigitCode": "Please enter the 4-digit code.",
+      "otpVerificationFailed": "OTP verification failed."
+    },
+    "success": {
+      "registered": "Registered successfully!",
+      "codeResent": "Code resent successfully. Please check your WhatsApp again."
+    },
+    "label": {
+      "fullName": "Full Name",
+      "phoneNumber": "Phone Number",
+      "password": "Password",
+      "companyName": "Company Name",
+      "country": "Country",
+      "address": "Address",
+      "contactPhone": "Contact Phone"
+    },
+    "optional": "Optional",
+    "registerButton": "Register",
+    "alreadyAccount": "Already have an account?",
+    "signIn": "Sign In",
+    "otpDialog": {
+      "title": "Verify your number",
+      "prompt": "Please confirm your WhatsApp number by entering the code that we sent to you",
+      "verifying": "Verifying...",
+      "verify": "Verify",
+      "resend": "Resend code"
     }
+  },
+  "authLogin": {
+    "title": "Welcome to WatsOrder",
+    "errors": {
+      "generic": "An error occurred. Please try again."
+    },
+    "label": {
+      "phone": "Phone Number (Whatsapp Number)",
+      "password": "Password",
+      "rememberDevice": "Remember this Device"
+    },
+    "button": {
+      "signIn": "Sign In"
+    },
+    "newToWatsOrder": "New to WatsOrder?",
+    "forgotPassword": "Forgot Password?",
+    "link": {
+      "createAccount": "Create an account",
+      "resetPassword": "Reset it here"
+    }
+  },
+  "authForgotPassword": {
+    "label": {
+      "phone": "Registered Phone Number",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "newUser": "New User ?"
+    },
+    "errors": {
+      "enterPhone": "Please enter your phone number.",
+      "enter4DigitOtp": "Please enter the 4-digit OTP.",
+      "verifyOtp": "Error verifying OTP. Please try again.",
+      "enterNewPasswords": "Please enter and confirm your new password.",
+      "passwordsMismatch": "Passwords do not match.",
+      "resetPassword": "Error resetting password. Please try again.",
+      "sendOtp": "Error sending OTP. Please try again.",
+      "resendOtp": "Error resending OTP. Please try again."
+    },
+    "success": {
+      "otpSent": "OTP has been sent successfully.",
+      "otpVerified": "OTP verified successfully.",
+      "otpResent": "OTP has been resent successfully.",
+      "passwordReset": "Password reset successfully."
+    },
+    "button": {
+      "sendOtp": "Send OTP",
+      "backToLogin": "Back to Login",
+      "verifyOtp": "Verify OTP",
+      "resendOtp": "Resend OTP",
+      "cancel": "Cancel",
+      "resetPassword": "Reset Password"
+    },
+    "dialog": {
+      "enterOtpTitle": "Enter OTP",
+      "resetPasswordTitle": "Reset Your Password",
+      "enterOtpPrompt": "Enter the 4-digit OTP sent to your phone.",
+      "otpVerifiedPrompt": "OTP verified! Now, enter your new password."
+    },
+    "newUser": "New to WatsOrder?"
+  },
+  "registerPage": {
+    "title": "Register",
+    "description": "This is the Register page."
+  },
+  "loginPage": {
+    "title": "Login",
+    "description": "This is the Login page.",
+    "newToWatsOrder": "New to WatsOrder?",
+    "forgotPassword": "Forgot Password?",
+    "link": {
+      "createAccount": "Create an account",
+      "resetPassword": "Reset it here"
+    }
+  },
+  "forgotPasswordPage": {
+    "title": "Forgot Password",
+    "description": "This is the Forgot Password page.",
+    "promptTitle": "Forgot your password?",
+    "promptDescription": "Enter the phone number associated with your account. We will send you an OTP to verify your identity."
+  },
+  "countrySelector": {
+    "label": "Country",
+    "search": "Search country..."
+  },
+  "countryPhoneSelector": {
+    "label": "Phone Number",
+    "placeholder": "Enter your phone number",
+    "search": "Search country..."
+  }
   }
   
   

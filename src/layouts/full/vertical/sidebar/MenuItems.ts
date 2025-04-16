@@ -80,6 +80,12 @@ const Menuitems: MenuitemsType[] = [
     titleKey: 'Sidebar.sessionsDashboard', // "Sessions Dashboard"
     icon: IconChartDonut3,
     href: '/sessions/manage'
+  },
+  {
+    id: uniqueId(),
+    titleKey: 'Sidebar.AdminSubscriptionsPage', // "Sessions Dashboard"
+    icon: IconChartDonut3,
+    href: '/apps/AdminSubscriptionsPage'
   }
 ]
 

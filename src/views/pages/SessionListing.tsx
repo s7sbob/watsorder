@@ -80,13 +80,19 @@ const AlternateWhatsAppEditor: React.FC<AlternateWhatsAppEditorProps> = ({ sessi
   )
 }
 
+interface SelectedPlan {
+  planType: string
+  billing: 'monthly' | 'yearly'
+  price: number
+}
+
 const SessionListing = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const sessions = useSelector(state => state.sessionReducer.sessions) as SessionType[]
 
-  // Snackbar
+  // Snackbar للإشعارات
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState('')
   const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success')
@@ -100,7 +106,7 @@ const SessionListing = () => {
     setSnackbarOpen(false)
   }
 
-  // QR Dialog state
+  // حالة QR Dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionType | null>(null)
   const [isQrLoading, setIsQrLoading] = useState(false)
@@ -129,12 +135,12 @@ const SessionListing = () => {
     }
   }, [dispatch, qrDialogOpen, selectedSession])
 
-  // Fetch sessions on load
+  // جلب الجلسات عند تحميل الصفحة
   useEffect(() => {
     dispatch(fetchSessions())
   }, [dispatch])
 
-  // عند الضغط على زر "Link Whatsapp Device" يتم استدعاء endpoint start-qr
+  // عند الضغط على زر "Link Whatsapp Device"
   const handleShowQr = async (session: SessionType) => {
     try {
       // تحديث حالة الجلسة محلياً
@@ -146,7 +152,7 @@ const SessionListing = () => {
       // بدء عملية توليد QR عبر endpoint الجديد
       await axiosServices.post(`/api/sessions/${session.id}/start-qr`)
 
-      // بعد بدء العملية نقوم باسترجاع رمز الـ QR
+      // استرجاع رمز الـ QR
       const response = await axiosServices.get(`/api/sessions/${session.id}/qr`)
       const qrData = response.data.qr
 
@@ -164,7 +170,7 @@ const SessionListing = () => {
     }
   }
 
-  // عند إغلاق الـ dialog بدون إتمام المسح: استدعاء endpoint cancel-qr لإلغاء العملية
+  // عند إغلاق الـ QR dialog بدون إتمام المسح: استدعاء cancel-qr لإلغاء العملية
   const handleCloseQrDialog = async () => {
     if (selectedSession) {
       try {
@@ -181,40 +187,49 @@ const SessionListing = () => {
     setIsQrLoading(false)
   }
 
-  // Payment dialog state
+  // حالة Payment Dialog للجلسات المنتظرة للدفع
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
   const [pendingSessionId, setPendingSessionId] = useState<number | null>(null)
-  const [pendingSessionPlan, setPendingSessionPlan] = useState<string | null>(null)
+  const [pendingPlan, setPendingPlan] = useState<SelectedPlan | null>(null)
 
   const handlePayForWaitingSession = (session: SessionType) => {
-    setPendingSessionId(session.id)
-    setPendingSessionPlan(session.planType || '')
-    setPaymentDialogOpen(true)
+    // في حالة الدفع للجلسة القائمة، نقوم هنا بتعيين الخطة يدويًا إذا كانت موجودة مسبقاً (حسب التطبيق)
+    // هنا نفترض أنه يوجد حقل planType في الجلسة
+    if (session.planType) {
+      // يمكن تعديل هذه القيمة بناءً على ما هو موجود في الجلسة
+      setPendingPlan({ planType: session.planType, billing: 'monthly', price: session.planType === 'All Features' ? 500 : 300 })
+      setPendingSessionId(session.id)
+      setPaymentDialogOpen(true)
+    }
   }
 
   const handlePaymentDoneForExistingSession = () => {
     setPaymentDialogOpen(false)
     setPendingSessionId(null)
-    setPendingSessionPlan(null)
+    setPendingPlan(null)
     dispatch(fetchSessions())
   }
 
-  // Buy Plan / Create session
+  // حالة شراء خطة / إنشاء جلسة جديدة
   const [planDialogOpen, setPlanDialogOpen] = useState(false)
   const handleOpenPlanDialog = () => {
     setPlanDialogOpen(true)
   }
 
-  const handlePlanChosenForNewSession = async (plan: string) => {
+  const handlePlanChosenForNewSession = async (selectedPlan: SelectedPlan) => {
     try {
-      const response = await axiosServices.post('/api/sessions/create-paid-session', { planType: plan })
+      const response = await axiosServices.post('/api/sessions/create-paid-session', {
+        planType: selectedPlan.planType,
+        billing: selectedPlan.billing,
+        amountPaid: selectedPlan.price
+      })
       const data = response.data
       showAlert(data.message, 'success')
       setPlanDialogOpen(false)
 
       if (data.message?.includes('Please proceed with payment')) {
         setPendingSessionId(data.session.id)
-        setPendingSessionPlan(data.session.planType)
+        setPendingPlan(selectedPlan)
         setPaymentDialogOpen(true)
       }
 
@@ -230,7 +245,7 @@ const SessionListing = () => {
   const [reactivateDialogOpen, setReactivateDialogOpen] = useState(false)
   const [reactivatePaymentDialogOpen, setReactivatePaymentDialogOpen] = useState(false)
   const [reactivateSession, setReactivateSession] = useState<SessionType | null>(null)
-  const [reactivateSelectedPlan, setReactivateSelectedPlan] = useState<string | null>(null)
+  const [reactivatePlan, setReactivatePlan] = useState<SelectedPlan | null>(null)
 
   const handleBuyAgain = (session: SessionType) => {
     setReactivateSession(session)
@@ -242,23 +257,21 @@ const SessionListing = () => {
     setReactivateDialogOpen(true)
   }
 
-  const handlePlanChosenForExistingSession = (plan: string) => {
-    setReactivateSelectedPlan(plan)
+  const handlePlanChosenForExistingSession = (selectedPlan: SelectedPlan) => {
+    setReactivatePlan(selectedPlan)
     setReactivateDialogOpen(false)
     setReactivatePaymentDialogOpen(true)
   }
 
   const handlePaymentDoneForReactivateSession = async () => {
-    if (!reactivateSession || !reactivateSelectedPlan) return
+    if (!reactivateSession || !reactivatePlan) return
     const sessionId = reactivateSession.id
-    const planType = reactivateSelectedPlan
-
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/choose-plan`, { planType })
+      await axiosServices.post(`/api/sessions/${sessionId}/choose-plan`, { planType: reactivatePlan.planType, billing: reactivatePlan.billing })
       await axiosServices.post(`/api/sessions/${sessionId}/send-to-manager`)
       showAlert(t('SessionListing.messages.reactivateSuccess', { sessionId: sessionId.toString() }), 'success')
       setReactivateSession(null)
-      setReactivateSelectedPlan(null)
+      setReactivatePlan(null)
       setReactivatePaymentDialogOpen(false)
       dispatch(fetchSessions())
     } catch (error) {
@@ -364,7 +377,9 @@ const SessionListing = () => {
               const isWaitingForPayment = session.status === 'Waiting for Payment'
               const isTerminated = session.status === 'Terminated'
 
-              const expireDateDisplay = session.expireDate ? new Date(session.expireDate).toISOString().slice(0, 10) : 'N/A'
+              const expireDateDisplay = session.expireDate
+                ? new Date(session.expireDate).toISOString().slice(0, 10)
+                : 'N/A'
 
               return (
                 <TableRow key={session.id}>
@@ -377,8 +392,20 @@ const SessionListing = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={session.status === 'Waiting for QR Code' ? 'Waiting to Link a Whatsapp Device' : session.status}
-                      color={isReady ? 'success' : isPaid ? 'warning' : isRejected || isExpired || isStoppedByAdmin ? 'error' : 'primary'}
+                      label={
+                        session.status === 'Waiting for QR Code'
+                          ? 'Waiting to Link a Whatsapp Device'
+                          : session.status
+                      }
+                      color={
+                        isReady
+                          ? 'success'
+                          : isPaid
+                          ? 'warning'
+                          : isRejected || isExpired || isStoppedByAdmin
+                          ? 'error'
+                          : 'primary'
+                      }
                     />
                   </TableCell>
                   <TableCell align='right'>
@@ -399,7 +426,12 @@ const SessionListing = () => {
                         <Button variant='contained' color='secondary' onClick={() => handleBuyAgain(session)}>
                           {t('SessionListing.buttons.buyAgain')}
                         </Button>
-                        <IconButton aria-label='delete' color='error' onClick={() => handleDeleteSession(session.id)} sx={{ ml: 1 }}>
+                        <IconButton
+                          aria-label='delete'
+                          color='error'
+                          onClick={() => handleDeleteSession(session.id)}
+                          sx={{ ml: 1 }}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -413,7 +445,12 @@ const SessionListing = () => {
                     ) : isStoppedByAdmin ? (
                       <Box>
                         <Chip label={t('SessionListing.chipLabels.stoppedByAdmin')} color='error' />
-                        <IconButton aria-label='delete' color='error' onClick={() => handleDeleteSession(session.id)} sx={{ ml: 1 }}>
+                        <IconButton
+                          aria-label='delete'
+                          color='error'
+                          onClick={() => handleDeleteSession(session.id)}
+                          sx={{ ml: 1 }}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -436,11 +473,23 @@ const SessionListing = () => {
                         <IconButton onClick={() => navigate(`/sessions/${session.id}/settings`)} color='primary'>
                           <SettingsIcon />
                         </IconButton>
-                        <Button variant='contained' color={session.botActive ? 'success' : 'warning'} size='small' onClick={() => handleToggleBot(session)}>
+                        <Button
+                          variant='contained'
+                          color={session.botActive ? 'success' : 'warning'}
+                          size='small'
+                          onClick={() => handleToggleBot(session)}
+                        >
                           {session.botActive ? t('SessionListing.buttons.botOff') : t('SessionListing.buttons.botOn')}
                         </Button>
-                        <Button variant='contained' color={session.menuBotActive ? 'success' : 'warning'} size='small' onClick={() => handleToggleMenuBot(session)}>
-                          {session.menuBotActive ? t('SessionListing.buttons.menuBotOff') : t('SessionListing.buttons.menuBotOn')}
+                        <Button
+                          variant='contained'
+                          color={session.menuBotActive ? 'success' : 'warning'}
+                          size='small'
+                          onClick={() => handleToggleMenuBot(session)}
+                        >
+                          {session.menuBotActive
+                            ? t('SessionListing.buttons.menuBotOff')
+                            : t('SessionListing.buttons.menuBotOn')}
                         </Button>
                         {session.status !== 'Terminated' && (
                           <Button variant='outlined' size='small' onClick={() => handleLogoutSession(session)}>
@@ -460,6 +509,7 @@ const SessionListing = () => {
         </Table>
       </TableContainer>
 
+      {/* Dialog لإنشاء جلسة جديدة عبر شراء خطة */}
       <Dialog open={planDialogOpen} onClose={() => setPlanDialogOpen(false)} maxWidth='md' fullWidth>
         <DialogTitle>{t('SessionListing.dialogTitles.chooseYourPlanNew')}</DialogTitle>
         <DialogContent>
@@ -472,13 +522,14 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog لتعليمات الدفع للجلسات المنتظرة */}
       <Dialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} maxWidth='sm' fullWidth>
         <DialogTitle>{t('SessionListing.dialogTitles.paymentInstructions')}</DialogTitle>
         <DialogContent>
-          {pendingSessionId && pendingSessionPlan && (
+          {pendingSessionId && pendingPlan && (
             <PaymentInstructions
               sessionId={pendingSessionId}
-              planType={pendingSessionPlan}
+              selectedPlan={pendingPlan}
               onDone={handlePaymentDoneForExistingSession}
               onAlert={(msg, severity) => showAlert(msg, severity)}
             />
@@ -486,6 +537,7 @@ const SessionListing = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog لاختيار خطة لتجديد/إعادة تفعيل الجلسة */}
       <Dialog open={reactivateDialogOpen} onClose={() => setReactivateDialogOpen(false)} maxWidth='md' fullWidth>
         <DialogTitle>{t('SessionListing.dialogTitles.chooseAPlan')}</DialogTitle>
         <DialogContent>
@@ -498,15 +550,18 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog لتعليمات الدفع عند تجديد الجلسة */}
       <Dialog open={reactivatePaymentDialogOpen} onClose={() => setReactivatePaymentDialogOpen(false)} maxWidth='sm' fullWidth>
         <DialogTitle>{t('SessionListing.dialogTitles.paymentInstructions')}</DialogTitle>
         <DialogContent>
-          <PaymentInstructions
-            sessionId={reactivateSession?.id ?? 0}
-            planType={reactivateSelectedPlan || ''}
-            onDone={handlePaymentDoneForReactivateSession}
-            onAlert={(msg, severity) => showAlert(msg, severity)}
-          />
+          {reactivateSession && reactivatePlan && (
+            <PaymentInstructions
+              sessionId={reactivateSession.id}
+              selectedPlan={reactivatePlan}
+              onDone={handlePaymentDoneForReactivateSession}
+              onAlert={(msg, severity) => showAlert(msg, severity)}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReactivatePaymentDialogOpen(false)} color='inherit'>
@@ -515,6 +570,7 @@ const SessionListing = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog لعرض QR Code */}
       <Dialog open={qrDialogOpen} onClose={handleCloseQrDialog}>
         <DialogTitle>{t('SessionListing.messages.scanQrCode')}</DialogTitle>
         <DialogContent sx={{ textAlign: 'center', py: 3 }}>
@@ -526,7 +582,9 @@ const SessionListing = () => {
           ) : selectedSession && selectedSession.qrCode ? (
             <Box
               component='img'
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(selectedSession.qrCode)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                selectedSession.qrCode
+              )}`}
               alt='QR Code'
             />
           ) : (

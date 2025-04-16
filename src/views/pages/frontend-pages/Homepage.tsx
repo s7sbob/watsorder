@@ -3,7 +3,7 @@ import Banner from 'src/components/frontend-pages/homepage/banner/Banner'
 import HpHeader from 'src/components/frontend-pages/shared/header/HpHeader'
 import Features from 'src/components/frontend-pages/homepage/features/Features'
 import Pricing from 'src/components/frontend-pages/shared/pricing'
-import C2a from 'src/components/frontend-pages/shared/c2a'
+// import C2a from 'src/components/frontend-pages/shared/c2a'
 import ScrollToTop from 'src/components/frontend-pages/shared/scroll-to-top'
 
 // استيراد الترجمة
@@ -21,7 +21,7 @@ const HomePage = () => {
       <Banner />
       <Features />
       <Pricing />
-      <C2a />
+      {/* <C2a /> */}
       <ScrollToTop />
     </PageContainer>
   )

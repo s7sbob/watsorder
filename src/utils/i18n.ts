@@ -16,7 +16,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en', // اللغة الافتراضية
+    lng: 'ar', // اللغة الافتراضية
     interpolation: {
       escapeValue: false, // react بالفعل يحمي من xss
     },

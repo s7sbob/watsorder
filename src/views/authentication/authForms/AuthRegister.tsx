@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axiosServices from 'src/utils/axios';
 import {
   Box,
@@ -12,6 +12,7 @@ import {
   DialogContent,
   TextField,
   Link,
+  CircularProgress,
 } from '@mui/material';
 import CustomTextField from 'src/components/forms/theme-elements/CustomTextField';
 import CustomFormLabel from 'src/components/forms/theme-elements/CustomFormLabel';
@@ -19,6 +20,7 @@ import CountryPhoneSelector from '../auth1/CountryPhoneSelector'; // رقم ال
 import CountrySelector from '../auth1/CountrySelector'; // لتعيين الدولة
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 // تنسيق خانات OTP
 const OtpContainer = styled('div')({
@@ -46,28 +48,34 @@ function AuthRegister() {
   // الحقول الخاصة بالـ OTP
   const [openOtpDialog, setOpenOtpDialog] = useState(false);
   const [otpValues, setOtpValues] = useState(['', '', '', '']);
+  const [isVerifying, setIsVerifying] = useState(false);
 
+  // تنبيهات الخطأ والنجاح
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  // إرسال طلب تسجيل أولي (يتم إرسال OTP)
+  // إرسال طلب التسجيل الأولي لإرسال OTP
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    setSuccessMsg(null);
+    // عرض التنبيهات خارج نافذة OTP فقط إذا لم تكن النافذة مفتوحة
+    if (!openOtpDialog) {
+      setError(null);
+      setSuccessMsg(null);
+    }
 
     if (!name) {
-      setError('Please enter your name.');
+      setError(t('authRegister.errors.enterName'));
       return;
     }
     if (!fullPhone) {
-      setError('Please enter your phone number.');
+      setError(t('authRegister.errors.enterPhone'));
       return;
     }
     if (!password) {
-      setError('Please enter your password.');
+      setError(t('authRegister.errors.enterPassword'));
       return;
     }
 
@@ -82,7 +90,7 @@ function AuthRegister() {
     }
   };
 
-  // تغيير قيمة خانة OTP
+  // تغيير قيمة خانة OTP والتركيز على الخانة التالية عند الإدخال
   const handleChangeOtp = (index: number, value: string) => {
     if (value.length > 1) return;
     const newArr = [...otpValues];
@@ -94,13 +102,15 @@ function AuthRegister() {
     }
   };
 
-  // عند الضغط على زر التحقق من OTP
+  // التحقق من OTP (يُستدعى تلقائيًا عندما يكون طول الكود 4)
   const handleVerifyClick = async () => {
     const code = otpValues.join('');
     if (code.length < 4) {
-      setError('Please enter the 4-digit code.');
+      setError(t('authRegister.errors.enter4DigitCode'));
       return;
     }
+    setIsVerifying(true);
+    setError(null);
     try {
       // استدعاء API التسجيل الذي يشمل التحقق من OTP وإنشاء الحساب
       const registerResp = await axiosServices.post('/api/auth/register', {
@@ -113,23 +123,37 @@ function AuthRegister() {
         contactPhone: contactFullPhone, // اختياري
       });
 
-      // بعد نجاح التسجيل يتم إخفاء نافذة OTP
+      // إخفاء نافذة OTP بعد نجاح التسجيل
       setOpenOtpDialog(false);
 
-      // بعد نجاح التسجيل يتم استدعاء API تنبيه التسجيل لإرسال بيانات المستخدم الجديد
+      // إرسال تنبيه بالتسجيل الجديد
       await axiosServices.post('/api/registration-notification/notify', {
         userName: name,
         userPhone: fullPhone,
         additionalData: `Company: ${companyName}, Address: ${address}, Contact: ${contactFullPhone}`,
       });
 
-      setSuccessMsg(registerResp.data.message || 'Registered successfully!');
-      navigate('/auth/login');
+      setSuccessMsg(registerResp.data.message || t('authRegister.success.registered'));
+      // إعادة التوجيه لصفحة تسجيل الدخول بعد تأخير بسيط
+      setTimeout(() => {
+        navigate('/auth/login');
+      }, 2000);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'OTP verification failed.');
+      setError(err?.response?.data?.message || t('authRegister.errors.otpVerificationFailed'));
       setOtpValues(['', '', '', '']);
+    } finally {
+      setIsVerifying(false);
     }
   };
+
+  // استخدام useEffect للتأكد من بدء التحقق تلقائيًا عند إدخال 4 أرقام
+  useEffect(() => {
+    const code = otpValues.join('');
+    if (code.length === 4 && !isVerifying) {
+      handleVerifyClick();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValues]);
 
   // إعادة إرسال رمز OTP
   const handleResendCode = async () => {
@@ -139,9 +163,9 @@ function AuthRegister() {
       await axiosServices.post('/api/otp/send-registration-otp', {
         phoneNumber: fullPhone,
       });
-      setSuccessMsg('Code resent successfully. Please check your WhatsApp again.');
+      setSuccessMsg(t('authRegister.success.codeResent'));
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error resending code.');
+      setError(err?.response?.data?.message || t('authRegister.errors.resendCode'));
     }
   };
 
@@ -149,17 +173,18 @@ function AuthRegister() {
     <>
       <form onSubmit={handleRegister}>
         <Typography fontWeight="700" variant="h4" mb={1}>
-          Create a New Account
+          {t('authRegister.title')}
         </Typography>
 
         <Divider sx={{ mb: 1 }} />
 
-        {error && (
+        {/* التنبيهات الخاصة بالتسجيل تظهر فقط إذا لم تكن نافذة OTP مفتوحة */}
+        {!openOtpDialog && error && (
           <Alert severity="error" sx={{ mb: 1 }}>
             {error}
           </Alert>
         )}
-        {successMsg && (
+        {!openOtpDialog && successMsg && (
           <Alert severity="success" sx={{ mb: 1 }}>
             {successMsg}
           </Alert>
@@ -167,7 +192,7 @@ function AuthRegister() {
 
         <Stack spacing={0} mt={1}>
           <Box>
-            <CustomFormLabel htmlFor="name">Full Name</CustomFormLabel>
+            <CustomFormLabel htmlFor="name">{t('authRegister.label.fullName')}</CustomFormLabel>
             <CustomTextField
               id="name"
               variant="outlined"
@@ -177,15 +202,14 @@ function AuthRegister() {
             />
           </Box>
 
-          {/* رقم الهاتف الرئيسي */}
           <CountryPhoneSelector
             onChange={(val: string) => setFullPhone(val)}
             defaultCountryCode="+20"
-            label="Phone Number"
+            label={t('authRegister.label.phoneNumber') as string}
           />
 
           <Box>
-            <CustomFormLabel htmlFor="password">Password</CustomFormLabel>
+            <CustomFormLabel htmlFor="password">{t('authRegister.label.password')}</CustomFormLabel>
             <CustomTextField
               id="password"
               type="password"
@@ -198,7 +222,9 @@ function AuthRegister() {
 
           {/* الحقول الاختيارية */}
           <Box>
-            <CustomFormLabel htmlFor="companyName">Company Name (Optional)</CustomFormLabel>
+            <CustomFormLabel htmlFor="companyName">
+              {t('authRegister.label.companyName')} ({t('authRegister.optional')})
+            </CustomFormLabel>
             <CustomTextField
               id="companyName"
               variant="outlined"
@@ -208,7 +234,9 @@ function AuthRegister() {
             />
           </Box>
           <Box>
-            <CustomFormLabel htmlFor="countrySelector">Country (Optional)</CustomFormLabel>
+            <CustomFormLabel htmlFor="countrySelector">
+              {t('authRegister.label.country')} ({t('authRegister.optional')})
+            </CustomFormLabel>
             <CountrySelector
               onChange={(country) => {
                 setCountry(country.label);
@@ -216,7 +244,9 @@ function AuthRegister() {
             />
           </Box>
           <Box>
-            <CustomFormLabel htmlFor="address">Address (Optional)</CustomFormLabel>
+            <CustomFormLabel htmlFor="address">
+              {t('authRegister.label.address')} ({t('authRegister.optional')})
+            </CustomFormLabel>
             <CustomTextField
               id="address"
               variant="outlined"
@@ -226,7 +256,9 @@ function AuthRegister() {
             />
           </Box>
           <Box>
-            <CustomFormLabel htmlFor="contactPhone">Contact Phone (Optional)</CustomFormLabel>
+            <CustomFormLabel htmlFor="contactPhone">
+              {t('authRegister.label.contactPhone')} ({t('authRegister.optional')})
+            </CustomFormLabel>
             <CountryPhoneSelector
               onChange={(val: string) => setContactFullPhone(val)}
               defaultCountryCode="+20"
@@ -243,58 +275,82 @@ function AuthRegister() {
           type="submit"
           sx={{ mt: 2 }}
         >
-          Register
+          {t('authRegister.registerButton')}
         </Button>
 
         <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-          Already have an account?{' '}
+          {t('authRegister.alreadyAccount')}{' '}
           <Link href="/auth/login" underline="none" color="primary">
-            Sign In
+            {t('authRegister.signIn')}
           </Link>
         </Typography>
       </form>
 
       {/* Dialog لإدخال OTP */}
       <Dialog open={openOtpDialog} onClose={() => {}} disableEscapeKeyDown>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Verify your number</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
+          {t('authRegister.otpDialog.title')}
+        </DialogTitle>
         <DialogContent>
+          {/* التنبيهات الخاصة بالـ OTP تظهر داخل النافذة */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 1 }}>
+              {error}
+            </Alert>
+          )}
+          {successMsg && (
+            <Alert severity="success" sx={{ mb: 1 }}>
+              {successMsg}
+            </Alert>
+          )}
+
           <Typography variant="body1" sx={{ mb: 1 }}>
-            Please confirm your WhatsApp number by entering the code that we sent to you
+            {t('authRegister.otpDialog.prompt')}
           </Typography>
 
-          <OtpContainer>
-            {otpValues.map((val, idx) => (
-              <OtpInput
-                key={idx}
-                id={`otp-${idx}`}
-                value={val}
-                onChange={(e) => handleChangeOtp(idx, e.target.value)}
-              />
-            ))}
-          </OtpContainer>
-
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2 }}
-            onClick={handleVerifyClick}
-          >
-            Verify
-          </Button>
-
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'text.secondary',
-              textAlign: 'center',
-              mt: 1,
-              cursor: 'pointer',
-            }}
-            onClick={handleResendCode}
-          >
-            Resend code
-          </Typography>
+          {isVerifying ? (
+            <Box display="flex" flexDirection="column" alignItems="center" mt={2}>
+              <CircularProgress />
+              <Typography variant="body1" sx={{ mt: 1 }}>
+                {t('authRegister.otpDialog.verifying')}
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <OtpContainer>
+                {otpValues.map((val, idx) => (
+                  <OtpInput
+                    key={idx}
+                    id={`otp-${idx}`}
+                    value={val}
+                    onChange={(e) => handleChangeOtp(idx, e.target.value)}
+                  />
+                ))}
+              </OtpContainer>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                sx={{ mt: 2 }}
+                onClick={handleVerifyClick}
+                disabled={otpValues.join('').length < 4 || isVerifying}
+              >
+                {t('authRegister.otpDialog.verify')}
+              </Button>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  textAlign: 'center',
+                  mt: 1,
+                  cursor: 'pointer',
+                }}
+                onClick={handleResendCode}
+              >
+                {t('authRegister.otpDialog.resend')}
+              </Typography>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>

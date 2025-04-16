@@ -115,7 +115,7 @@ export const handleOrderStages = async ({
   // حالة AWAITING_NAME: استقبال اسم العميل
   if (status === 'AWAITING_NAME') {
     const newName = msg.body.trim();
-    await saveCustomerName(customerPhone, newName);
+    await saveCustomerName(sessionId, customerPhone, newName);
     await pool.request()
       .input('orderId', sql.Int, orderId)
       .input('customerName', sql.NVarChar, newName)
@@ -128,7 +128,7 @@ export const handleOrderStages = async ({
       `);
     clearOrderTimeout(orderId);
     scheduleOrderTimeout(orderId, sessionId, client, phoneNumber);
-    const addresses = await getCustomerAddresses(customerPhone);
+    const addresses = await getCustomerAddresses(sessionId, customerPhone);
     if (addresses.length > 0) {
       let addrMsg = `مرحبا *${newName}*، اختر احد العناوين المسجلة أو اضف عنوان جديد\n===========================\n`;
       addresses.forEach(addr => {
@@ -151,7 +151,7 @@ export const handleOrderStages = async ({
     }
     if (upperText.startsWith('ADDRESS_')) {
       const addrId = parseInt(upperText.replace('ADDRESS_', ''));
-      const addresses = await getCustomerAddresses(customerPhone);
+      const addresses = await getCustomerAddresses(sessionId, customerPhone);
       const selected = addresses.find(addr => addr.id === addrId);
       if (selected) {
         await pool.request()
@@ -176,7 +176,7 @@ export const handleOrderStages = async ({
       return true;
     } else {
       const newAddress = msg.body.trim();
-      await saveCustomerAddress(customerPhone, newAddress);
+      await saveCustomerAddress(sessionId, customerPhone, newAddress);
       await pool.request()
         .input('orderId', sql.Int, orderId)
         .input('address', sql.NVarChar, newAddress)

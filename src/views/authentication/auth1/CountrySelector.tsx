@@ -1,4 +1,3 @@
-// src/components/forms/phone/CountrySelector.tsx
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -10,6 +9,7 @@ import {
   Button,
 } from '@mui/material';
 import { countries, CountryType } from 'src/data/Countries';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onChange: (country: CountryType) => void;
@@ -17,11 +17,8 @@ interface Props {
   showSearch?: boolean;
 }
 
-const CountrySelector: React.FC<Props> = ({
-  onChange,
-  label,
-  showSearch = true,
-}) => {
+const CountrySelector: React.FC<Props> = ({ onChange, label, showSearch = true }) => {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [openList, setOpenList] = useState(false);
   // تعيين الافتراضي إلى مصر، إذا لم توجد مصر نستخدم أول دولة في القائمة
@@ -49,7 +46,7 @@ const CountrySelector: React.FC<Props> = ({
     <Box sx={{ position: 'relative' }}>
       {label && (
         <Box component="span" sx={{ mb: 1, fontWeight: 500, display: 'block' }}>
-          {label}
+          {t('countrySelector.label')}
         </Box>
       )}
       <Button
@@ -81,7 +78,7 @@ const CountrySelector: React.FC<Props> = ({
             <>
               <TextField
                 fullWidth
-                placeholder="Search country..."
+                placeholder={t('countrySelector.search') as string}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 sx={{ mb: 1 }}
@@ -89,6 +86,7 @@ const CountrySelector: React.FC<Props> = ({
               <Divider sx={{ mb: 1 }} />
             </>
           )}
+
           <List sx={{ maxHeight: 250, overflowY: 'auto' }}>
             {filteredCountries.map((country) => (
               <ListItemButton

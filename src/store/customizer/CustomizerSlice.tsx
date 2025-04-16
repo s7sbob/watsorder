@@ -1,9 +1,9 @@
-// src/store/customizer/CustomizerSlice.ts
 import { createSlice } from '@reduxjs/toolkit';
+import { getCookie, setCookie } from 'src/utils/cookieHelpers';
 
 interface StateType {
   activeDir?: string;
-  activeMode?: string; // This can be light or dark
+  activeMode?: string; // light or dark
   activeTheme?: string; // BLUE_THEME, GREEN_THEME, BLACK_THEME, PURPLE_THEME, ORANGE_THEME
   SidebarWidth?: number;
   MiniSidebarWidth?: number;
@@ -18,9 +18,14 @@ interface StateType {
   borderRadius?: number;
 }
 
+// قراءة قيمة اللغة من الكوكيز أو استخدام القيمة الافتراضية "ar"
+const initialLang = getCookie('language') || 'ar';
+// تحديد الاتجاه بناءً على اللغة (إذا كانت "ar" يكون "rtl" وإلا "ltr")
+const initialDir = initialLang === 'ar' ? 'rtl' : 'ltr';
+
 const initialState: StateType = {
-  activeDir: 'ltr',
-  activeMode: 'light', // This can be light or dark
+  activeDir: initialDir,
+  activeMode: 'light',
   activeTheme: 'BLUE_THEME',
   SidebarWidth: 270,
   MiniSidebarWidth: 87,
@@ -30,7 +35,7 @@ const initialState: StateType = {
   isSidebarHover: false,
   isMobileSidebar: false,
   isHorizontal: false,
-  isLanguage: 'en', // لغة واجهة المستخدم الافتراضية هي الإنجليزية
+  isLanguage: initialLang,
   isCardShadow: true,
   borderRadius: 7,
 };
@@ -47,6 +52,8 @@ export const CustomizerSlice = createSlice({
     },
     setDir: (state, action) => {
       state.activeDir = action.payload;
+      // يمكن تخزين الاتجاه أيضًا في الكوكيز إذا احتجت
+      setCookie('dir', action.payload, 30);
     },
     setLanguage: (state, action) => {
       state.isLanguage = action.payload;
@@ -55,6 +62,9 @@ export const CustomizerSlice = createSlice({
       } else {
         state.activeDir = 'ltr';
       }
+      // حفظ اللغة والاتجاه في الكوكيز لمدة 30 يوم
+      setCookie('language', action.payload, 30);
+      setCookie('dir', state.activeDir, 30);
     },
     setCardShadow: (state, action) => {
       state.isCardShadow = action.payload;

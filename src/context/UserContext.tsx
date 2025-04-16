@@ -2,6 +2,7 @@
 import React, { createContext, useEffect, useState } from "react";
 import axios from "../utils/axios";
 import { jwtDecode } from "jwt-decode";
+import { getCookie } from "src/utils/cookieHelpers";
 
 export interface User {
   id: number;
@@ -101,8 +102,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // قمنا بالتعليق هنا لتجنب استدعاء /api/users عند تحميل الصفحة
+  // الكود الجديد لتحميل بيانات المستخدم من الكوكي عند الـ Refresh
   useEffect(() => {
-    // fetchUsers();
+    const token = getCookie('token');
+    if (token) {
+      setUserFromToken(token);
+    }
   }, []);
 
   const isAdmin = (): boolean => {

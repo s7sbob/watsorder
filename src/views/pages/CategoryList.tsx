@@ -1,4 +1,3 @@
-// src/views/pages/session/CategoryList.tsx
 import React, { useEffect, useState } from 'react';
 import { Box, IconButton, Typography, Switch, TextField, Paper } from '@mui/material';
 import { TreeView, TreeItem } from '@mui/x-tree-view';
@@ -24,9 +23,8 @@ interface CategoryListProps {
 const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState('');
-  
+
   const fetchCategories = async () => {
     try {
       const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
@@ -43,10 +41,6 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
       fetchCategories();
     }
   }, [sessionId]);
-
-  const handleSelect = (id: number) => {
-    setSelectedCategoryId(id);
-  };
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -87,8 +81,11 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedCategoryId) return;
+  const handleEditCategory = (category: Category) => {
+    onEdit(category);
+  };
+
+  const handleDeleteCategory = async (category: Category) => {
     const confirmed = await Swal.fire({
       title: t('CategoryList.confirmDeleteTitle') || 'Are you sure?',
       text: t('CategoryList.confirmDeleteText') || 'This action cannot be undone.',
@@ -99,8 +96,7 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
     });
     if (confirmed.isConfirmed) {
       try {
-        await axiosServices.post(`/api/sessions/${sessionId}/category/${selectedCategoryId}/delete`);
-        setSelectedCategoryId(null);
+        await axiosServices.post(`/api/sessions/${sessionId}/category/${category.id}/delete`);
         fetchCategories();
       } catch (error) {
         console.error('Error deleting category', error);
@@ -109,93 +105,90 @@ const CategoryList: React.FC<CategoryListProps> = ({ sessionId, onEdit }) => {
     }
   };
 
-  const handleEdit = () => {
-    if (!selectedCategoryId) return;
-    const category = categories.find(c => c.id === selectedCategoryId);
-    if (category) {
-      onEdit(category);
-    }
-  };
-
-
   return (
-        <Paper elevation={3} sx={{ p: 2 }}>
-    
-    <Box>
-            {/* حقل البحث */}
-            <Box mb={2}>
-        <TextField
-          label={t('CategoryList.filterLabel') || "Search"}
-          variant="outlined"
-          fullWidth
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-      </Box>
-      {/* أزرار التعديل والحذف ثابتة في الأعلى */}
-      <Box display="flex" alignItems="center" mb={2}>
-        <IconButton onClick={handleEdit} disabled={!selectedCategoryId}>
-          <EditIcon />
-        </IconButton>
-        <IconButton onClick={handleDelete} disabled={!selectedCategoryId}>
-          <DeleteIcon />
-        </IconButton>
-      </Box>
+    <Paper elevation={3} sx={{ p: 2 }}>
+      <Box>
+        {/* حقل البحث */}
+        <Box mb={2}>
+          <TextField
+            label={t('CategoryList.filterLabel') || "Search"}
+            variant="outlined"
+            fullWidth
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </Box>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="categoryList">
-          {(provided) => (
-            <TreeView
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              defaultCollapseIcon={<Typography>-</Typography>}
-              defaultExpandIcon={<Typography>+</Typography>}
-            >
-              {categories.map((cat, index) => (
-                <Draggable key={cat.id.toString()} draggableId={cat.id.toString()} index={index}>
-                  {(providedDraggable) => (
-                    <TreeItem
-                      nodeId={cat.id.toString()}
-                      label={
-                        <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelect(cat.id)}>
-                          <Typography>{cat.order} - {cat.category_name}</Typography>
-                          <Box display="flex" alignItems="center">
-                            <Switch
-                              checked={cat.isActive}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleToggleCategory(cat, e.target.checked);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            {!cat.isActive && (
-                              <Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                                Disabled
-                              </Typography>
-                            )}
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="categoryList">
+            {(provided) => (
+              <TreeView
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                defaultCollapseIcon={<Typography>-</Typography>}
+                defaultExpandIcon={<Typography>+</Typography>}
+              >
+                {categories.map((cat, index) => (
+                  <Draggable key={cat.id.toString()} draggableId={cat.id.toString()} index={index}>
+                    {(providedDraggable) => (
+                      <TreeItem
+                        nodeId={cat.id.toString()}
+                        label={
+                          <Box display="flex" alignItems="center" justifyContent="space-between">
+                            <Typography>
+                              {cat.order} - {cat.category_name}
+                            </Typography>
+                            <Box display="flex" alignItems="center">
+                              <Switch
+                                checked={cat.isActive}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleCategory(cat, e.target.checked);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {!cat.isActive && (
+                                <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                                  Disabled
+                                </Typography>
+                              )}
+                              <IconButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditCategory(cat);
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteCategory(cat);
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
                           </Box>
-                        </Box>
-                      }
-                      ref={providedDraggable.innerRef}
-                      {...providedDraggable.draggableProps}
-                      {...providedDraggable.dragHandleProps}
-                      style={{
-                        backgroundColor: selectedCategoryId === cat.id ? '#e0e0e0' : 'inherit',
-                        marginBottom: 4,
-                        ...providedDraggable.draggableProps.style
-                      }}
-                    />
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </TreeView>
-          )}
-        </Droppable>
-      </DragDropContext>
-    </Box>
-        </Paper>
-    
+                        }
+                        ref={providedDraggable.innerRef}
+                        {...providedDraggable.draggableProps}
+                        {...providedDraggable.dragHandleProps}
+                        style={{
+                          marginBottom: 4,
+                          ...providedDraggable.draggableProps.style
+                        }}
+                      />
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </TreeView>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </Box>
+    </Paper>
   );
 };
 

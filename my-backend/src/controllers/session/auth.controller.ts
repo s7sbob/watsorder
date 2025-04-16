@@ -1,8 +1,10 @@
-// controllers/session/auth.controller.ts
+// src/controllers/session/auth.controller.ts
+
 import { Request, Response } from 'express';
 import { getConnection } from '../../config/db';
 import * as sql from 'mssql';
 import fs from 'fs-extra';
+import path from 'path';
 import { checkSessionOwnership } from './helpers';
 import { whatsappClients } from '../whatsappClients';
 import { createWhatsAppClientForSession } from '../whatsappClients';
@@ -37,14 +39,14 @@ export const getQrForSession = async (req: Request, res: Response) => {
   }
 };
 
-/* 
-  ================================
+/*
+  ======================================
    دوال تسجيل الخروج / تسجيل الدخول 
-  ================================
+  ======================================
 */
 
 /**
- * تسجيل الخروج من جلسة -> Terminated
+ * تسجيل الخروج -> Terminated + حذف LocalAuth
  */
 export const logoutSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -56,22 +58,53 @@ export const logoutSession = async (req: Request, res: Response) => {
     const pool = await getConnection();
     await checkSessionOwnership(pool, sessionId, req.user);
 
-    // اجلب البيانات وتأكد أن الجلسة موجودة
+    // جلب بيانات الجلسة
     const sessionRow = await pool.request()
       .input('sessionId', sql.Int, sessionId)
-      .query(`SELECT id FROM Sessions WHERE id = @sessionId`);
+      .query(`
+        SELECT id, sessionIdentifier
+        FROM Sessions
+        WHERE id = @sessionId
+      `);
+
     if (!sessionRow.recordset.length) {
       return res.status(404).json({ message: 'Session not found.' });
     }
 
-    // دمّر عميل الواتساب (إن وجد) ثم حدث الحالة
-    const { whatsappClients } = await import('../whatsappClients');
+    const { sessionIdentifier } = sessionRow.recordset[0];
+
+    // 1) تدمير عميل الواتساب (إن وجد)
     const client = whatsappClients[sessionId];
     if (client) {
-      await client.destroy();
+      try {
+        await client.destroy();
+      } catch (err) {
+        // لو الخطأ بسبب "Target closed", نتجاهله:
+        if (String(err).includes('Target closed')) {
+          console.warn('Ignoring Puppeteer "Target closed" error on destroy()');
+        } else {
+          console.warn('Ignoring other destroy() error =>', err);
+        }
+      }
       delete whatsappClients[sessionId];
     }
 
+    // 2) حذف مجلد LocalAuth لمنع إعادة استعمال الجلسة
+    const baseAuthPath = 'C:\\inetpub\\vhosts\\watsorder.com\\api.watsorder.com\\dist\\.wwebjs_auth';
+    const authPath = path.join(baseAuthPath, `session-${sessionIdentifier}`);
+    
+    console.log('[logoutSession] Attempting to remove auth folder =>', authPath);
+    
+    if (fs.existsSync(authPath)) {
+      console.log('[logoutSession] Auth folder exists. Removing now...');
+      fs.rmSync(authPath, { recursive: true, force: true });
+      console.log('[logoutSession] Successfully removed folder =>', authPath);
+    } else {
+      console.log('[logoutSession] Auth folder does NOT exist =>', authPath);
+    }
+    
+
+    // 3) تغيير حالة الجلسة إلى Terminated
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('newStatus', sql.NVarChar, 'Terminated')
@@ -81,7 +114,9 @@ export const logoutSession = async (req: Request, res: Response) => {
         WHERE id = @sessionId
       `);
 
-    return res.status(200).json({ message: 'Session logged out (Terminated).' });
+    return res.status(200).json({
+      message: 'Session logged out (Terminated) and local auth removed.'
+    });
   } catch (error) {
     console.error('Error logging out session:', error);
     return res.status(500).json({ message: 'Error logging out session.' });
@@ -89,7 +124,7 @@ export const logoutSession = async (req: Request, res: Response) => {
 };
 
 /**
- * تسجيل الدخول مجددًا -> Ready + تشغيل الجلسة
+ * تسجيل الدخول مجددًا -> Ready (من دون إنشاء عميل واتساب)
  */
 export const loginSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -101,7 +136,7 @@ export const loginSession = async (req: Request, res: Response) => {
     const pool = await getConnection();
     await checkSessionOwnership(pool, sessionId, req.user);
 
-    // نتحقق من أن الجلسة حالتها Terminated (منطقيًا)
+    // تحقق من وجود الجلسة
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -113,9 +148,7 @@ export const loginSession = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Session not found.' });
     }
 
-    const sessionIdentifier = sessionResult.recordset[0].sessionIdentifier;
-
-    // تحويلها إلى Ready
+    // فقط نجعلها Ready
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('newStatus', sql.NVarChar, 'Ready')
@@ -125,10 +158,12 @@ export const loginSession = async (req: Request, res: Response) => {
         WHERE id = @sessionId
       `);
 
-    // // استدعاء دالة إنشاء عميل واتساب
-    // await createWhatsAppClientForSession(sessionId, sessionIdentifier);
+    // **لا** ننشئ عميل واتساب الآن. المستخدم عليه الضغط على "Show QR Code"
+    // إذا أراد فعليًا إعادة تشغيل الواتساب.
 
-    return res.status(200).json({ message: 'Session re-logged in successfully. Now Ready.' });
+    return res.status(200).json({
+      message: 'Session re-logged in (status=Ready).'
+    });
   } catch (error) {
     console.error('Error logging in session:', error);
     return res.status(500).json({ message: 'Error logging in session.' });
@@ -136,39 +171,43 @@ export const loginSession = async (req: Request, res: Response) => {
 };
 
 /**
- * بدء عملية إنشاء عميل واتساب واسترجاع رمز QR
- * يتم استدعاء هذا الـ endpoint عند الضغط على زر "Show QR Code"
+ * بدء عملية إنشاء عميل واتساب -> status = "Waiting for QR Code" + create client
  */
 export const startQrForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
   if (!sessionId) {
     return res.status(400).json({ message: 'Invalid session ID.' });
   }
-  
+
   try {
     const pool = await getConnection();
     await checkSessionOwnership(pool, sessionId, req.user);
 
-    // تحديث حالة الجلسة إلى "Waiting for QR Code" وحذف رمز الـ QR الحالي
+    // set status=Waiting for QR Code, qrCode=NULL
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('newStatus', sql.NVarChar, 'Waiting for QR Code')
       .query(`
         UPDATE Sessions
-        SET status = @newStatus, qrCode = NULL
+        SET status = @newStatus,
+            qrCode = NULL
         WHERE id = @sessionId
       `);
 
-    // استرجاع sessionIdentifier للجلسة
+    // جلب sessionIdentifier
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
-      .query(`SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId`);
+      .query(`
+        SELECT sessionIdentifier
+        FROM Sessions
+        WHERE id = @sessionId
+      `);
     if (!sessionResult.recordset.length) {
       return res.status(404).json({ message: 'Session not found.' });
     }
     const sessionIdentifier = sessionResult.recordset[0].sessionIdentifier;
 
-    // بدء إنشاء عميل واتساب والذي سيتولى لاحقاً توليد رمز الـ QR
+    // أنشئ عميل واتساب. سيولّد الـ QR في حدث client.on('qr')
     await createWhatsAppClientForSession(sessionId, sessionIdentifier);
 
     return res.status(200).json({ message: 'QR generation initiated.' });
@@ -179,8 +218,7 @@ export const startQrForSession = async (req: Request, res: Response) => {
 };
 
 /**
- * إلغاء عملية توليد رمز QR وإيقاف الجلسة
- * يتم استدعاء هذا الـ endpoint عند إغلاق المستخدم للـ popup قبل إتمام المسح
+ * إلغاء عملية توليد QR -> تدمير العميل + الحالة Ready
  */
 export const cancelQrForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -192,24 +230,45 @@ export const cancelQrForSession = async (req: Request, res: Response) => {
     const pool = await getConnection();
     await checkSessionOwnership(pool, sessionId, req.user);
     
-    // إذا كان هناك عميل واتساب نشط، قم بتدميره
-    const { whatsappClients } = await import('../whatsappClients');
     const client = whatsappClients[sessionId];
     if (client) {
-      await client.destroy();
+      try {
+        await client.destroy();
+      } catch (err) {
+        if (String(err).includes('Target closed')) {
+          console.warn('Ignoring Puppeteer "Target closed" error on destroy()');
+        } else {
+          console.warn('Ignoring other destroy() error =>', err);
+        }
+      }
       delete whatsappClients[sessionId];
     }
     
-    // تحديث حالة الجلسة إلى Terminated وإزالة رمز الـ QR
+    // إذا أردت أيضًا حذف localAuth، يمكنك فعل نفس الشيء كما في logoutSession:
+    // const sessionRow = await pool.request()
+    //   .input('sessionId', sql.Int, sessionId)
+    //   .query(`SELECT sessionIdentifier FROM Sessions WHERE id = @sessionId`);
+    // if (sessionRow.recordset.length) {
+    //   const { sessionIdentifier } = sessionRow.recordset[0];
+    //   const authPath = path.join(process.cwd(), '.wwebjs_auth', `session-${sessionIdentifier}`);
+    //   if (fs.existsSync(authPath)) {
+    //     fs.rmSync(authPath, { recursive: true, force: true });
+    //   }
+    // }
+
+    // هنا نعيد الحالة إلى Ready
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
         UPDATE Sessions
-        SET  qrCode = NULL
+        SET qrCode = NULL,
+            status = 'Ready'
         WHERE id = @sessionId
       `);
-      
-    return res.status(200).json({ message: 'QR generation cancelled and session terminated.' });
+
+    return res.status(200).json({
+      message: 'QR generation cancelled, client destroyed, session is now Ready.'
+    });
   } catch (error) {
     console.error('Error cancelling QR generation:', error);
     return res.status(500).json({ message: 'Error cancelling QR generation.' });

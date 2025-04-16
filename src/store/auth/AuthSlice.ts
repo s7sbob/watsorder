@@ -74,3 +74,16 @@ const authSlice = createSlice({
 export const { setToken, clearToken, recheckCookie } = authSlice.actions
 export default authSlice.reducer
 export type { AuthState }
+
+export const isTokenValid = (token: string | null): boolean => {
+  if (!token) return false;
+  try {
+    const decoded = jwtDecode(token);
+    if (!decoded.exp) return false;
+
+    const currentTime = Date.now() / 1000;
+    return decoded.exp > currentTime;
+  } catch (error) {
+    return false;
+  }
+};

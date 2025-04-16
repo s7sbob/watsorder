@@ -7,7 +7,7 @@ export const initializeExistingSessions = async () => {
   const result = await pool.request().query(`
     SELECT id, sessionIdentifier
     FROM Sessions
-    WHERE status IN ('Connected', 'Waiting for QR Code')
+    WHERE status IN ('Connected')
   `);
 
   for (const record of result.recordset) {

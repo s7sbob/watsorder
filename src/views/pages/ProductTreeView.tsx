@@ -1,4 +1,3 @@
-// src/views/pages/session/ProductTreeView.tsx
 import React, { useState, useEffect } from 'react';
 import { Box, IconButton, Paper, Typography, Switch, TextField } from '@mui/material';
 import { TreeView, TreeItem } from '@mui/x-tree-view';
@@ -38,11 +37,10 @@ export interface ProductTreeViewProps {
   onDelete: (item: SelectedItem) => void;
 }
 
-const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, onDelete }) => {
+const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit }) => {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
   const [searchText, setSearchText] = useState('');
 
   // جلب التصنيفات
@@ -137,32 +135,26 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
     }
   };
 
-  const handleSelectItem = (item: SelectedItem) => {
-    setSelectedItem(item);
-  };
-
-  const handleEditClick = () => {
-    if (selectedItem && selectedItem.type === 'product') {
-      onEdit(selectedItem);
-    }
-  };
-
-  const handleDeleteClick = async () => {
-    if (selectedItem && selectedItem.type === 'product') {
-      const confirmed = await Swal.fire({
-        title: t('confirmDeleteTitle') || 'Are you sure?',
-        text: t('confirmDeleteText') || 'This action cannot be undone.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: t('confirmDeleteConfirm') || 'Yes, delete it!',
-        cancelButtonText: t('confirmDeleteCancel') || 'Cancel'
-      });
-      if (confirmed.isConfirmed) {
-        onDelete(selectedItem);
-        setSelectedItem(null);
+  const confirmDeleteProduct = async (product: Product) => {
+    const confirmed = await Swal.fire({
+      title: t('confirmDeleteTitle') || 'Are you sure?',
+      text: t('confirmDeleteText') || 'This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('confirmDeleteConfirm') || 'Yes, delete it!',
+      cancelButtonText: t('confirmDeleteCancel') || 'Cancel'
+    });
+    if (confirmed.isConfirmed) {
+      try {
+        await axiosServices.post(`/api/sessions/${sessionId}/product/${product.id}/delete`);
+        fetchProducts();
+      } catch (error) {
+        Swal.fire(t('ProductTreeView.errorDeletingProduct') || 'Error deleting product');
       }
     }
   };
+
+
 
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
@@ -175,15 +167,6 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-      </Box>
-      {/* أيقونات التعديل والحذف ثابتة في الأعلى */}
-      <Box display="flex" alignItems="center" mb={2}>
-        <IconButton onClick={handleEditClick} disabled={!selectedItem || selectedItem.type !== 'product'}>
-          <EditIcon />
-        </IconButton>
-        <IconButton onClick={handleDeleteClick} disabled={!selectedItem || selectedItem.type !== 'product'}>
-          <DeleteIcon />
-        </IconButton>
       </Box>
       <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />}>
         {filteredCategories.map(category => {
@@ -199,8 +182,10 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
               key={`category-${category.id}`}
               nodeId={`category-${category.id}`}
               label={
-                <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'category', data: category })}>
-                  <Typography>{category.category_name}</Typography>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Typography>
+                    {category.category_name}
+                  </Typography>
                   <Box display="flex" alignItems="center">
                     <Switch
                       checked={category.isActive}
@@ -230,8 +215,10 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
                               key={`product-${product.id}`}
                               nodeId={`product-${product.id}`}
                               label={
-                                <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleSelectItem({ type: 'product', data: product })}>
-                                  <Typography>{`${product.order} - ${product.product_name}  ($${product.price ?? 'N/A'})`}</Typography>
+                                <Box display="flex" alignItems="center" justifyContent="space-between">
+                                  <Typography>
+                                    {`${product.order} - ${product.product_name}  ($${product.price ?? 'N/A'})`}
+                                  </Typography>
                                   <Box display="flex" alignItems="center">
                                     <Switch
                                       checked={product.isActive}
@@ -246,6 +233,12 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
                                         Disabled
                                       </Typography>
                                     )}
+                                    <IconButton onClick={(e) => { e.stopPropagation(); onEdit({ type: 'product', data: product }); }}>
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton onClick={(e) => { e.stopPropagation(); confirmDeleteProduct(product); }}>
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
                                   </Box>
                                 </Box>
                               }
@@ -253,12 +246,6 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit, on
                               {...providedDraggable.draggableProps}
                               {...providedDraggable.dragHandleProps}
                               sx={{
-                                backgroundColor:
-                                  selectedItem &&
-                                  selectedItem.type === 'product' &&
-                                  selectedItem.data.id === product.id
-                                    ? '#e0e0e0'
-                                    : 'inherit',
                                 mb: 1,
                               }}
                             />

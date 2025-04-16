@@ -18,18 +18,47 @@ import user1 from 'src/assets/images/profile/user-1.jpg'
 import user2 from 'src/assets/images/profile/user-2.jpg'
 import user3 from 'src/assets/images/profile/user-3.jpg'
 
-// الترجمة
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { AppState } from 'src/store/Store'
+import { jwtDecode } from 'jwt-decode'
+
+interface DecodedToken {
+  exp: number;
+  [key: string]: any;
+}
 
 const Banner = () => {
   const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
+  const navigate = useNavigate()
+  const token = useSelector((state: AppState) => state.auth.token)
 
   const handleClickOpen = () => {
     setOpen(true)
   }
+
   const handleClose = () => {
     setOpen(false)
+  }
+
+  // دالة التحقق من التوكن والتحويل
+  const handleRestaurantLoginClick = () => {
+    if (token) {
+      try {
+        const decoded: DecodedToken = jwtDecode(token)
+        const isExpired = decoded.exp * 1000 < Date.now()
+
+        if (!isExpired) {
+          navigate('/apps/sessions')
+          return
+        }
+      } catch (error) {
+        console.error('Invalid token:', error)
+      }
+    }
+    navigate('/auth/login')
   }
 
   return (
@@ -62,7 +91,7 @@ const Banner = () => {
                 <Avatar alt='User 3' src={user3} sx={{ width: 40, height: 40 }} />
               </AvatarGroup>
               <Typography variant='h6' fontWeight={500}>
-                {t('HomePage.Banner.joinMessage')} {/* مثلاً: "Join 50,000+ restaurants..." */}
+                {t('HomePage.Banner.joinMessage')}
               </Typography>
             </Stack>
 
@@ -73,9 +102,11 @@ const Banner = () => {
               mb={4}
               justifyContent='center'
             >
-              <Button color='primary' size='large' variant='contained' href='/auth/login'>
-                {t('HomePage.Banner.loginButton')} {/* "Restaurant Login" */}
+              {/* زرار تسجيل دخول المطعم مع التحقق من التوكن */}
+              <Button color='primary' size='large' variant='contained' onClick={handleRestaurantLoginClick}>
+                {t('HomePage.Banner.loginButton')}
               </Button>
+
               <Button
                 variant='text'
                 color='inherit'
@@ -91,7 +122,7 @@ const Banner = () => {
                 }}
               >
                 <img src={iconPlay} alt='play icon' width={40} height={40} />
-                {t('HomePage.Banner.seeHowItWorks')} {/* "See how it works" */}
+                {t('HomePage.Banner.seeHowItWorks')}
               </Button>
 
               <Dialog open={open} onClose={handleClose} fullWidth maxWidth='sm'>
@@ -107,7 +138,7 @@ const Banner = () => {
                 </DialogContent>
                 <DialogActions>
                   <Button onClick={handleClose} autoFocus>
-                    {t('HomePage.Banner.closeButton')} {/* "Close" */}
+                    {t('HomePage.Banner.closeButton')}
                   </Button>
                 </DialogActions>
               </Dialog>
