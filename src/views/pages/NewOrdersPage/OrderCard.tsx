@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Typography, IconButton, Tooltip } from '@mui/material'
-import { IconEye, IconReceipt, IconCheck } from '@tabler/icons-react'
+import { IconEye, IconReceipt, IconCheck, IconX } from '@tabler/icons-react'
 import { OrderType } from 'src/types/apps/order'
 
 // الترجمة
@@ -11,13 +11,15 @@ interface OrderCardProps {
   onViewDetails: (orderId: number) => void
   onViewInvoice: (orderId: number) => void
   onConfirmClick: (orderId: number) => void
+  onRejectClick: (orderId: number) => void
 }
 
 const OrderCard: React.FC<OrderCardProps> = ({
   order,
   onViewDetails,
   onViewInvoice,
-  onConfirmClick
+  onConfirmClick,
+  onRejectClick
 }) => {
   const { t } = useTranslation()
   const [blink, setBlink] = useState(false)
@@ -95,6 +97,11 @@ const OrderCard: React.FC<OrderCardProps> = ({
             <IconCheck size={22} />
           </IconButton>
         </Tooltip>
+        <Tooltip title={t('Orders.OrderCard.tooltips.restaurantReject', 'رفض الطلب')}>
+       <IconButton color='error' onClick={() => onRejectClick(order.id)}>
+          <IconX size={22} />
+        </IconButton>
+      </Tooltip>
       </Box>
     </Box>
   )

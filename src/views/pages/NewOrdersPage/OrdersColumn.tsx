@@ -12,6 +12,7 @@ interface OrdersColumnProps {
   onViewDetails: (orderId: number) => void
   onViewInvoice: (orderId: number) => void
   onConfirmClick: (orderId: number) => void
+  onRejectClick: (orderId: number) => void
 }
 
 const OrdersColumn: React.FC<OrdersColumnProps> = ({
@@ -19,7 +20,8 @@ const OrdersColumn: React.FC<OrdersColumnProps> = ({
   orders,
   onViewDetails,
   onViewInvoice,
-  onConfirmClick
+  onConfirmClick,
+  onRejectClick
 }) => {
   const { t } = useTranslation()
 
@@ -38,6 +40,7 @@ const OrdersColumn: React.FC<OrdersColumnProps> = ({
             onViewDetails={onViewDetails}
             onViewInvoice={onViewInvoice}
             onConfirmClick={onConfirmClick}
+            onRejectClick={onRejectClick}
           />
         ))
       )}

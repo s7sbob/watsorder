@@ -3,7 +3,8 @@ import { authenticateToken } from '../middleware/authMiddleware'
 import {
   getConfirmedOrdersForUser,
   confirmOrderByRestaurant,
-  getOrderDetails
+  getOrderDetails,
+  rejectOrderByRestaurant
 } from '../controllers/orderController'
 
 const router = Router()
@@ -16,5 +17,9 @@ router.post('/:orderId/restaurant-confirm', authenticateToken, confirmOrderByRes
 
 // GET (بدون تغيير)
 router.get('/:orderId', authenticateToken, getOrderDetails)
+
+// ** New reject route **
+router.post('/:orderId/restaurant-reject', authenticateToken, rejectOrderByRestaurant)
+
 
 export default router

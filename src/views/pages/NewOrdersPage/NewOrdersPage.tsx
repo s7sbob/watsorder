@@ -11,8 +11,9 @@ import OrdersColumn from './OrdersColumn'
 import OrderDetailsDialog from './OrderDetailsDialog'
 import InvoiceDialog from './InvoiceDialog'
 import ConfirmOrderDialog from './ConfirmOrderDialog'
+import CancelOrderDialog from './CancelOrderDialog'
 import { OrderType } from 'src/types/apps/order'
-import { fetchConfirmedOrders, confirmOrderByRestaurant } from 'src/store/apps/orders/OrderSlice'
+import { fetchConfirmedOrders, confirmOrderByRestaurant, rejectOrderByRestaurant } from 'src/store/apps/orders/OrderSlice'
 import { useTranslation } from 'react-i18next'
 
 const NewOrdersPage: React.FC = () => {
@@ -28,6 +29,10 @@ const NewOrdersPage: React.FC = () => {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [invoiceDetails, setInvoiceDetails] = useState<OrderType | null>(null)
+
+  // new for rejection
+  const [rejectOrderId, setRejectOrderId] = useState<number | null>(null)
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
 
   // Initialize audio for notification
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -141,6 +146,25 @@ const NewOrdersPage: React.FC = () => {
     setSelectedOrderId(orderId)
   }
 
+  // —————————— new reject flow ——————————
+  const handleRejectClick = (orderId: number) => {
+    setRejectOrderId(orderId)
+    setRejectDialogOpen(true)
+  }
+
+  const handleRejectSubmit = async (reason: string) => {
+    if (!rejectOrderId) return
+    await dispatch(
+      rejectOrderByRestaurant({
+        orderId: rejectOrderId,
+        reason
+      })
+    )
+    setRejectDialogOpen(false)
+    setRejectOrderId(null)
+  }
+
+
   const handleConfirmSubmit = async (prepTime: number, deliveryFee: number, taxValue: number) => {
     if (!selectedOrderId) return
     await dispatch(
@@ -189,6 +213,7 @@ const NewOrdersPage: React.FC = () => {
             onViewDetails={handleViewDetails}
             onViewInvoice={handleViewInvoice}
             onConfirmClick={handleConfirmClick}
+            onRejectClick={handleRejectClick}
           />
         </Grid>
 
@@ -200,6 +225,7 @@ const NewOrdersPage: React.FC = () => {
             onViewDetails={handleViewDetails}
             onViewInvoice={handleViewInvoice}
             onConfirmClick={handleConfirmClick}
+            onRejectClick={handleRejectClick}
           />
         </Grid>
       </Grid>
@@ -224,6 +250,13 @@ const NewOrdersPage: React.FC = () => {
         orderId={selectedOrderId}
         onClose={() => setSelectedOrderId(null)}
         onSubmit={handleConfirmSubmit}
+      />
+      {/* Cancel (Reject) Order Dialog */}
+      <CancelOrderDialog
+        open={rejectDialogOpen}
+        orderId={rejectOrderId}
+        onClose={() => setRejectDialogOpen(false)}
+        onSubmit={handleRejectSubmit}
       />
     </Box>
   )

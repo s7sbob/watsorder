@@ -1,13 +1,9 @@
-// src/store/apps/orders/OrderSlice.ts
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'src/utils/axios'
 import { OrderType } from 'src/types/apps/order'
 
 interface OrderState {
-  // سنعتمد فقط على هذه القائمة لعرض كل الطلبات (سواء finalConfirmed = false أو true)
   confirmedOrders: OrderType[]
-
   loading: boolean
   error: string | null
 }
@@ -18,8 +14,7 @@ const initialState: OrderState = {
   error: null
 }
 
-// نجلب كل الطلبات الخاصة بالمستخدم من /api/orders/confirmed
-// (رغم الاسم "confirmed" إلا أنها تعيد الطلبات بقيمة finalConfirmed = false أو true)
+// Fetch all (confirmed + pending) orders
 export const fetchConfirmedOrders = createAsyncThunk(
   'orders/fetchConfirmedOrders',
   async (_, { rejectWithValue }) => {
@@ -32,7 +27,7 @@ export const fetchConfirmedOrders = createAsyncThunk(
   }
 )
 
-// تأكيد الطلب
+// Confirm
 export const confirmOrderByRestaurant = createAsyncThunk(
   'orders/confirmOrderByRestaurant',
   async (
@@ -40,27 +35,35 @@ export const confirmOrderByRestaurant = createAsyncThunk(
       orderId,
       prepTime,
       deliveryFee,
-      serviceFee,
       taxValue
-    }: {
-      orderId: number
-      prepTime: number
-      deliveryFee?: number
-      serviceFee?: number
-      taxValue?: number
-    },
+    }: { orderId: number; prepTime: number; deliveryFee?: number; taxValue?: number },
     { rejectWithValue }
   ) => {
     try {
       await axios.post(`/api/orders/${orderId}/restaurant-confirm`, {
         prepTime,
         deliveryFee,
-        serviceFee,
         taxValue
       })
-      return { orderId, prepTime, deliveryFee, serviceFee, taxValue }
+      return { orderId, prepTime, deliveryFee, taxValue }
     } catch (err: any) {
       return rejectWithValue(err.response?.data || 'Error confirming order')
+    }
+  }
+)
+
+// ** Reject **
+export const rejectOrderByRestaurant = createAsyncThunk(
+  'orders/rejectOrderByRestaurant',
+  async (
+    { orderId, reason }: { orderId: number; reason: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      await axios.post(`/api/orders/${orderId}/restaurant-reject`, { reason })
+      return { orderId }
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || 'Error rejecting order')
     }
   }
 )
@@ -87,18 +90,26 @@ const orderSlice = createSlice({
 
       // confirmOrderByRestaurant
       .addCase(confirmOrderByRestaurant.fulfilled, (state, action) => {
-        // بعد التأكيد، عدّل قيمة الـ finalConfirmed في نفس القائمة
-        const { orderId } = action.payload
-        const index = state.confirmedOrders.findIndex(o => o.id === orderId)
-        if (index !== -1) {
-          state.confirmedOrders[index].finalConfirmed = true
-          // لو تحب تغير أي حقول أخرى (prepTime/deliveryFee/...) عشان تبقى محدثة في الواجهة
-          state.confirmedOrders[index].prepTime = action.payload.prepTime
-          state.confirmedOrders[index].deliveryFee = action.payload.deliveryFee
-          state.confirmedOrders[index].taxValue = action.payload.taxValue
+        const { orderId, prepTime, deliveryFee, taxValue } = action.payload
+        const idx = state.confirmedOrders.findIndex(o => o.id === orderId)
+        if (idx !== -1) {
+          state.confirmedOrders[idx].finalConfirmed = true
+          state.confirmedOrders[idx].prepTime = prepTime
+          state.confirmedOrders[idx].deliveryFee = deliveryFee
+          state.confirmedOrders[idx].taxValue = taxValue
         }
       })
       .addCase(confirmOrderByRestaurant.rejected, (state, action) => {
+        state.error = action.payload as string
+      })
+
+      // ** rejectOrderByRestaurant **
+      .addCase(rejectOrderByRestaurant.fulfilled, (state, action) => {
+        const { orderId } = action.payload
+        // Remove rejected order from list
+        state.confirmedOrders = state.confirmedOrders.filter(o => o.id !== orderId)
+      })
+      .addCase(rejectOrderByRestaurant.rejected, (state, action) => {
         state.error = action.payload as string
       })
   }

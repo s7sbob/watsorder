@@ -306,3 +306,69 @@ export const getOrderDetails = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error fetching order details.' })
   }
 }
+
+
+/**
+ * رفض الطلب من قِبَل المالك (صاحب الجلسة)
+ */
+export const rejectOrderByRestaurant = async (req: Request, res: Response) => {
+  try {
+    const orderId = parseInt(req.params.orderId, 10)
+    if (!orderId) {
+      return res.status(400).json({ message: 'Invalid order ID.' })
+    }
+    if (!req.user) {
+      return res.status(401).json({ message: 'No user payload found.' })
+    }
+
+    const { reason } = req.body
+    const pool = await getConnection()
+
+    // جلب بيانات الطلب مع بيانات الجلسة
+    const orderRes = await pool.request()
+      .input('orderId', sql.Int, orderId)
+      .query(`
+        SELECT o.id, s.userId AS sessionOwner, s.id AS sessionIdFromSession, o.customerPhoneNumber AS customerPhone
+        FROM Orders o
+        JOIN Sessions s ON s.id = o.sessionId
+        WHERE o.id = @orderId
+      `)
+    if (!orderRes.recordset.length) {
+      return res.status(404).json({ message: 'Order not found.' })
+    }
+    const ord = orderRes.recordset[0]
+
+    // only session owner can reject
+    if (req.user.id !== ord.sessionOwner) {
+      return res.status(403).json({ message: 'Forbidden: Only the session owner can reject.' })
+    }
+
+    // تحديث الحالة في DB
+    await pool.request()
+      .input('orderId', sql.Int, orderId)
+      .query(`
+        UPDATE Orders
+        SET status = 'REJECTED'
+        WHERE id = @orderId
+      `)
+
+    // بناء نص الرسالة
+    const msgText =
+      `*تم رفض الطلب رقم:* ${orderId}\n` +
+      `*السبب:* ${reason}`
+
+    // إرسال عبر واتساب
+    const client = whatsappClients[ord.sessionIdFromSession]
+    if (client) {
+      const recipient = ord.customerPhone + '@c.us'
+      await client.sendMessage(recipient, msgText)
+    }
+
+    return res
+      .status(200)
+      .json({ message: 'Order rejected and notification sent to customer.' })
+  } catch (error) {
+    console.error('Error rejecting order by restaurant:', error)
+    return res.status(500).json({ message: 'Error rejecting order.' })
+  }
+}
