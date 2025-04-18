@@ -1,165 +1,208 @@
-openapi: "3.0.0"
+openapi: 3.0.0
 info:
-  title: "My Project API"
-  version: "1.0.0"
-  description: >
-    وثائق API للمشروع تشمل فقط:
-    - تسجيل الدخول باستخدام رقم الموبايل
-    - استيراد البيانات بالجملة (Bulk Import)
-    - جلب الطلبات الجديدة
-    - جلب الطلبات بين تاريخين
-    - إرسال OTP
-    - إرسال Broadcast
+  title: WatsOrder API
+  version: 1.0.0
+  description: |
+    Official API documentation for WatsOrder (English is primary, Arabic secondary).  
+    الوثائق الرسمية لواجهات برمجة التطبيقات الخاصة بـ WatsOrder (الإنجليزية أساسية، العربية ثانوية).
 servers:
-  - url: "http://localhost:5000"
-    description: "WatsOrder Server"
+  - url: https://api.watsorder.com
+    description: WatsOrder server | خادم التطوير المحلي
+
 tags:
-  - name: "Auth"
-    description: "Endpoints لتسجيل الدخول باستخدام رقم الموبايل"
-  - name: "BulkImport"
-    description: "Endpoints لاستيراد البيانات بالجملة"
-  - name: "Orders"
-    description: "Endpoints لإدارة الطلبات"
-  - name: "OTP"
-    description: "Endpoints لإرسال OTP"
-  - name: "Broadcast"
-    description: "Endpoints لإرسال رسائل Broadcast"
+  - name: Auth
+    description: |
+      Authentication endpoints for login.  
+      نقاط النهاية للمصادقة لتسجيل الدخول.
+  - name: BulkImport
+    description: |
+      Bulk import categories and products in one request.  
+      استيراد أصناف ومنتجات دفعة واحدة.
+  - name: Orders
+    description: |
+      Fetch user orders (new or by date range).  
+      جلب طلبات المستخدم (جديدة أو حسب الفترة).
+  - name: OTP
+    description: |
+      Send OTP via WhatsApp session.  
+      إرسال رمز تحقق (OTP) عبر جلسة واتساب.
+  - name: Broadcast
+    description: |
+      Send broadcast messages (text/media) to multiple numbers.  
+      إرسال رسائل برودكاست (نص/ميديا) لمجموعة أرقام.
+
 paths:
   /api/auth/login:
     post:
       tags: [Auth]
-      summary: "تسجيل الدخول"
-      description: "تسجيل الدخول عبر رقم الموبايل وإرجاع توكن JWT عند النجاح."
+      summary: |
+        Login  
+        تسجيل الدخول
+      description: |
+        Login with phone number and password; returns a JWT on success.  
+        تسجيل الدخول باستخدام رقم الموبايل وكلمة المرور؛ يعيد توكن JWT عند النجاح.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                phoneNumber:
-                  type: string
-                  description: "رقم الموبايل للمستخدم"
-                password:
-                  type: string
-                  description: "كلمة المرور"
+              $ref: '#/components/schemas/LoginRequest'
       responses:
-        "200":
-          description: "تم تسجيل الدخول بنجاح"
+        '200':
+          description: |
+            Successful login.  
+            تم تسجيل الدخول بنجاح.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                  message:
-                    type: string
-        "400":
-          description: "حقول مفقودة أو بيانات غير صحيحة"
-        "500":
-          description: "خطأ في الخادم"
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: |
+            Missing or invalid credentials.  
+            بيانات مفقودة أو غير صحيحة.
+        '500':
+          description: |
+            Internal server error.  
+            خطأ في الخادم.
+
   /api/bulk-import/{sessionId}:
     post:
       tags: [BulkImport]
-      summary: "إدخال بيانات بالجملة"
-      description: "إدخال بيانات الأصناف والمنتجات لجلسة محددة."
+      summary: |
+        Bulk import  
+        إدخال بالجملة
+      description: |
+        Bulk add categories and products to a specific session.  
+        استيراد أصناف ومنتجات لجلسة محددة دفعة واحدة.
+      security:
+        - bearerAuth: []
       parameters:
         - name: sessionId
           in: path
           required: true
           schema:
             type: integer
-      security:
-        - bearerAuth: []
+          description: |
+            Session ID  
+            معرّف الجلسة
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                categories:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      category_name:
-                        type: string
-                      category_internal_code:
-                        type: string
-                products:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      product_name:
-                        type: string
-                      category_id:
-                        type: integer
-                      price:
-                        type: number
-                      product_internal_code:
-                        type: string
+              $ref: '#/components/schemas/BulkImportRequest'
       responses:
-        "201":
-          description: "تم الإدخال بنجاح"
-        "400":
-          description: "رقم الجلسة غير صالح أو بيانات ناقصة"
-        "403":
-          description: "غير مصرح"
-        "500":
-          description: "خطأ في الخادم"
+        '201':
+          description: |
+            Bulk import successful.  
+            تم الإدخال بنجاح.
+        '400':
+          description: |
+            Invalid session ID or payload.  
+            sessionId أو بيانات الطلب غير صالحة.
+        '403':
+          description: |
+            Forbidden: not session owner.  
+            ممنوع: لست مالك الجلسة.
+        '500':
+          description: |
+            Internal server error.  
+            خطأ في الخادم.
+
   /api/orders/new:
     get:
       tags: [Orders]
-      summary: "عرض الطلبات الجديدة"
-      description: "جلب الطلبات الجديدة للمستخدم الحالي."
+      summary: |
+        Get new orders  
+        جلب الطلبات الجديدة
+      description: |
+        Fetch all unconfirmed orders for current user.  
+        جلب جميع الطلبات غير المؤكدة للمستخدم الحالي.
       security:
         - bearerAuth: []
       responses:
-        "200":
-          description: "قائمة الطلبات الجديدة"
-        "401":
-          description: "غير مصرح"
-        "500":
-          description: "خطأ في الخادم"
+        '200':
+          description: |
+            List of new orders.  
+            قائمة الطلبات الجديدة.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          description: |
+            Unauthorized or invalid token.  
+            غير مصرح أو التوكن غير صالح.
+        '500':
+          description: |
+            Internal server error.  
+            خطأ في الخادم.
+
   /api/orders/date-range:
     get:
       tags: [Orders]
-      summary: "عرض الطلبات بين تاريخين"
-      description: "جلب الطلبات التي تمت بين تاريخين محددين."
+      summary: |
+        Get orders by date range  
+        جلب الطلبات حسب فترة زمنية
+      description: |
+        Fetch orders created between `startDate` and `endDate` for current user.  
+        جلب الطلبات التي تم إنشاؤها بين `startDate` و `endDate` للمستخدم الحالي.
       security:
         - bearerAuth: []
       parameters:
         - name: startDate
           in: query
-          description: "تاريخ البدء (YYYY-MM-DD)"
           required: true
           schema:
             type: string
             format: date
+          description: |
+            Start date (YYYY-MM-DD)  
+            تاريخ البداية (YYYY-MM-DD)
         - name: endDate
           in: query
-          description: "تاريخ الانتهاء (YYYY-MM-DD)"
           required: true
           schema:
             type: string
             format: date
+          description: |
+            End date (YYYY-MM-DD)  
+            تاريخ النهاية (YYYY-MM-DD)
       responses:
-        "200":
-          description: "قائمة الطلبات بين التاريخين"
-        "400":
-          description: "المدخلات غير صالحة"
-        "401":
-          description: "غير مصرح"
-        "500":
-          description: "خطأ في الخادم"
+        '200':
+          description: |
+            List of orders in the date range.  
+            قائمة الطلبات في الفترة المحددة.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          description: |
+            Invalid or missing query parameters.  
+            مدخلات استعلام غير صالحة أو مفقودة.
+        '401':
+          description: |
+            Unauthorized.  
+            غير مصرح.
+        '500':
+          description: |
+            Internal server error.  
+            خطأ في الخادم.
+
   /api/otp/send:
     post:
       tags: [OTP]
-      summary: "إرسال OTP"
-      description: "إرسال رمز OTP إلى رقم الهاتف المحدد."
+      summary: |
+        Send OTP  
+        إرسال رمز التحقق
+      description: |
+        Send a 4-digit OTP via a fixed WhatsApp session.  
+        إرسال رمز تحقق مكون من 4 أرقام عبر جلسة واتساب ثابتة.
       security:
         - bearerAuth: []
       requestBody:
@@ -167,82 +210,290 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                sessionId:
-                  type: integer
-                phoneNumber:
-                  type: string
+              $ref: '#/components/schemas/OtpSendRequest'
       responses:
-        "200":
-          description: "تم إرسال OTP بنجاح"
+        '200':
+          description: |
+            OTP sent successfully.  
+            تم إرسال رمز التحقق بنجاح.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  otpCode:
-                    type: string
-        "400":
-          description: "الحقول مفقودة"
-        "404":
-          description: "الجلسة أو عميل OTP غير موجود"
-        "500":
-          description: "خطأ في الخادم"
-  /api/sessions/{id}/broadcast:
+                $ref: '#/components/schemas/OtpSendResponse'
+        '400':
+          description: |
+            Missing parameters or invalid session/phone.  
+            حقول مفقودة أو جلسة/رقم غير صالح.
+        '404':
+          description: |
+            WhatsApp session not initialized.  
+            جلسة واتساب غير مهيأة.
+        '500':
+          description: |
+            Internal server error.  
+            خطأ في الخادم.
+
+  /api/sessions/{sessionId}/broadcast:
     post:
       tags: [Broadcast]
-      summary: "إرسال Broadcast"
-      description: "إرسال رسالة برودكاست إلى مجموعة من أرقام الهاتف مع إمكانية إرسال ميديا."
+      summary: |
+        Broadcast message  
+        إرسال برودكاست
+      description: |
+        Send a broadcast (text or media) to multiple phone numbers via WhatsApp.  
+        إرسال رسالة برودكاست (نصية أو مرفقة) إلى عدة أرقام عبر واتساب.
+      security:
+        - bearerAuth: []
       parameters:
-        - name: id
+        - name: sessionId
           in: path
           required: true
           schema:
             type: integer
-      security:
-        - bearerAuth: []
+          description: |
+            Session ID  
+            معرّف الجلسة
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                phoneNumbers:
-                  type: array
-                  items:
-                    type: string
-                message:
-                  type: string
-                randomNumbers:
-                  type: array
-                  items:
-                    type: integer
-                  example: [1, 2]
-                media:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      mimetype:
-                        type: string
-                      base64:
-                        type: string
-                      filename:
-                        type: string
+              $ref: '#/components/schemas/BroadcastRequest'
       responses:
-        "200":
-          description: "تم بدء البث بنجاح"
-        "400":
-          description: "بيانات غير صالحة أو الحالة غير Connected"
-        "404":
-          description: "الجلسة أو عميل OTP غير موجود"
-        "500":
-          description: "خطأ في الخادم"
+        '200':
+          description: |
+            Broadcast started successfully.  
+            تم بدء عملية البرودكاست بنجاح.
+        '400':
+          description: |
+            Invalid payload or session status.  
+            بيانات غير صالحة أو حالة الجلسة غير مناسبة.
+        '404':
+          description: |
+            WhatsApp session not initialized.  
+            جلسة واتساب غير مهيأة.
+        '500':
+          description: |
+            Internal server error.  
+            خطأ في الخادم.
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - phoneNumber
+        - password
+      properties:
+        phoneNumber:
+          type: string
+          description: |
+            User's phone number.  
+            رقم موبايل المستخدم
+        password:
+          type: string
+          description: |
+            User's password.  
+            كلمة مرور المستخدم
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: |
+            Success message.  
+            رسالة النجاح
+          example: Login successful.
+        token:
+          type: string
+          description: |
+            JWT token.  
+            توكن JWT
+
+    BulkImportCategory:
+      type: object
+      required:
+        - categoryName
+      properties:
+        categoryName:
+          type: string
+          description: |
+            Category name.  
+            اسم الصنف
+        CategoryInternalID:
+          type: string
+          description: |
+            Internal category code (optional).  
+            الكود الداخلي للصنف (اختياري)
+        Products:
+          type: array
+          description: |
+            List of products under this category.  
+            قائمة المنتجات تحت هذا الصنف
+          items:
+            $ref: '#/components/schemas/BulkImportProduct'
+
+    BulkImportProduct:
+      type: object
+      required:
+        - ProductName
+      properties:
+        ProductName:
+          type: string
+          description: |
+            Product name.  
+            اسم المنتج
+        Price:
+          type: number
+          format: float
+          description: |
+            Product price (optional).  
+            سعر المنتج (اختياري)
+        ProductInternalID:
+          type: string
+          description: |
+            Internal product code (optional).  
+            الكود الداخلي للمنتج (اختياري)
+
+    BulkImportRequest:
+      type: array
+      items:
+        $ref: '#/components/schemas/BulkImportCategory'
+      description: |
+        Array of categories with their products.  
+        مصفوفة الأصناف مع منتجاتها
+
+    OrderItem:
+      type: object
+      properties:
+        productName:
+          type: string
+          description: Product name.  
+        productInternalCode:
+          type: string
+          description: Internal product code.  
+        categoryId:
+          type: integer
+          description: Category ID.  
+        categoryName:
+          type: string
+          description: Category name.  
+        categoryInternalCode:
+          type: string
+          description: Internal category code.  
+        quantity:
+          type: integer
+          description: Quantity ordered.  
+        price:
+          type: number
+          description: Price per unit.  
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Order ID.  
+        sessionId:
+          type: integer
+          description: Session ID.  
+        customerPhone:
+          type: string
+          description: Customer phone number.  
+        customerName:
+          type: string
+          description: Customer name (if any).  
+        status:
+          type: string
+          description: Order status.  
+        deliveryAddress:
+          type: string
+          nullable: true
+          description: Delivery address (optional).  
+        totalPrice:
+          type: number
+          nullable: true
+          description: Total order price (optional).  
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp.  
+        items:
+          type: array
+          description: List of order items.  
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OtpSendRequest:
+      type: object
+      required:
+        - sessionId
+        - phoneNumber
+      properties:
+        sessionId:
+          type: integer
+          description: |
+            Fixed WhatsApp session ID for OTP.  
+            معرّف جلسة واتساب ثابت لإرسال OTP
+        phoneNumber:
+          type: string
+          description: |
+            Recipient phone number.  
+            رقم الهاتف المستلم للـOTP
+
+    OtpSendResponse:
+      type: object
+      properties:
+        otpCode:
+          type: string
+          description: |
+            The 4-digit OTP code sent.  
+            رمز OTP المكون من 4 أرقام
+          example: "1234"
+
+    BroadcastRequest:
+      type: object
+      required:
+        - phoneNumbers
+        - message
+      properties:
+        phoneNumbers:
+          type: array
+          items:
+            type: string
+          description: |
+            List of phone numbers (digits only).  
+            قائمة أرقام الهاتف (أرقام فقط)
+        message:
+          type: string
+          description: |
+            Text message to broadcast.  
+            نص الرسالة
+        randomNumbers:
+          type: array
+          items:
+            type: integer
+          description: |
+            (Optional) Array of random numbers to vary messages.  
+            (اختياري) أرقام عشوائية لتغيير الرسائل
+        media:
+          type: array
+          items:
+            type: object
+            properties:
+              mimetype:
+                type: string
+              base64:
+                type: string
+              filename:
+                type: string
+          description: |
+            (Optional) Media attachments for broadcast.  
+            (اختياري) ملفات مرفقة للبroadcast

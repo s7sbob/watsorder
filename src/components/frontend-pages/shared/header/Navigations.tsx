@@ -1,88 +1,72 @@
-import Button from '@mui/material/Button';
+import React from 'react'
+import { styled } from '@mui/material/styles'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
-import { styled } from '@mui/material/styles';
-import { Chip } from '@mui/material';
+interface NavLinkItem {
+  key: string      // i18n key for the link title
+  to: string
+  isNew?: boolean
+}
 
-import { NavLink } from 'react-router-dom';
+const NAV_LINKS: NavLinkItem[] = [
+  { key: 'Header.Nav.aboutUs', to: '/about' },
+  { key: 'Header.Nav.blog',    to: '/#' },
+  { key: 'Header.Nav.portfolio',to: '/#', isNew: true },
+  { key: 'Header.Nav.dashboard',to: '/apps/sessions' },
+  { key: 'Header.Nav.pricing',  to: '/frontend-pages/pricing' },
+  { key: 'Header.Nav.contact',  to: '/#' }
+]
 
-import { useLocation } from 'react-router-dom';
+const Navigations: React.FC = () => {
+  const { t } = useTranslation()
+  const { pathname } = useLocation()
 
-export const NavLinks = [
-  {
-    title: 'About Us',
-    to: '#',
-  },
-  {
-    title: 'Blog',
-    to: '#',
-  },
-  {
-    title: 'Portfolio',
-    new: true,
-    to: '#',
-  },
-
-  {
-    title: 'Dashboard',
-    to: '#',
-  },
-  {
-    title: 'Pricing',
-    to: '/frontend-pages/pricing',
-  },
-  {
-    title: 'Contact',
-    to: '#',
-  },
-];
-
-const Navigations = () => {
   const StyledButton = styled(Button)(({ theme }) => ({
     fontSize: '15px',
+    fontWeight: 500,
     a: {
       color: theme.palette.text.secondary,
+      textDecoration: 'none'
     },
-
-    fontWeight: 500,
     '&.active': {
       backgroundColor: 'rgba(93, 135, 255, 0.15)',
       a: {
-        color: theme.palette.primary.main,
-      },
-    },
-  }));
-
-  const location = useLocation();
-  const pathname = location.pathname;
+        color: theme.palette.primary.main
+      }
+    }
+  }))
 
   return (
     <>
-      {NavLinks.map((navlink, i) => (
+      {NAV_LINKS.map((link) => (
         <StyledButton
+          key={link.to}
           color="inherit"
-          className={pathname === navlink.to ? 'active' : 'not-active'}
           variant="text"
-          key={i}
+          className={pathname === link.to ? 'active' : ''}
         >
-          <NavLink to={navlink.to}>
-            {navlink.title}{' '}
-            {navlink.new ? (
+          <NavLink to={link.to}>
+            {t(link.key)}
+            {link.isNew && (
               <Chip
-                label="New"
+                label={t('Header.Nav.newLabel')}
                 size="small"
                 sx={{
-                  ml: '6px',
+                  ml: 1,
                   borderRadius: '8px',
                   color: 'primary.main',
-                  backgroundColor: 'rgba(93, 135, 255, 0.15)',
+                  backgroundColor: 'rgba(93, 135, 255, 0.15)'
                 }}
               />
-            ) : null}
+            )}
           </NavLink>
         </StyledButton>
       ))}
     </>
-  );
-};
+  )
+}
 
-export default Navigations;
+export default Navigations

@@ -590,7 +590,105 @@
     "label": "Phone Number",
     "placeholder": "Enter your phone number",
     "search": "Search country..."
+  },
+
+
+
+
+
+
+
+
+
+
+  "About": {
+    "Page": {
+      "title": "About WatsOrder",
+      "description": "Learn more about WatsOrder, your WhatsApp ordering platform."
+    },
+    "Banner": {
+      "title": "Welcome to WatsOrder",
+      "subtitle": "Streamline your restaurant orders through WhatsApp"
+    },
+    "Process": {
+      "title": "How It Works",
+      "steps": [
+        "Create a free account",
+        "Connect your WhatsApp number",
+        "Receive orders via WhatsApp",
+        "Manage and confirm orders"
+      ]
+    },
+    "KeyMetric": {
+      "title": "Key Metrics at a Glance",
+      "description": "From launching to processing orders, these numbers tell our story.",
+      "metrics": [
+        { "label": "Founded", "value": "2023", "sub": "Year of launch" },
+        { "label": "Restaurants", "value": "150+", "sub": "Partner restaurants" },
+        { "label": "Orders", "value": "10k+", "sub": "Orders processed per month" },
+        { "label": "Avg. Response", "value": "2 min", "sub": "Average confirmation time" }
+      ]
+    },
+    "Leadership": {
+      "title": "Our Leadership",
+      "subtitle": "Meet the team behind WatsOrder",
+      "members": [
+        { "name": "Mahmoud Afefy", "role": "Founder & CTO", "img": "/images/team/khaled.jpg" },
+        { "name": "Sarah", "role": "Product Manager", "img": "/images/team/sarah.jpg" },
+        { "name": "Hussien Tarek", "role": "Head of Support", "img": "/images/team/ahmed.jpg" }
+      ]
+    },
+    "Reviews": {
+      "title": "What Our Clients Say",
+      "testimonials": [
+        {
+          "name": "Taste Bistro",
+          "text": "WatsOrder transformed our order workflow!",
+          "img": "/images/clients/taste-bistro.jpg"
+        },
+        {
+          "name": "Coffee Corner",
+          "text": "Our customers love ordering via WhatsApp!",
+          "img": "/images/clients/coffee-corner.jpg"
+        }
+      ]
+    },
+    "Pricing": {
+      "title": "Pricing Plans",
+      "plans": [
+        {
+          "name": "OTP",
+          "price": "300 EGP/mo",
+          "features": ["All OTP features", "3 days free trial"]
+        },
+        {
+          "name": "All Features",
+          "price": "500 EGP/mo",
+          "features": ["All advanced features", "Unlimited messages", " 3 days free trial"]
+        }
+      ]
+    },
+    "C2a": {
+      "title": "Ready to get started?",
+      "note": "No setup fees, no contracts.",
+      "buttons": {
+        "login": "Login",
+        "register": "Get Started"
+      }
+    }
+  },
+  "Header": {
+    "Nav": {
+      "aboutUs":    "About Us",
+      "blog":       "Blog",
+      "portfolio":  "Portfolio",
+      "dashboard":  "Dashboard",
+      "pricing":    "Pricing",
+      "contact":    "Contact",
+      "newLabel":   "New"
+    }
   }
+
   }
   
   

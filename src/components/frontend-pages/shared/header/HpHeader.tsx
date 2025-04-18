@@ -17,7 +17,6 @@ import MobileSidebar from './MobileSidebar';
 import { IconMenu2 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { jwtDecode } from 'jwt-decode';
-import Language from 'src/layouts/full/vertical/header/Language'; // استيراد اختيار اللغة
 
 interface DecodedToken {
   exp: number;
@@ -90,7 +89,6 @@ const HpHeader = () => {
             <>
               <Stack spacing={1} direction='row' alignItems='center'>
                 {/* تضمين مكون اختيار اللغة بنفس الشكل */}
-                <Language />
                 <Navigations />
               </Stack>
               <Button color='primary' variant='contained' onClick={handleLoginClick}>

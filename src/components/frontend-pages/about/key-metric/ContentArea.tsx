@@ -1,30 +1,24 @@
-import { Typography } from '@mui/material';
+import { Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 const ContentArea = () => {
+  const { t } = useTranslation()
   return (
     <>
       <Typography
-        variant="h1"
+        variant='h2'
         mb={2}
         lineHeight={1.4}
         fontWeight={700}
-        sx={{
-          fontSize: {
-            xs: '34px',
-            sm: '40px',
-          },
-        }}
+        sx={{ fontSize: { xs: '34px', sm: '40px' } }}
       >
-        Key metric at a glance
+        {t('About.KeyMetric.title')}
       </Typography>
-      <Typography lineHeight={1.9}>
-        From the year we were founded to the impressive customer base we've built, and the growth
-        percentages that reflect our continuous improvement, these numbers tell our story at a
-        glance. Explore the data that drives our mission and underscores our commitment to
-        excellence.
+      <Typography variant='body1' lineHeight={1.9}>
+        {t('About.KeyMetric.description')}
       </Typography>
     </>
-  );
-};
+  )
+}
 
-export default ContentArea;
+export default ContentArea

@@ -78,7 +78,7 @@ const Router = [
       { path: '/', element: <Homepage /> },
       { path: '/landingpage', element: <Landingpage /> },
 
-      { path: '/frontend-pages/about', element: <About /> },
+      { path: '/about', element: <About /> },
       { path: '/frontend-pages/contact', element: <Contact /> },
       { path: '/frontend-pages/portfolio', element: <Portfolio /> },
       { path: '/frontend-pages/pricing', element: <PagePricing /> },
@@ -88,6 +88,7 @@ const Router = [
       { path: '/auth/login', element: <Login /> },
       { path: 'auth/register', element: <Register /> },
       { path: '/auth/forgot-password', element: <ForgotPassword /> },
+      
       // ... أي مسارات عامة أخرى تحت /auth
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],

@@ -11,40 +11,7 @@ const Login = () => {
   return (
     <PageContainer title={t('loginPage.title') as string} description={t('loginPage.description') as string}>
       <Grid container spacing={0} sx={{ overflowX: 'hidden' }}>
-        <Grid
-          item
-          xs={12}
-          sm={12}
-          lg={7}
-          xl={8}
-          sx={{
-            position: 'relative',
-            '&:before': {
-              content: '""',
-              background: 'radial-gradient(#d2f1df, #d3d7fa, #bad8f4)',
-              backgroundSize: '400% 400%',
-              animation: 'gradient 15s ease infinite',
-              position: 'absolute',
-              height: '100%',
-              width: '100%',
-              opacity: '0.3',
-            },
-          }}
-        >
-          <Box position="relative">
-            <Box px={3}>
-              <Logo />
-            </Box>
-            <Box
-              alignItems="center"
-              justifyContent="center"
-              height="calc(100vh - 75px)"
-              sx={{ display: { xs: 'none', lg: 'flex' } }}
-            >
-              <img src={img1} alt="bg" style={{ width: '100%', maxWidth: '500px' }} />
-            </Box>
-          </Box>
-        </Grid>
+        {/* ←— FORM ON THE LEFT */}
         <Grid
           item
           xs={12}
@@ -83,6 +50,42 @@ const Login = () => {
                 {t('loginPage.link.resetPassword')}
               </Typography>
             </Stack>
+          </Box>
+        </Grid>
+
+        {/* ILLUSTRATION ON THE RIGHT */}
+        <Grid
+          item
+          xs={12}
+          sm={12}
+          lg={7}
+          xl={8}
+          sx={{
+            position: 'relative',
+            '&:before': {
+              content: '""',
+              background: 'radial-gradient(#d2f1df, #d3d7fa, #bad8f4)',
+              backgroundSize: '400% 400%',
+              animation: 'gradient 15s ease infinite',
+              position: 'absolute',
+              height: '100%',
+              width: '100%',
+              opacity: '0.3',
+            },
+          }}
+        >
+          <Box position="relative">
+            <Box px={3}>
+              <Logo />
+            </Box>
+            <Box
+              alignItems="center"
+              justifyContent="center"
+              height="calc(100vh - 75px)"
+              sx={{ display: { xs: 'none', lg: 'flex' } }}
+            >
+              <img src={img1} alt="bg" style={{ width: '100%', maxWidth: '500px' }} />
+            </Box>
           </Box>
         </Grid>
       </Grid>
