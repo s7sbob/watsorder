@@ -10,8 +10,12 @@ const Login = () => {
   const { t } = useTranslation();
   return (
     <PageContainer title={t('loginPage.title') as string} description={t('loginPage.description') as string}>
+                  <Box px={3}>
+              <Logo />
+            </Box>
       <Grid container spacing={0} sx={{ overflowX: 'hidden' }}>
         {/* ←— FORM ON THE LEFT */}
+        
         <Grid
           item
           xs={12}
@@ -75,9 +79,7 @@ const Login = () => {
           }}
         >
           <Box position="relative">
-            <Box px={3}>
-              <Logo />
-            </Box>
+
             <Box
               alignItems="center"
               justifyContent="center"

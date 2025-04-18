@@ -7,7 +7,7 @@ info:
     الوثائق الرسمية لواجهات برمجة التطبيقات الخاصة بـ WatsOrder (الإنجليزية أساسية، العربية ثانوية).
 servers:
   - url: https://api.watsorder.com
-    description: WatsOrder server | خادم التطوير المحلي
+    description: WatsOrder server
 
 tags:
   - name: Auth
