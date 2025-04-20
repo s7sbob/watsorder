@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
 import { checkSessionOwnershipForCatProd } from './helpers';
+import { getSessionById, checkSessionOwnership } from '../../utils/sessionUserChecks';
 
 export const addCategory = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
@@ -12,8 +13,8 @@ export const addCategory = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnershipForCatProd(pool, sessionId, req.user);
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, req.user);
 
     const insertSQL = `
       INSERT INTO [dbo].[Categories] (sessionId, category_name, isActive, [order])
@@ -42,7 +43,7 @@ export const addCategory = async (req: Request, res: Response) => {
 export const getCategoriesForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnershipForCatProd(pool, sessionId, req.user);
 
     const result = await pool.request()
@@ -75,7 +76,7 @@ export const updateCategory = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'category_name is required.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnershipForCatProd(pool, sessionId, req.user);
 
     const updateSQL = `
@@ -110,8 +111,8 @@ export const deleteCategory = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
   const categoryId = parseInt(req.params.categoryId, 10);
   try {
-    const pool = await getConnection();
-    await checkSessionOwnershipForCatProd(pool, sessionId, req.user);
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, req.user);
 
     const deleteSQL = `
       DELETE FROM [dbo].[Categories]
@@ -145,7 +146,7 @@ export const reorderCategories = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnershipForCatProd(pool, sessionId, req.user);
 
     for (const cat of categories) {

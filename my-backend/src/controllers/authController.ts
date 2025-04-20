@@ -1,6 +1,6 @@
 // src/controllers/authController.ts
 import { NextFunction, Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import bcrypt from 'bcrypt';
 import * as sql from 'mssql';
 import jwt from 'jsonwebtoken';
@@ -17,7 +17,7 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
 
     // التحقق من OTP
     const now = new Date();
@@ -87,7 +87,7 @@ export const loginUser = async (req: Request, res: Response): Promise<Response> 
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
 
     // التحقق من وجود المستخدم بهذه القيمة
     const result = await pool.request()
@@ -176,7 +176,7 @@ export const sendForgotPasswordOtp = async (req: Request, res: Response): Promis
     }
     
     // Check if the phone number is registered (for forgot password, it must exist)
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const userResult = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
       .query('SELECT * FROM Users WHERE phoneNumber = @phoneNumber');
@@ -224,7 +224,7 @@ export const sendForgotPasswordOtp = async (req: Request, res: Response): Promis
 export const resetPassword = async (req: Request, res: Response): Promise<Response> => {
   const { phoneNumber, newPassword } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // التأكد من وجود المستخدم
     const userResult = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
@@ -258,7 +258,7 @@ export const verifyForgotPasswordOtp = async (req: Request, res: Response): Prom
       return res.status(400).json({ message: 'phoneNumber and otpCode are required.' });
     }
     
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const now = new Date();
     const otpResult = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)

@@ -1,6 +1,6 @@
 // src/controllers/featureAdminController.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 
 /**
@@ -18,7 +18,7 @@ export const createFeature = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('featureKey', sql.NVarChar, featureKey)
       .input('featureName', sql.NVarChar, featureName)
@@ -42,7 +42,7 @@ export const getAllFeaturesAdmin = async (req: Request, res: Response) => {
     return res.status(403).json({ message: 'Forbidden: Admin only.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request().query(`SELECT * FROM Features ORDER BY id DESC`);
     return res.status(200).json(result.recordset);
   } catch (error) {
@@ -67,7 +67,7 @@ export const updateFeature = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('featureId', sql.Int, parseInt(featureId, 10))
       .input('featureKey', sql.NVarChar, featureKey)
@@ -97,7 +97,7 @@ export const deleteFeature = async (req: Request, res: Response) => {
 
   const { featureId } = req.params;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('featureId', sql.Int, parseInt(featureId, 10))
       .query('DELETE FROM Features WHERE id = @featureId');

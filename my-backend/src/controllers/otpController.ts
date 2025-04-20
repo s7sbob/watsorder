@@ -1,7 +1,7 @@
 // src/controllers/otpController.ts
 
 import { Request, Response } from 'express'
-import { getConnection } from '../config/db'
+import { poolPromise } from '../config/db'
 import { whatsappClients } from './whatsappClients'
 import * as sql from 'mssql'
 
@@ -32,7 +32,7 @@ export const sendOtpViaWhatsApp = async (req: Request, res: Response) => {
     }
 
     // 3) تحقّق أنّ هذه الجلسة مملوكة لنفس user
-    const pool = await getConnection()
+    const pool = await poolPromise;
     const sessionRes = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('userId', sql.Int, userId)
@@ -92,7 +92,7 @@ export const sendRegistrationOtp = async (req: Request, res: Response) => {
     }
 
     // تحقق إن كان الرقم مستخدمًا في جدول Users
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const checkUser = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
       .query('SELECT * FROM Users WHERE phoneNumber = @phoneNumber');
@@ -148,7 +148,7 @@ export const verifyRegistrationOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'phoneNumber and otpCode are required.' });
     }
 
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const now = new Date();
     // ابحث عن سجل الـ OTP الذي لم يُستخدم بعد، ونفس رقم الموبايل، ونفس الكود، ولم ينتهِ بعد
     const result = await pool.request()

@@ -1,7 +1,7 @@
 // controllers/session/broadcast.controller.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
-import { checkSessionOwnership } from './helpers';
+import { poolPromise } from '../../config/db';
+import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 import { broadcastMessage } from '../whatsappClients';
 
 export const broadcastMessageAPI = async (req: Request, res: Response) => {
@@ -11,7 +11,7 @@ export const broadcastMessageAPI = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     await broadcastMessage(req, res, sessionId);

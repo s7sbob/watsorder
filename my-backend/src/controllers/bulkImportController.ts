@@ -1,7 +1,7 @@
 // src/controllers/bulkImportController.ts
 
 import { Request, Response } from 'express'
-import { getConnection } from '../config/db'
+import { poolPromise } from '../config/db'
 import * as sql from 'mssql'
 
 async function checkSessionOwnership(pool: sql.ConnectionPool, sessionId: number, user: any) {
@@ -26,7 +26,7 @@ export const bulkAddCategoriesAndProducts = async (req: Request, res: Response) 
   }
 
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // التحقق من الملكية أو الإدارة
     await checkSessionOwnership(pool, sessionId, req.user)

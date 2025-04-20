@@ -1,8 +1,8 @@
 // controllers/session/bot.controller.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
-import { checkSessionOwnership } from './helpers';
+import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 import { whatsappClients } from '../whatsappClients';
 
 /**
@@ -15,7 +15,8 @@ export const forcePauseSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, req.user);
 
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -56,7 +57,7 @@ export const forceStartSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
 
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -98,7 +99,7 @@ export const updateBotStatus = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     await pool.request()
@@ -135,7 +136,7 @@ export const updateMenuBotStatus = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     await pool.request()

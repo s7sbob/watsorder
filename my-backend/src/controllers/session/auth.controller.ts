@@ -1,11 +1,11 @@
 // src/controllers/session/auth.controller.ts
 
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
 import fs from 'fs-extra';
 import path from 'path';
-import { checkSessionOwnership } from './helpers';
+import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 import { whatsappClients } from '../whatsappClients';
 import { createWhatsAppClientForSession } from '../whatsappClients';
 
@@ -15,7 +15,7 @@ import { createWhatsAppClientForSession } from '../whatsappClients';
 export const getQrForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     const result = await pool.request()
@@ -55,7 +55,7 @@ export const logoutSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     // جلب بيانات الجلسة
@@ -133,7 +133,7 @@ export const loginSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     // تحقق من وجود الجلسة
@@ -180,7 +180,7 @@ export const startQrForSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     // set status=Waiting for QR Code, qrCode=NULL
@@ -227,7 +227,7 @@ export const cancelQrForSession = async (req: Request, res: Response) => {
   }
   
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
     
     const client = whatsappClients[sessionId];

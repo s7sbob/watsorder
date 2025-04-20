@@ -1,8 +1,9 @@
 // src/controllers/userController.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 import bcrypt from 'bcrypt';
+import { getUserById } from '../utils/sessionUserChecks';
 
 // جلب كافة المستخدمين (للمسؤول) مع كافة الحقول
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
@@ -10,7 +11,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
     return res.status(403).json({ message: 'Forbidden: Admins only.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request().query(`
       SELECT u.ID, 
              u.name, 
@@ -44,7 +45,7 @@ export const getSubAccounts = async (req: Request, res: Response): Promise<Respo
   }
   const { agencyId } = req.params;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('agencyId', sql.Int, agencyId)
       .query(`
@@ -77,7 +78,7 @@ export const createUser = async (req: Request, res: Response): Promise<Response>
     return res.status(400).json({ message: 'يرجى إدخال رقم الموبايل وكلمة المرور' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // التأكد من عدم تكرار رقم الموبايل
     const checkUser = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
@@ -115,7 +116,7 @@ export const updateUser = async (req: Request, res: Response): Promise<Response>
   const { id } = req.params;
   const { password, name, subscriptionStart, subscriptionEnd, subscriptionType, parentId, maxSessions, subUserRole, phoneNumber } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
     let query = `
       UPDATE Users 
@@ -160,7 +161,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<Response>
   }
   const { id } = req.params;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('id', sql.Int, id)
       .query('DELETE FROM Users WHERE ID = @id');

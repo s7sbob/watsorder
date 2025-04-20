@@ -159,10 +159,10 @@ router.post('/:id/force-pause', authenticateToken, forcePauseSession)
 router.post('/:id/force-start', authenticateToken, forceStartSession)
 // رفع إثبات الدفع
 
-router.post('/:sessionId/payment-proof', uploadPaymentProof, submitPaymentProof)
+router.post('/:sessionId/payment-proof', uploadPaymentProof, authenticateToken, submitPaymentProof)
 
 // جلب إثبات الدفع
-router.get('/:sessionId/payment-proof', getPaymentProof)
+router.get('/:sessionId/payment-proof',authenticateToken, getPaymentProof)
 
 
 

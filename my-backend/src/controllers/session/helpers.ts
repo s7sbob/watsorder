@@ -1,5 +1,6 @@
 // controllers/session/helpers.ts
 import * as sql from 'mssql';
+import { getSessionById } from '../../utils/sessionUserChecks';
 
 export async function checkSessionOwnership(pool: sql.ConnectionPool, sessionId: number, currentUser: any) {
   const sessionRow = await pool.request()
@@ -17,14 +18,9 @@ export async function checkSessionOwnership(pool: sql.ConnectionPool, sessionId:
 }
 
 export async function checkSessionOwnershipForCatProd(pool: sql.ConnectionPool, sessionId: number, currentUser: any) {
-  const sess = await pool.request()
-    .input('sessionId', sql.Int, sessionId)
-    .query(`SELECT userId FROM Sessions WHERE id = @sessionId`);
-  
-  if (!sess.recordset.length) {
-    throw new Error('SessionNotFound');
-  }
-  if (currentUser.subscriptionType !== 'admin' && currentUser.id !== sess.recordset[0].userId) {
+  const session = await getSessionById(pool, sessionId);
+  if (!session) throw new Error('SessionNotFound');
+  if (currentUser.subscriptionType !== 'admin' && currentUser.id !== session.userId) {
     throw new Error('Forbidden');
   }
 }

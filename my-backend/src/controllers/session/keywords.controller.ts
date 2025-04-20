@@ -1,8 +1,8 @@
 // controllers/session/keywords.controller.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
-import { checkSessionOwnershipForKeywords } from './helpers';
+import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 import fs from 'fs-extra'; // في حال تحتاجه لإزالة ملفات
 
 /**
@@ -28,8 +28,8 @@ export const addKeyword = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user);
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, (req as any).user);
 
     let replayId: number;
 
@@ -118,8 +118,8 @@ export const getKeywordsForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user);
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, (req as any).user);
 
     const queryResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -194,8 +194,8 @@ export const updateKeyword = async (req: Request, res: Response) => {
   const keywordsArray = newKeyword.split(',').map((kw: string) => kw.trim()).filter((kw: string) => kw);
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user);
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, (req as any).user);
 
     // التحقق من وجود المجموعة
     const keywordRows = await pool.request()
@@ -282,8 +282,8 @@ export const deleteKeyword = async (req: Request, res: Response) => {
   const replayId = parseInt(req.params.keywordId, 10);
 
   try {
-    const pool = await getConnection();
-    await checkSessionOwnershipForKeywords(pool, sessionId, (req as any).user);
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, (req as any).user);
 
     const keywordRows = await pool.request()
       .input('replayId', sql.Int, replayId)

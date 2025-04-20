@@ -1,6 +1,6 @@
 // src/cron/expireSessions.ts
 import cron from 'node-cron';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 import { whatsappClients } from '../controllers/whatsappClients';
 
@@ -11,7 +11,7 @@ const FIXED_CONTACT_NUMBER = Number(process.env.FIXED_CONTACT_NUMBER);
 // تُنفّذ العملية يوميًا عند منتصف الليل
 cron.schedule('0 0 * * *', async () => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const now = new Date();
 
     // 1. معالجة الجلسات المنتهية:

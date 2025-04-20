@@ -1,6 +1,6 @@
 // src/controllers/adminController.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 
 /**
@@ -10,7 +10,7 @@ import * as sql from 'mssql';
  */
 export const getAdminData = async (req: Request, res: Response) => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request().query(`
       SELECT
         u.ID            AS userId,

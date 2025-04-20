@@ -1,6 +1,6 @@
 // src/controllers/registrationNotification.controller.ts
 import { Router, Request, Response } from 'express';
-import { getConnection } from '../config/db'; // تأكد من تعديل المسار إذا لزم الأمر
+import { poolPromise } from '../config/db'; // تأكد من تعديل المسار إذا لزم الأمر
 import { sendWhatsAppMessage } from '../helpers/whatsAppService';
 
 const router = Router();
@@ -11,7 +11,7 @@ const FIXED_SESSION_ID = Number(process.env.FIXED_SESSION_ID);
  */
 router.get('/settings', async (req: Request, res: Response) => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const query = `
       SELECT isActive, notificationPhoneNumber, notificationMessage
       FROM RegistrationNotificationSettings
@@ -46,7 +46,7 @@ router.get('/settings', async (req: Request, res: Response) => {
 router.post('/settings', async (req: Request, res: Response) => {
   const { isActive, notificationPhoneNumber, notificationMessage } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // التحقق من وجود إعدادات مسجلة مسبقاً للجلسة الثابتة في جدول RegistrationNotificationSettings
     const checkQuery = 'SELECT * FROM RegistrationNotificationSettings WHERE sessionId = @sessionId';
     const checkResult = await pool.request()
@@ -97,7 +97,7 @@ router.post('/settings', async (req: Request, res: Response) => {
 router.post('/notify', async (req: Request, res: Response) => {
   const { userName, userPhone, additionalData } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // جلب إعدادات تنبيه التسجيل للجلسة الثابتة
     const settingsQuery = `
       SELECT isActive, notificationPhoneNumber, notificationMessage

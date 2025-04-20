@@ -1,7 +1,7 @@
 // src/controllers/orderListingController.ts
 
 import { Request, Response } from 'express'
-import { getConnection } from '../config/db'
+import { poolPromise } from '../config/db'
 import * as sql from 'mssql'
 
 /**
@@ -23,7 +23,7 @@ export const getNewOrdersForUser = async (req: Request, res: Response) => {
 
     // 2) جلب الجلسات المملوكة لهذا المستخدم
     const userId = req.user.id
-    const pool = await getConnection()
+    const pool = await poolPromise;
     const sessionsResult = await pool.request()
       .input('userId', sql.Int, userId)
       .query(`
@@ -130,7 +130,7 @@ export const getAllOrdersForUser = async (req: Request, res: Response) => {
     // }
 
     const userId = req.user.id
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // 2) جلب الجلسات المملوكة لهذا المستخدم
     const sessionsResult = await pool.request()
@@ -229,7 +229,7 @@ export const getOrdersByDateRange = async (req: Request, res: Response) => {
     }
 
     const userId = req.user.id;
-    const pool = await getConnection();
+    const pool = await poolPromise;
 
     // جلب الجلسات الخاصة بالمستخدم
     const sessionsResult = await pool.request()

@@ -1,11 +1,12 @@
 // src/controllers/session/paymentProof.controller.ts
 
 import { Request, Response } from 'express'
-import { getConnection } from '../../config/db'
+import { poolPromise } from '../../config/db'
 import * as sql from 'mssql'
 import fs from 'fs'
 import path from 'path'
 import multer from 'multer'
+import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 
 // إعداد Multer لحفظ الملفات في مجلد "uploads/paymentProofs"
 const storage = multer.diskStorage({
@@ -39,7 +40,8 @@ export const submitPaymentProof = async (req: Request, res: Response) => {
     const filePath = req.file.path
     const originalName = req.file.originalname
 
-    const pool = await getConnection()
+    const pool = await poolPromise
+    await checkSessionOwnership(pool, sessionId, req.user);
     // حفظ التفاصيل في جدول PaymentProofs
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -67,7 +69,7 @@ export const getPaymentProof = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid session ID.' })
     }
 
-    const pool = await getConnection()
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`

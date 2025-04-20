@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 
 // جلب كل خطط الأسعار
 export const getPricingPlans = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .query(`SELECT * FROM PricingPlans`);
     return res.status(200).json(result.recordset);
@@ -22,7 +22,7 @@ export const createPricingPlan = async (req: Request, res: Response): Promise<Re
     return res.status(400).json({ message: 'يجب ملء الحقول: planType و price' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // تخزين المميزات كنص JSON (يمكنك تعديل ذلك حسب الحاجة)
     const featuresStr = features ? JSON.stringify(features) : null;
     await pool.request()
@@ -47,7 +47,7 @@ export const updatePricingPlan = async (req: Request, res: Response): Promise<Re
     return res.status(400).json({ message: 'يجب ملء الحقول: id, planType و price' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const featuresStr = features ? JSON.stringify(features) : null;
     await pool.request()
       .input('id', sql.Int, id)
@@ -72,7 +72,7 @@ export const deletePricingPlan = async (req: Request, res: Response): Promise<Re
     return res.status(400).json({ message: 'id مطلوب' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('id', sql.Int, id)
       .query(`DELETE FROM PricingPlans WHERE id = @id`);

@@ -1,9 +1,9 @@
 // controllers/session/initialization.ts
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import { createWhatsAppClientForSession } from '../whatsappClients';
 
 export const initializeExistingSessions = async () => {
-  const pool = await getConnection();
+  const pool = await poolPromise;
   const result = await pool.request().query(`
     SELECT id, sessionIdentifier
     FROM Sessions

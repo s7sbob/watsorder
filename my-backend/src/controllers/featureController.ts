@@ -1,14 +1,14 @@
 // src/controllers/featureController.ts
 
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 
 // 1) جلب كل الميزات العامة
 export const getAllFeatures = async (_req: Request, res: Response) => {
   try {
     // (تحقق إن كنت تريد السماح فقط للـ admin)
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request().query(`SELECT * FROM Features`);
     return res.status(200).json(result.recordset);
   } catch (error) {
@@ -21,7 +21,7 @@ export const getAllFeatures = async (_req: Request, res: Response) => {
 export const getUserFeatures = async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('userId', sql.Int, userId)
       .query(`
@@ -42,7 +42,7 @@ export const addFeatureToUser = async (req: Request, res: Response) => {
   const { userId } = req.params;
   const { featureId, startDate, endDate } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('userId', sql.Int, userId)
       .input('featureId', sql.Int, featureId)
@@ -64,7 +64,7 @@ export const updateUserFeature = async (req: Request, res: Response) => {
   const { userFeatureId } = req.params;
   const { isActive, startDate, endDate } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('userFeatureId', sql.Int, userFeatureId)
       .input('isActive', sql.Bit, isActive ? 1 : 0)
@@ -89,7 +89,7 @@ export const updateUserFeature = async (req: Request, res: Response) => {
 export const deleteUserFeature = async (req: Request, res: Response) => {
   const { userFeatureId } = req.params;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('userFeatureId', sql.Int, userFeatureId)
       .query(`

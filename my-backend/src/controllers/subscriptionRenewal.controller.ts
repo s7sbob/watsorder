@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
-import  {Parser}  from 'json2csv';
-import dayjs from 'dayjs'
+import { Parser } from 'json2csv';
+import dayjs from 'dayjs';
+import { getSessionById, getUserById, checkSessionOwnership } from '../utils/sessionUserChecks';
 
 
 
@@ -21,27 +22,21 @@ export const createSubscriptionRenewal = async (req: Request, res: Response) => 
       });
     }
 
-    const pool = await getConnection();
+    const pool = await poolPromise;
 
-    // 1) جلب userId من جدول Sessions
-    const sessionResult = await pool.request()
-      .input('sessionId', sql.Int, sessionId)
-      .query('SELECT userId FROM Sessions WHERE id = @sessionId');
-
-    if (!sessionResult.recordset.length) {
+    // Use utility function to get session
+    const session = await getSessionById(pool, sessionId);
+    if (!session) {
       return res.status(404).json({ message: 'Session not found.' });
     }
-    const userId = sessionResult.recordset[0].userId;
+    const userId = session.userId;
 
-    // 2) جلب phoneNumber من جدول Users
-    const userResult = await pool.request()
-      .input('userId', sql.Int, userId)
-      .query('SELECT phoneNumber FROM Users WHERE ID = @userId');
-
-    if (!userResult.recordset.length) {
+    // Use utility function to get user
+    const user = await getUserById(pool, userId);
+    if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
-    const userPhone = userResult.recordset[0].phoneNumber;
+    const userPhone = user.phoneNumber;
 
     // 3) ندرج السجل
     await pool.request()
@@ -77,7 +72,7 @@ export const searchSessionsByPhone = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'رقم التليفون مطلوب.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
       .query(`SELECT * FROM Sessions WHERE phoneNumber = @phoneNumber`);
@@ -99,7 +94,7 @@ export const renewSubscription = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'يرجى تزويد sessionId, renewalPeriod, و amountPaid.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // جلب بيانات الجلسة للتحقق منها واسترجاع expireDate والرقم
     const sessionResult = await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -131,7 +126,7 @@ export const renewSubscription = async (req: Request, res: Response) => {
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('newExpireDate', sql.DateTime, calculatedExpireDate)
-      .query(`UPDATE Sessions SET expireDate = @newExpireDate WHERE id = @sessionId`);
+      .query(`UPDATE Sessions SET expireDate = @newExpireDate, status = 'Ready' WHERE id = @sessionId`);
       
     // تسجيل عملية تجديد الاشتراك في جدول SubscriptionRenewals
     await pool.request()
@@ -216,7 +211,7 @@ export const updateSubscriptionRenewal = async (req: Request, res: Response) => 
   }
 
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // (1) جلب sessionId الفعلي من جدول SubscriptionRenewals
     const subResult = await pool.request()
@@ -277,7 +272,7 @@ export const updateSubscriptionRenewal = async (req: Request, res: Response) => 
 export const deleteSubscriptionRenewal = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('id', sql.Int, id)
       .query('DELETE FROM SubscriptionRenewals WHERE id = @id');
@@ -295,7 +290,7 @@ export const deleteSubscriptionRenewal = async (req: Request, res: Response) => 
  */
 export const exportSubscriptionRenewals = async (req: Request, res: Response) => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request().query('SELECT * FROM SubscriptionRenewals ORDER BY renewalDate DESC');
     const renewals = result.recordset;
     
@@ -322,7 +317,7 @@ export const getClientSubscriptionRenewals = async (req: Request, res: Response)
     return res.status(400).json({ message: 'رقم التليفون مطلوب.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('phoneNumber', sql.NVarChar, phoneNumber)
       .query('SELECT * FROM SubscriptionRenewals WHERE phoneNumber = @phoneNumber ORDER BY renewalDate DESC');
@@ -340,7 +335,7 @@ export const getClientSubscriptionRenewals = async (req: Request, res: Response)
  */
 export const getSubscriptionAnalytics = async (req: Request, res: Response) => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request().query(`
       SELECT renewalPeriod, COUNT(*) AS renewalCount, SUM(amountPaid) AS totalRevenue
       FROM SubscriptionRenewals
@@ -365,7 +360,7 @@ export const renewSubscriptionAndRecord = async (req: Request, res: Response) =>
       })
     }
 
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // (1) جلب تاريخ انتهاء الحالي للجلسة
     const sessResult = await pool.request()
@@ -436,7 +431,7 @@ export const renewSubscriptionAndRecord = async (req: Request, res: Response) =>
 
 export const getAllSubscriptionRenewals = async (req: Request, res: Response) => {
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     const result = await pool.request().query(`
       SELECT sr.*,
              s.status AS sessionStatus

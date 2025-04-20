@@ -1,9 +1,9 @@
 // controllers/session/sessionExtra.controller.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
 import fs from 'fs-extra';
-import { checkSessionOwnership } from './helpers';
+import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 import { whatsappClients } from '../whatsappClients';
 
 /**
@@ -13,7 +13,7 @@ export const updateGreeting = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
   const { greetingMessage, greetingActive } = req.body;
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
     await pool.request()
@@ -44,7 +44,7 @@ export const updateGreeting = async (req: Request, res: Response) => {
 export const getGreeting = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -77,7 +77,7 @@ export const deleteSession = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Invalid session ID.' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
 
     // التحقق من الملكية (كما في السابق)
     await checkSessionOwnership(pool, sessionId, req.user);

@@ -1,6 +1,6 @@
 // controllers/session/alternateNumber.controller.ts
 import { Request, Response } from 'express';
-import { getConnection } from '../../config/db';
+import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
 
 export const updateAlternateWhatsAppNumber = async (req: Request, res: Response) => {
@@ -12,7 +12,7 @@ export const updateAlternateWhatsAppNumber = async (req: Request, res: Response)
       return res.status(400).json({ message: 'Invalid session ID or WhatsApp number.' });
     }
 
-    const pool = await getConnection();
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('alternateWhatsAppNumber', sql.NVarChar, alternateWhatsAppNumber)

@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { getConnection } from '../config/db';
+import { poolPromise } from '../config/db';
 import * as sql from 'mssql';
 
 // جلب تعليمات الدفع (نفترض جدول PaymentInstructions يحتوي على عمود id, title, subTitle, vodafoneCash)
 export const getPaymentInstructions = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     const result = await pool.request()
       .query(`SELECT TOP 1 * FROM PaymentInstructions ORDER BY id DESC`);
 
@@ -26,7 +26,7 @@ export const updatePaymentInstructions = async (req: Request, res: Response): Pr
     return res.status(400).json({ message: 'يجب ملء الحقول: title, subTitle, vodafoneCash' });
   }
   try {
-    const pool = await getConnection();
+    const pool = await poolPromise;
     // نتحقق إذا كان يوجد سجل بالفعل
     const result = await pool.request()
       .query(`SELECT TOP 1 * FROM PaymentInstructions ORDER BY id DESC`);

@@ -1,7 +1,7 @@
 // src/controllers/orderController.ts
 
 import { Request, Response } from 'express'
-import { getConnection } from '../config/db'
+import { poolPromise } from '../config/db'
 import * as sql from 'mssql'
 import { whatsappClients } from './whatsappClients'
 
@@ -15,7 +15,7 @@ export const getConfirmedOrdersForUser = async (req: Request, res: Response) => 
       return res.status(401).json({ message: 'User not authorized.' })
     }
 
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // جلب الجلسات الخاصة بالمستخدم
     const sessionsResult = await pool.request()
@@ -122,7 +122,7 @@ export const confirmOrderByRestaurant = async (req: Request, res: Response) => {
     }
 
     const { prepTime, deliveryFee, taxValue } = req.body
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // جلب بيانات الطلب مع بيانات الجلسة بشكل صريح مع عمل alias للأعمدة
     const orderRes = await pool.request()
@@ -242,7 +242,7 @@ export const getOrderDetails = async (req: Request, res: Response) => {
   if (!orderId) return res.status(400).json({ message: 'Invalid order ID.' })
 
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     const orderRes = await pool.request()
       .input('orderId', sql.Int, orderId)
       .query(`
@@ -322,7 +322,7 @@ export const rejectOrderByRestaurant = async (req: Request, res: Response) => {
     }
 
     const { reason } = req.body
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // جلب بيانات الطلب مع بيانات الجلسة
     const orderRes = await pool.request()

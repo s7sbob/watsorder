@@ -1,10 +1,10 @@
 // controllers/session/session.controller.ts
 
 import { Request, Response } from 'express'
-import { getConnection } from '../../config/db'
+import { poolPromise } from '../../config/db'
 import * as sql from 'mssql'
 import { createWhatsAppClientForSession } from '../whatsappClients'
-import { checkSessionOwnership } from './helpers'
+import { getSessionById, checkSessionOwnership } from '../../utils/sessionUserChecks';
 import fs from 'fs-extra'
 
 // ===========================
@@ -17,7 +17,7 @@ export const fetchSessions = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise
     let query = ''
 
     // لو كان المستخدم admin => جلب كل الجلسات
@@ -54,7 +54,7 @@ export const createSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     const sessionIdentifier = `${user.id}_${user.subscriptionType}_${Date.now()}`
 
     const insertSessionResult = await pool.request()
@@ -100,7 +100,7 @@ export const createPaidSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // جلب حالة usedTrial من جدول Users
     const userCheck = await pool.request()
@@ -202,7 +202,7 @@ export const choosePlan = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Plan type is required.' })
   }
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('planType', sql.NVarChar, planType)
@@ -225,7 +225,7 @@ export const choosePlan = async (req: Request, res: Response) => {
 export const sendToManager = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -246,7 +246,7 @@ export const sendToManager = async (req: Request, res: Response) => {
 export const confirmPayment = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -277,7 +277,7 @@ export const confirmPayment = async (req: Request, res: Response) => {
 export const rejectPayment = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10)
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
 
     // 1) تحديث حالة الجلسة
     await pool.request()
@@ -328,7 +328,7 @@ export const confirmPaymentWithExpire = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'New expire date is required.' })
   }
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     // تحديث حالة الجلسة
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
@@ -391,7 +391,7 @@ export const renewSubscription = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'New expire date is required.' })
   }
   try {
-    const pool = await getConnection()
+    const pool = await poolPromise;
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('newExpireDate', sql.DateTime, new Date(newExpireDate))
