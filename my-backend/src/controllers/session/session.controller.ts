@@ -22,7 +22,9 @@ export const fetchSessions = async (req: Request, res: Response) => {
 
     // لو كان المستخدم admin => جلب كل الجلسات
     if (user.subscriptionType === 'admin') {
-      query = `SELECT * FROM Sessions`
+      query = `SELECT * FROM Sessions
+      WHERE status != 'Deleted'
+      `
     } else {
       // خلاف ذلك => جلب الجلسات الخاصة فقط
       query = `SELECT * FROM Sessions WHERE userId = @userId`

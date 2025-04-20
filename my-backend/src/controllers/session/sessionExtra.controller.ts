@@ -93,7 +93,8 @@ export const deleteSession = async (req: Request, res: Response) => {
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
-        DELETE FROM Sessions
+        UPDATE Sessions
+        SET status = 'Deleted'
         WHERE id = @sessionId
       `);
 
