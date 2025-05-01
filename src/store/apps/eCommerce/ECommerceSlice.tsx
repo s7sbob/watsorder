@@ -3,23 +3,27 @@ import { filter, map } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { AppDispatch } from 'src/store/Store';
 
-const API_URL = '/api/data/eCommerce/ProductsData';
-
 interface StateType {
   products: any[];
   productSearch: string;
   sortBy: string;
   cart: any[];
   total: number;
+  storeInfo: {
+    name: string;
+    about: string;
+    logo: string;
+  };
+  categories: string[];
   filters: {
     category: string;
-    color: string;
-    gender: string;
     price: string;
-    rating: string;
   };
   error: string;
 }
+
+
+
 
 const initialState = {
   products: [],
@@ -27,12 +31,15 @@ const initialState = {
   sortBy: 'newest',
   cart: [],
   total: 0,
+  storeInfo: {
+    name: '',
+    about: '',
+    logo: ''
+  },
+  categories: [],
   filters: {
     category: 'All',
-    color: 'All',
-    gender: 'All',
     price: 'All',
-    rating: '',
   },
   error: '',
 };
@@ -42,15 +49,37 @@ export const EcommerceSlice = createSlice({
   initialState,
   reducers: {
     // HAS ERROR
-
     hasError(state: StateType, action) {
       state.error = action.payload;
     },
 
     // GET PRODUCTS
     getProducts: (state, action) => {
-      state.products = action.payload;
+      state.products = action.payload.map((product: {
+        description: any;
+        category: any; id: any; name: any; price: any; photo: any; 
+}) => ({
+        id: product.id,
+        title: product.name,
+        price: product.price,
+        photo: product.photo,
+        category: product.category,   // ✅
+        description: product.description, // أضف الحقل هنا
+
+        qty: 1, // كمية افتراضية
+      }));
     },
+
+    // GET STORE INFO
+    getStoreInfo: (state, action) => {
+      state.storeInfo = action.payload;
+    },
+
+    // GET CATEGORIES
+    getCategories: (state, action) => {
+      state.categories = action.payload;
+    },
+
     SearchProduct: (state, action) => {
       state.productSearch = action.payload;
     },
@@ -60,17 +89,7 @@ export const EcommerceSlice = createSlice({
       state.sortBy = action.payload;
     },
 
-    //  SORT  PRODUCTS
-    sortByGender(state, action) {
-      state.filters.gender = action.payload.gender;
-    },
-
-    //  SORT  By Color
-    sortByColor(state, action) {
-      state.filters.color = action.payload.color;
-    },
-
-    //  SORT  By Color
+    //  SORT  By Price
     sortByPrice(state, action) {
       state.filters.price = action.payload.price;
     },
@@ -83,8 +102,6 @@ export const EcommerceSlice = createSlice({
     //  FILTER Reset
     filterReset(state) {
       state.filters.category = 'All';
-      state.filters.color = 'All';
-      state.filters.gender = 'All';
       state.filters.price = 'All';
       state.sortBy = 'newest';
     },
@@ -136,26 +153,36 @@ export const EcommerceSlice = createSlice({
     },
   },
 });
+
 export const {
   hasError,
   getProducts,
+  getStoreInfo,
+  getCategories,
   SearchProduct,
   sortByProducts,
   filterProducts,
-  sortByGender,
   increment,
   deleteCart,
   decrement,
   addToCart,
   sortByPrice,
   filterReset,
-  sortByColor,
 } = EcommerceSlice.actions;
 
-export const fetchProducts = () => async (dispatch: AppDispatch) => {
+export const fetchStoreData = (storeName: string) => async (dispatch: AppDispatch) => {
   try {
-    const response = await axios.get(`${API_URL}`);
-    dispatch(getProducts(response.data));
+    // جلب معلومات المتجر
+    const storeResponse = await axios.get(`/api/public/ecommerce/${storeName}`);
+    dispatch(getStoreInfo(storeResponse.data));
+    
+    // جلب الفئات
+    const categoriesResponse = await axios.get(`/api/public/ecommerce/${storeName}/categories`);
+    dispatch(getCategories(categoriesResponse.data));
+    
+    // جلب المنتجات
+    const productsResponse = await axios.get(`/api/public/ecommerce/${storeName}/products`);
+    dispatch(getProducts(productsResponse.data));
   } catch (error) {
     dispatch(hasError(error));
   }

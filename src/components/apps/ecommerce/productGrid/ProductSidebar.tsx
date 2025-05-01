@@ -35,5 +35,4 @@ const ProductSidebar = ({ isMobileSidebarOpen, onSidebarClose }: Props) => {
   );
 };
 
-
 export default ProductSidebar;

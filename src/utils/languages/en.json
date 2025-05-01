@@ -1,6 +1,67 @@
 {
     "Modern": "Modern",
-    "Ecommerce": "Ecommerce",
+    "Ecommerce": {
+      "store": "Store",
+      "filterReset": "Try again",
+      "errorLoading": "An error occurred while loading the store. Please try again.",
+      "noProducts": "There are no products available in this store.",
+      "products": "Products",
+      "addToCart": "Add to Cart",
+      "notes": "Notes",
+      "close": "Close",
+      "all": "All",
+      "currency": "EGP",
+      "noDescription": "No description available for this product",
+      "cartItems": "Cart Items",
+      "viewCart": "View Cart",
+      "checkout": "Checkout",
+      "payment": "Payment",
+      "back": "Back",
+      "selectAddress": "Select an Address to Proceed",
+      "completeOrder": "Complete Order",
+      "orderSummary": "Order Summary",
+      "subTotal": "Sub Total",
+      "discount": "Discount",
+      "shipping": "Shipping",
+      "free": "Free",
+      "thankYou": "Thank you for your purchase!",
+      "orderId": "Order ID",
+      "notification": "We will send you a notification within 2 days when it ships.",
+      "total": "Total",
+      "shippingAddress": "Shipping Address",
+      "billingAddress": "Billing Address",
+      "orderDetails": "Order Details",
+      "continueShopping": "Continue Shopping",
+      "downloadReceipt": "Download Receipt",
+      "reset": "Reset",
+      "backToShop": "Back to Shopping",
+      "emptyCart": "Cart is Empty",
+      "deliveryOption": "Delivery Option",
+      "paymentOption": "Payment Option",
+      "freeDelivery": "Free Delivery",
+      "deliveredFriday": "Delivered on Friday, May 10",
+      "fastDelivery": "Fast Delivery ($2.00)",
+      "deliveredWednesday": "Delivered on Wednesday, May 8",
+      "payPal": "Pay with PayPal",
+      "redirectPayPal": "You will be redirected to PayPal website to complete your purchase securely.",
+      "creditDebitCard": "Credit / Debit Card",
+      "supportCards": "We support Mastercard, Visa, Discover, and Stripe.",
+      "cashOnDelivery": "Cash on Delivery",
+      "payCash": "Pay with cash when your order is delivered.",
+      "deliverToAddress": "Deliver to this Address",
+      "product": "Product",
+      "quantity": "Quantity",
+      "price": "Price",
+      "payMob": "Pay with PayMob",
+      "redirectPayMob": "You will be redirected to PayMob gateway to complete your payment securely.",
+      "payMobIframe": "PayMob Payment Gateway",
+      "loadingPaymentGateway": "Loading Payment Gateway...",
+      "paymentGatewayError": "An error occurred while loading the payment gateway. Please try again later.",
+      "selectPayMobMethod": "Select PayMob Payment Method",
+      "onlineCard": "Credit Card (Visa/MasterCard)",
+      "mobileWallet": "Mobile Wallet (Vodafone Cash, Orange Money...etc)"
+           
+    },
     "eCommerce": "eCommerce",
     "Contacts": "Contacts",
     "Blog": "Blog",
@@ -76,7 +137,9 @@
         "cancel": "Cancel",
         "iHavePaid": "I have paid",
         "payNow": "Pay Now",
-        "login": "Login"
+        "login": "Login",
+        "ecomOn": "E-Commerce ON",
+        "ecomOff": "E-Commerce OFF"
       },
       "messages": {
         "numberUpdateSuccess": "Updated the number successfully",
@@ -97,7 +160,9 @@
         "botUpdated": "Bot is now {{status}} for session {{sessionId}}",
         "botToggleError": "An error occurred while toggling the bot.",
         "menuBotUpdated": "Menu Bot is now {{status}} for session {{sessionId}}",
-        "menuBotToggleError": "An error occurred while toggling the Menu Bot."
+        "menuBotToggleError": "An error occurred while toggling the Menu Bot.",
+        "ecommerceUpdated": "Session {{sessionId}} e-Commerce turned {{status}}",
+        "ecommerceToggleError": "Failed to toggle e-Commerce"
       },
       "dialogTitles": {
         "chooseYourPlanNew": "Choose Your Plan (New Session)",
@@ -152,9 +217,21 @@
         "keywords": "Keywords",
         "broadcast": "Broadcast",
         "greeting": "Greeting",
+        "ecommerce": "E-Commerce",
         "marketing": "Marketing"
 
-      }
+      },
+      "loading": "Loading settings…",
+      "enableEcomFirst": "Please enable e-commerce on this session before customizing.",
+      "displayName": "Session Display Name",
+      "about": "About this Session",
+      "currentLogo": "Current Logo",
+      "removeLogo": "Remove Logo",
+      "uploadNewLogo": "Upload New Logo",
+      "save": "Save Settings",
+      "saved": "Settings saved!",
+      "visitStore": "Visit \"{{name}}\" Store",
+      "errorSaving": "Error saving settings."
     },
     "CategoriesTab": {
       "buttons": {
@@ -193,7 +270,11 @@
     },
     "ProductTreeView": {
       "reorderError": "Error updating order. Reverting changes.",
-      "toggleError": "Error updating status. Reverting changes."
+      "toggleError": "Error updating status. Reverting changes.",
+      "toggleEcomError": "Could not update e-Commerce flag",
+      "labels": {
+        "ecommerce": "E-Commerce"
+      }
     },
     "confirmDeleteTitle": "Are you sure?",
     "confirmDeleteText": "This action cannot be undone.",
@@ -206,16 +287,20 @@
       },
       "errorFetchingCategories": "Error fetching categories.",
       "errorAddingProduct": "Error adding product.",
+      "errorDeletingProduct":    "Error deleting product",
+      "errorUpdatingProduct":    "Error updating product",
+      "selectProductToEdit":     "Please select a product to edit.",
       "popup": {
         "title": "Add Product",
         "fields": {
           "productName": "Product Name",
           "category": "Category",
-          "price": "Price"
+          "price": "Price",
+          "productPhoto":       "Product Photo",
+          "productDescription": "Product Description",
+          "isEcommerce":        "Enable E-Commerce"
         }
-      },
-      "selectProductToEdit": "Please select a product to edit."
-
+      }
     },
     "ProductList": {
       "confirmDelete": "Are you sure you want to delete this product?",
@@ -223,6 +308,10 @@
       "errorUpdating": "Error updating product.",
       "categoryId": "Category ID",
       "filterLabel": "Search products",
+      "products": "Products",
+      "noProductsHeader": "No Products",
+      "noProductsSub": "The product you are looking for is not available.",
+      "added": "Item added to cart!",
 
       "price": "Price",
       "buttons": {
@@ -255,6 +344,9 @@
       "keywordLabel": "Keyword",
       "replyTextLabel": "Reply Text",
       "filesSelected": "file(s) selected",
+      "searchPlaceholder": "Search keywords",
+      "filterLabel": "Search keywords",
+      "images": "Images",
       "buttons": {
         "uploadNewImages": "Upload New Image(s)",
         "save": "Save",

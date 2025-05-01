@@ -18,5 +18,6 @@ export interface SessionType {
   // يمكن إضافة حقول إضافية إذا لزم الأمر
     // حقل جديد لتفعيل أو إيقاف البوت
     botActive?: boolean
+    ecommerceActive?: boolean;
     
 }

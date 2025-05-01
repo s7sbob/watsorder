@@ -1,4 +1,3 @@
-// src/views/pages/session/EditProductPopup.tsx
 import React from 'react';
 import AddDataPopup, { PopupField } from './AddDataPopup';
 import { Product } from './ProductTreeView';
@@ -13,18 +12,15 @@ interface EditProductPopupProps {
 
 const EditProductPopup: React.FC<EditProductPopupProps> = ({ open, onClose, onSubmit, product, productCategories }) => {
   const fields: PopupField[] = [
-    { label: 'Product Name', name: 'product_name', autoFocus: true },
-    { label: 'Price', name: 'price', type: 'number' },
-    { label: 'Category', name: 'category_id', options: productCategories }
+    { label: 'Product Name', name: 'product_name', autoFocus: true, defaultValue: product.product_name },
+    { label: 'Price', name: 'price', type: 'number', defaultValue: product.price?.toString() || '' },
+    { label: 'Category', name: 'category_id', options: productCategories, defaultValue: product.category_id.toString() },
+    { label: 'Product Photo', name: 'productPhoto', isFile: true, multiple: false },
+    { label: 'Product Description', name: 'productDescription', defaultValue: product.productDescription || '' },
+    { label: 'Enable E-Commerce', name: 'isEcommerce', type: 'checkbox', defaultValue: product.isEcommerce.toString() },
+    { label: 'Order', name: 'order', type: 'number', defaultValue: product.order.toString() || '0' },
+    { label: 'Active', name: 'isActive', type: 'checkbox', defaultValue: product.isActive.toString() },
   ];
-
-  const preFilledFields = fields.map(field => {
-    if (field.name === 'category_id') {
-      // نحول قيمة category_id إلى string
-      return { ...field, defaultValue: product.category_id.toString() };
-    }
-    return { ...field, defaultValue: product ? `${product[field.name as keyof Product]}` : '' };
-  });
 
   return (
     <AddDataPopup
@@ -32,7 +28,7 @@ const EditProductPopup: React.FC<EditProductPopupProps> = ({ open, onClose, onSu
       onClose={onClose}
       onSubmit={onSubmit}
       title="Edit Product"
-      fields={preFilledFields}
+      fields={fields}
     />
   );
 };

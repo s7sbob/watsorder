@@ -36,11 +36,17 @@ import {
   reorderCategories,
   reorderProducts,
   startQrForSession,
-  cancelQrForSession
+  cancelQrForSession,
+  updateEcommerceStatus,
+  getSessionSettings,
+  updateSessionSettings,
 } from '../controllers/session'
 import { authenticateToken } from '../middleware/authMiddleware'
-import { upload } from '../middleware/uploadMiddleware'
+import  upload  from '../middleware/uploadMiddleware'
 import { getPaymentProof, submitPaymentProof, uploadPaymentProof } from '../controllers/session/paymentProof.controller'
+import  uploadProductImage  from '../middleware/uploadProduct'
+import  uploadSessionLogo  from '../middleware/uploadSessionLogo'
+import { getPublicCategories, getPublicEcommerce, getPublicProducts } from '../controllers/session/publicEcommerce.controller'
 
 const router = Router()
 
@@ -75,6 +81,10 @@ router.post('/:id/login', authenticateToken, loginSession)
 
 // [POST] تحديث حالة الـ Menu Bot (بدلًا من PUT)
 router.post('/:id/menu-bot/update', authenticateToken, updateMenuBotStatus)
+
+
+//[POST] تحديث حالة الـ E-Commerce Bot (بدلًا من PUT)
+router.post('/:id/ecommerce/update', authenticateToken, updateEcommerceStatus);  // ← new
 
 // جلب QR (GET عادي)
 router.get('/:id/qr', authenticateToken, getQrForSession)
@@ -113,16 +123,32 @@ router.post('/:sessionId/categories/reorder', authenticateToken, reorderCategori
 //----------------------------------
 
 // [POST] إضافة منتج
-router.post('/:sessionId/product', authenticateToken, addProduct)
+router.post('/:sessionId/product', authenticateToken,uploadProductImage.single('productPhoto'), addProduct)
 
 // [GET] جلب المنتجات
 router.get('/:sessionId/products', authenticateToken, getProductsForSession)
 
 // [POST] تعديل منتج (بدلًا من PUT)
-router.post('/:sessionId/product/:productId/update', authenticateToken, updateProduct)
+router.post('/:sessionId/product/:productId/update', authenticateToken,  uploadProductImage.single('productPhoto'), updateProduct)
 
 // [POST] حذف منتج (بدلًا من DELETE)
 router.post('/:sessionId/product/:productId/delete', authenticateToken, deleteProduct)
+
+
+// session settings
+router.get(
+  '/:id/settings',
+  authenticateToken,
+  getSessionSettings
+)
+
+router.post(
+  '/:id/settings',
+  authenticateToken,
+  uploadSessionLogo.single('sessionLogo'),
+  updateSessionSettings
+)
+
 
 
 // [POST] لل Reorder
@@ -137,11 +163,11 @@ router.post('/:sessionId/keyword', authenticateToken, upload.array('media', 10),
 // [GET] جلب الكلمات المفتاحية (سيتم تجميعها في الباك إند أو الفرونت)
 router.get('/:sessionId/keywords', authenticateToken, getKeywordsForSession);
 
-// [POST] تعديل مجموعة الكلمات المفتاحية باستخدام replayId
-router.post('/:sessionId/keyword/:replayId/update', authenticateToken, upload.array('media', 10), updateKeyword);
+// [POST] تعديل مجموعة الكلمات المفتاحية باستخدام keywordId
+router.post('/:sessionId/keyword/:keywordId/update', authenticateToken, upload.array('media', 10), updateKeyword);
 
-// [POST] حذف مجموعة الكلمات المفتاحية باستخدام replayId
-router.post('/:sessionId/keyword/:replayId/delete', authenticateToken, deleteKeyword);
+// [POST] حذف مجموعة الكلمات المفتاحية باستخدام keywordId
+router.post('/:sessionId/keyword/:keywordId/delete', authenticateToken, deleteKeyword);
 
 router.post('/:sessionId/alternate-whatsapp', authenticateToken, updateAlternateWhatsAppNumber);
 router.get('/:id/greeting', authenticateToken, getGreeting);

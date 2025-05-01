@@ -1,6 +1,68 @@
 {
   "Modern": "عصري",
-  "Ecommerce": "التجارة الإلكترونية",
+  "Ecommerce": {
+    "store": "متجر",
+    "loading": "جاري التحميل...",
+    "filterReset": "إعادة تعيين",
+    "filter": "تصفية",
+    "errorLoading": "حدث خطأ أثناء تحميل المتجر. يرجى المحاولة مرة أخرى.",
+    "noProducts": "لا توجد منتجات متاحة في هذا المتجر.",
+    "products": "المنتجات",
+    "addToCart": "إضافة إلى السلة",
+    "notes": "ملاحظات",
+    "close": "إغلاق",
+    "all": "الكل",
+    "currency": "جنيه",
+    "noDescription": "لا يوجد وصف متاح لهذا المنتج",
+    "cartItems": "عناصر السلة",
+    "total": "الإجمالي",
+    "viewCart": "عرض السلة",
+    "checkout": "إتمام الشراء",
+    "billingAddress": "العنوان وتفاصيل الفوترة",
+    "payment": "الدفع",
+    "back": "رجوع",
+    "selectAddress": "اختر عنوانًا للاستمرار",
+    "completeOrder": "إكمال الطلب",
+    "orderSummary": "ملخص الطلب",
+    "subTotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "shipping": "الشحن",
+    "free": "مجانًا",
+    "thankYou": "شكرًا لشرائك!",
+    "orderId": "رقم الطلب",
+    "notification": "سنرسل لك إشعارًا خلال يومين عند الشحن.",
+    "continueShopping": "متابعة التسوق",
+    "downloadReceipt": "تنزيل الإيصال",
+    "reset": "إعادة ضبط",
+    "backToShop": "العودة للتسوق",
+    "emptyCart": "السلة فارغة",
+    "deliveryOption": "خيار التوصيل",
+    "paymentOption": "خيار الدفع",
+    "freeDelivery": "توصيل مجاني",
+    "deliveredFriday": "يتم التوصيل يوم الجمعة، 10 مايو",
+    "fastDelivery": "توصيل سريع (2.00 جنيه)",
+    "deliveredWednesday": "يتم التوصيل يوم الأربعاء، 8 مايو",
+    "payPal": "الدفع عبر PayPal",
+    "redirectPayPal": "سيتم توجيهك إلى موقع PayPal لإكمال عملية الشراء بأمان.",
+    "creditDebitCard": "بطاقة ائتمان / خصم مباشر",
+    "supportCards": "ندعم Mastercard وVisa وDiscover وStripe.",
+    "cashOnDelivery": "الدفع عند التوصيل",
+    "payCash": "ادفع نقدًا عند توصيل طلبك.",
+    "deliverToAddress": "التوصيل إلى هذا العنوان",
+    "product": "المنتج",
+    "quantity": "الكمية",
+    "price": "السعر",
+    "payMob": "الدفع عبر PayMob",
+    "redirectPayMob": "سيتم فتح بوابة PayMob لإكمال الدفع بأمان.",
+    "payMobIframe": "بوابة دفع PayMob",
+    "loadingPaymentGateway": "جارٍ تحميل بوابة الدفع...",
+    "paymentGatewayError": "حدث خطأ أثناء تحميل بوابة الدفع. يرجى المحاولة لاحقًا.",
+    "selectPayMobMethod": "اختر طريقة الدفع عبر PayMob",
+    "onlineCard": "بطاقة بنكية (Visa/MasterCard)",
+    "mobileWallet": "محفظة إلكترونية (فودافون كاش، أورانج موني...إلخ)"
+
+   
+  },
   "eCommerce": "التجارة الإلكترونية",
   "Contacts": "جهات الاتصال",
   "Blog": "مقالات",
@@ -75,7 +137,9 @@
       "cancel": "إلغاء",
       "iHavePaid": "لقد دفعت",
       "payNow": "ادفع الآن" ,
-      "login": "تسجيل الدخول"
+      "login": "تسجيل الدخول",
+      "ecomOn": "تفعيل التجارة الإلكترونية",
+      "ecomOff": "إيقاف التجارة الإلكترونية"
 
     },
     "messages": {
@@ -97,7 +161,9 @@
       "botUpdated": "البوت الآن {{status}} للجلسة {{sessionId}}",
       "botToggleError": "حدث خطأ أثناء تغيير حالة البوت.",
       "menuBotUpdated": "قائمة البوت الآن {{status}} للجلسة {{sessionId}}",
-      "menuBotToggleError": "حدث خطأ أثناء تغيير حالة قائمة البوت."
+      "menuBotToggleError": "حدث خطأ أثناء تغيير حالة قائمة البوت.",
+      "ecommerceUpdated": "تم {{status}} التجارة الإلكترونية للجلسة {{sessionId}}",
+      "ecommerceToggleError": "فشل في تبديل حالة التجارة الإلكترونية"
     },
     "dialogTitles": {
       "chooseYourPlanNew": "اختر خطتك (جلسة جديدة)",
@@ -157,8 +223,20 @@
       "keywords": "الكلمات المفتاحية",
       "broadcast": "البث",
       "greeting": "الترحيب",
+      "ecommerce": "التجارة الإلكترونية",
       "marketing": "التسويق"
-    }
+    },
+    "loading": "جاري تحميل الإعدادات…",
+    "enableEcomFirst": "من فضلك فعّل التجارة الإلكترونية أولاً للتخصيص.",
+    "displayName": "اسم الجلسة للعرض",
+    "about": "نبذة عن الجلسة",
+    "currentLogo": "الشعار الحالي",
+    "removeLogo": "حذف الشعار",
+    "visitStore": "زيارة متجر \"{{name}}\"",
+    "uploadNewLogo": "رفع شعار جديد",
+    "save": "حفظ الإعدادات",
+    "saved": "تم حفظ الإعدادات!",
+    "errorSaving": "خطأ أثناء حفظ الإعدادات."
   },
 
   "CategoriesTab": {
@@ -212,7 +290,10 @@
       "fields": {
         "productName": "اسم المنتج",
         "category": "الفئة",
-        "price": "السعر"
+        "price": "السعر",
+        "productPhoto":       "صورة المنتج",
+        "productDescription": "وصف المنتج",
+        "isEcommerce":        "تمكين التجارة الإلكترونية"
       }
     },
     "selectProductToEdit": "من فضلك اختر منتج للتعديل."
@@ -220,7 +301,11 @@
   },
   "ProductTreeView": {
     "reorderError": "حدث خطأ أثناء تحديث الترتيب. سيتم استرجاع التغييرات.",
-    "toggleError": "حدث خطأ أثناء تحديث الحالة. سيتم استرجاع التغييرات."
+    "toggleError": "حدث خطأ أثناء تحديث الحالة. سيتم استرجاع التغييرات.",
+    "toggleEcomError": "تعذر تحديث حالة التجارة الإلكترونية",
+    "labels": {
+      "ecommerce": "التجارة الإلكترونية"
+    }
   },
   "confirmDeleteTitle": "هل أنت متأكد؟",
   "confirmDeleteText": "هذا الإجراء لا يمكن التراجع عنه.",
@@ -234,6 +319,14 @@
     "categoryId": "معرّف الفئة",
     "filterLabel": "ابحث عن المنتجات",
     "price": "السعر",
+    "products": "المنتجات",
+    "productName": "اسم المنتج",
+    "noProductsHeader": "لا توجد منتجات",
+    "noProductsSub": "يمكنك إضافة منتجات جديدة من خلال الضغط على زر \"إضافة منتج\".",
+    "productPhoto": "صورة المنتج",
+    "productDescription": "وصف المنتج",
+    "added": "تمت الإضافة",
+    "updated": "تم التحديث",
     "buttons": {
       "save": "حفظ",
       "cancel": "إلغاء"
@@ -266,6 +359,17 @@
     "keywordLabel": "الكلمة",
     "replyTextLabel": "نص الرد",
     "filesSelected": "ملف(ات) محدد",
+    "uploading": "جاري التحميل...",
+    "uploadError": "حدث خطأ أثناء رفع الملفات.",
+    "uploadSuccess": "تم رفع الملفات بنجاح.",
+    "deleteError": "حدث خطأ أثناء حذف الملفات.",
+    "deleteSuccess": "تم حذف الملفات بنجاح.",
+    "deleteConfirmation": "هل أنت متأكد من رغبتك في حذف الملفات المحددة؟",
+    "deleteConfirmationTitle": "تأكيد الحذف",
+    "searchPlaceholder": "ابحث عن كلمات مفتاحية",
+    "filterLabel": "ابحث عن الكلمات المفتاحية",
+    "noKeywordsFound": "لم يتم العثور على أي كلمات مفتاحية مطابقة.",
+    "noKeywordsFoundTitle": "لا نتائج",
     "buttons": {
       "uploadNewImages": "رفع صور جديدة",
       "save": "حفظ",

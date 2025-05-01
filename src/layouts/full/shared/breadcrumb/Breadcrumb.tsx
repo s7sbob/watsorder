@@ -1,84 +1,105 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import React from 'react';
-import { Grid, Typography, Box, Breadcrumbs, Link, Theme } from '@mui/material';
-import { NavLink } from 'react-router-dom';
+// src/layouts/full/shared/breadcrumb/Breadcrumb.tsx
+import React from 'react'
+import { Link as RouterLink } from 'react-router-dom'
+import {
+  Box,
+  Avatar,
+  Typography,
+  Divider,
+  Stack,
+  useTheme
+} from '@mui/material'
 
-import breadcrumbImg from 'src/assets/images/breadcrumb/ChatBc.png';
-import { IconCircle } from '@tabler/icons-react';
-
-interface BreadCrumbType {
-  subtitle?: string;
-  items?: any[];
-  title: string;
-  children?: JSX.Element;
+interface Crumb { to?: string; title: string }
+interface Props {
+  items: Crumb[]
+  title: string
+  logo?: string
+  subtitle?: string
 }
 
-const Breadcrumb = ({ subtitle, items, title, children }: BreadCrumbType) => (
-  <Grid
-    container
-    sx={{
-      backgroundColor: 'primary.light',
-      borderRadius: (theme: Theme) => theme.shape.borderRadius / 4,
-      p: '30px 25px 20px',
-      marginBottom: '30px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}
-  >
-    <Grid item xs={12} sm={6} lg={8} mb={1}>
-      <Typography variant="h4">{title}</Typography>
-      <Typography color="textSecondary" variant="h6" fontWeight={400} mt={0.8} mb={0}>
-        {subtitle}
-      </Typography>
-      <Breadcrumbs
-        separator={
-          <IconCircle
-            size="5"
-            fill="textSecondary"
-            fillOpacity={'0.6'}
-            style={{ margin: '0 5px' }}
-          />
-        }
-        sx={{ alignItems: 'center', mt: items ? '10px' : '' }}
-        aria-label="breadcrumb"
+const Breadcrumb: React.FC<Props> = ({ items, title, logo, subtitle }) => {
+  const theme = useTheme()
+
+  return (
+    <Box mb={4} textAlign="center">
+      {/* Row: logo | title | "About" | subtitle */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="center"
+        spacing={1}
+        flexWrap="wrap"
+        sx={{ mb: 2 }}
       >
-        {items
-          ? items.map((item) => (
-              <div key={item.title}>
-                {item.to ? (
-                  <Link underline="none" color="inherit" component={NavLink} to={item.to}>
-                    {item.title}
-                  </Link>
-                ) : (
-                  <Typography color="textPrimary">{item.title}</Typography>
-                )}
-              </div>
-            ))
-          : ''}
-      </Breadcrumbs>
-    </Grid>
-    <Grid item xs={12} sm={6} lg={4} display="flex" alignItems="flex-end">
-      <Box
-        sx={{
-          display: { xs: 'none', md: 'block', lg: 'flex' },
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          width: '100%',
-        }}
-      >
-        {children ? (
-          <Box sx={{ top: '0px', position: 'absolute' }}>{children}</Box>
-        ) : (
+        {logo && (
           <>
-            <Box sx={{ top: '0px', position: 'absolute' }}>
-              <img src={breadcrumbImg} alt={breadcrumbImg} width={'165px'} />
-            </Box>
+            <Avatar
+              src={`/${logo}`}
+              alt={title}
+              sx={{ width: 56, height: 56 }}
+            />
+            <Divider orientation="vertical" flexItem />
           </>
         )}
-      </Box>
-    </Grid>
-  </Grid>
-);
 
-export default Breadcrumb;
+        <Typography variant="h4" component="h1">
+          {title}
+        </Typography>
+
+        {subtitle && (
+          <>
+            <Divider orientation="vertical" flexItem />
+            <Typography variant="subtitle2" color="textSecondary" sx={{ fontWeight: 600 }}>
+              About
+            </Typography>
+            <Divider orientation="vertical" flexItem />
+            <Typography variant="subtitle2" color="textSecondary">
+              {subtitle}
+            </Typography>
+          </>
+        )}
+      </Stack>
+
+      {/* standard breadcrumb links below */}
+      <Stack
+        component="nav"
+        direction="row"
+        spacing={1}
+        justifyContent="center"
+        alignItems="center"
+        flexWrap="wrap"
+      >
+        {items.map((crumb, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && (
+              <Typography color="textSecondary" variant="body2">
+                /
+              </Typography>
+            )}
+            {crumb.to ? (
+              <Typography
+                component={RouterLink}
+                to={crumb.to}
+                variant="body2"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' }
+                }}
+              >
+                {crumb.title}
+              </Typography>
+            ) : (
+              <Typography variant="body2" color="textPrimary">
+                {crumb.title}
+              </Typography>
+            )}
+          </React.Fragment>
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
+export default Breadcrumb

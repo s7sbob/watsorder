@@ -13,7 +13,9 @@ import Contact from 'src/views/pages/frontend-pages/Contact';
 import Portfolio from 'src/views/pages/frontend-pages/Portfolio';
 import FeatureManagement from 'src/views/pages/FeatureManagement.tsx';
 import OrdersHistoryPage from 'src/views/pages/OrdersHistoryPage/OrdersHistoryPage.tsx';
-
+import Ecommerce from 'src/views/apps/eCommerce/Ecommerce.tsx';
+import EcommerceDetail from 'src/views/apps/eCommerce/EcommerceDetail.tsx';
+import EcomProductCheckout from'src/views/apps/eCommerce/EcommerceCheckout.tsx';
 /* ***Layouts**** */
 const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
 const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')));
@@ -91,6 +93,13 @@ const Router = [
       
       // ... أي مسارات عامة أخرى تحت /auth
       { path: '*', element: <Navigate to="/auth/404" /> },
+      {
+        path: '/:storeName',
+        element: <Ecommerce />
+      },
+      { path: '/store/:storeName/product/:id', element: <EcommerceDetail /> },
+      { path: '/store/:storeName/checkout', element: <EcomProductCheckout /> },
+
     ],
   },
   {

@@ -1,29 +1,31 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import * as React from 'react';
-import Box from '@mui/material/Box';
+// src/components/apps/ecommerce/productCheckout/HorizontalStepper.tsx
+import React from 'react';
+import { Box, Button } from '@mui/material';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
-import Button from '@mui/material/Button';
-import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface Props {
   children: JSX.Element | JSX.Element[];
-  steps: any[];
+  steps: string[];
   activeStep: number;
-  handleReset: (event: React.SyntheticEvent | Event) => void;
+  handleReset: () => void;
   finalStep: JSX.Element | JSX.Element[];
 }
 
-const HorizontalStepper = ({ children, steps, activeStep, handleReset, finalStep }: Props) => {
+const HorizontalStepper: React.FC<Props> = ({ children, steps, activeStep, handleReset, finalStep }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { storeName } = useParams<{ storeName: string }>(); // جلب storeName من الـ URL
+
   return (
     <Box sx={{ width: '100%' }}>
       <Stepper activeStep={activeStep} alternativeLabel>
         {steps.map((label) => {
           const stepProps = {};
           const labelProps = {};
-
           return (
             <Step key={label} {...stepProps}>
               <StepLabel {...labelProps}>{label}</StepLabel>
@@ -35,12 +37,12 @@ const HorizontalStepper = ({ children, steps, activeStep, handleReset, finalStep
         <React.Fragment>
           <Box>{finalStep}</Box>
           <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
-            <Button variant="contained" color="success" component={Link} to="/apps/ecommerce/shop">
-              Continue Shopping
+            <Button variant="contained" color="success" onClick={() => navigate(`/${storeName}`)}>
+              {t('Ecommerce.continueShopping')}
             </Button>
             <Box sx={{ flex: '1 1 auto' }} />
-            <Button variant="contained">Download Receipt</Button>
-            <Button onClick={handleReset}>Reset</Button>
+            <Button variant="contained">{t('Ecommerce.downloadReceipt')}</Button>
+            <Button onClick={handleReset}>{t('Ecommerce.reset')}</Button>
           </Box>
         </React.Fragment>
       ) : (

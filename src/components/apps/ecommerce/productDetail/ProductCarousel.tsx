@@ -1,6 +1,8 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import React, { useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
-import { useSelector, useDispatch } from 'src/store/Store';
+import { useSelector } from 'src/store/Store';
 import { useParams } from 'react-router-dom';
 
 //Carousel slider for product
@@ -9,28 +11,40 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import './Carousel.css';
 
-//Carousel slider data
-import SliderData from './SliderData';
-
-//fetch product
-import { fetchProducts } from 'src/store/apps/eCommerce/ECommerceSlice';
-import { ProductType } from 'src/types/apps/eCommerce';
+//Carousel slider data (Placeholder images if needed)
+const SliderData = [
+  {
+    id: 1,
+    imgPath: '/images/products/placeholder.jpg',
+  },
+  {
+    id: 2,
+    imgPath: '/images/products/placeholder.jpg',
+  },
+  {
+    id: 3,
+    imgPath: '/images/products/placeholder.jpg',
+  },
+  {
+    id: 4,
+    imgPath: '/images/products/placeholder.jpg',
+  },
+  {
+    id: 5,
+    imgPath: '/images/products/placeholder.jpg',
+  },
+];
 
 const ProductCarousel = () => {
   const [state, setState] = React.useState<any>({ nav1: null, nav2: null });
   const slider1 = useRef();
   const slider2 = useRef();
-  const dispatch = useDispatch();
-  const Id: any = useParams();
-
-  // Get Product
-  useEffect(() => {
-    dispatch(fetchProducts());
-  }, [dispatch]);
+  const { productId } = useParams();
 
   // Get Products
-  const product: ProductType = useSelector((state) => state.ecommerceReducer.products[Id.id - 1]);
-  const getProductImage = product ? product.photo : '';
+  const products = useSelector((state) => state.ecommerceReducer.products);
+  const product = products.find((p: { id: number | string }) => p.id.toString() === productId);
+  const getProductImage = product ? (product as { photo: string }).photo : '';
 
   useEffect(() => {
     setState({
@@ -58,7 +72,7 @@ const ProductCarousel = () => {
         <Box>
           <img
             src={getProductImage}
-            alt={getProductImage}
+            alt={(product as unknown as { title?: string })?.title || "صورة المنتج"}
             width="100%"
             style={{ borderRadius: '5px' }}
           />
@@ -78,7 +92,7 @@ const ProductCarousel = () => {
         <Box sx={{ p: 1, cursor: 'pointer' }}>
           <img
             src={getProductImage}
-            alt={getProductImage}
+            alt={(product as unknown as { title?: string })?.title || "صورة المنتج"}
             width="100%"
             style={{ borderRadius: '5px' }}
           />

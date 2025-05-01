@@ -10,6 +10,7 @@ import {
   MenuItem,
   Box,
   Typography,
+  Switch
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { useTranslation } from 'react-i18next';
@@ -21,10 +22,10 @@ export interface PopupField {
   isMultipleKeywords?: boolean;
   isFile?: boolean;
   multiple?: boolean;
-  autoFocus?: boolean;         // خاصية autoFocus
-  type?: string;               // خاصية type (مثلاً "number")
-  defaultValue?: string;       // خاصية defaultValue
-  style?: React.CSSProperties; // خاصية style
+  autoFocus?: boolean;
+  type?: string;
+  defaultValue?: string;
+  style?: React.CSSProperties;
 }
 
 interface AddDataPopupProps {
@@ -35,22 +36,17 @@ interface AddDataPopupProps {
   fields: PopupField[];
 }
 
-const AddDataPopup: React.FC<AddDataPopupProps> = ({
-  open,
-  onClose,
-  onSubmit,
-  title,
-  fields,
-}) => {
+const AddDataPopup: React.FC<AddDataPopupProps> = ({ open, onClose, onSubmit, title, fields }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<Record<string, any>>({});
 
-  // عند فتح النافذة نقوم بتهيئة القيم الافتراضية لكل حقل
   useEffect(() => {
     if (open) {
       const initialData: Record<string, any> = {};
       fields.forEach(field => {
-        initialData[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
+        initialData[field.name] = field.defaultValue !== undefined
+          ? field.defaultValue
+          : (field.type === 'checkbox' ? false : '');
       });
       setFormData(initialData);
     } else {
@@ -59,97 +55,71 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
   }, [open, fields]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = () => {
-    onSubmit(formData);
-    setFormData({});
-    onClose();
-  };
-
-  const handleFileChange = (
-    fieldName: string,
-    fileList: FileList | null,
-    multiple: boolean
-  ) => {
+  const handleFileChange = (fieldName: string, fileList: FileList | null, multiple: boolean) => {
     if (!fileList || fileList.length === 0) {
-      setFormData(prev => ({
-        ...prev,
-        [fieldName]: multiple ? [] : undefined,
-      }));
+      setFormData(prev => ({ ...prev, [fieldName]: multiple ? [] : undefined }));
       return;
     }
-
     const filesArray = Array.from(fileList);
-    if (multiple) {
-      setFormData(prev => ({
-        ...prev,
-        [fieldName]: filesArray,
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [fieldName]: filesArray[0],
-      }));
-    }
+    setFormData(prev => ({ ...prev, [fieldName]: multiple ? filesArray : filesArray[0] }));
   };
 
   const handleRemoveAllFiles = (fieldName: string, multiple: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: multiple ? [] : undefined,
-    }));
+    setFormData(prev => ({ ...prev, [fieldName]: multiple ? [] : undefined }));
   };
 
   const renderPreviews = (fieldName: string, multiple: boolean) => {
     const value = formData[fieldName];
     if (!value) return null;
-
     if (multiple && Array.isArray(value)) {
       return (
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2 }}>
-          {value.map((file: File, idx: number) => {
-            if (file.type.startsWith('image/')) {
-              return (
-                <Box key={idx} textAlign="center">
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={file.name}
-                    style={{ width: 100, height: 100, objectFit: 'cover' }}
-                  />
-                  <Typography variant="caption">{file.name}</Typography>
-                </Box>
-              );
-            }
-            return (
+          {value.map((file: File, idx: number) => (
+            file.type.startsWith('image/') ? (
+              <Box key={idx} textAlign="center">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  style={{ width: 100, height: 100, objectFit: 'cover' }}
+                />
+                <Typography variant="caption">{file.name}</Typography>
+              </Box>
+            ) : (
               <Box key={idx} textAlign="center">
                 <Typography variant="body2">{file.name}</Typography>
               </Box>
-            );
-          })}
+            )
+          ))}
         </Box>
       );
     } else if (!multiple && value) {
       const file = value as File;
-      if (file.type.startsWith('image/')) {
-        return (
-          <Box sx={{ mt: 2 }} textAlign="center">
-            <img
-              src={URL.createObjectURL(file)}
-              alt={file.name}
-              style={{ width: 100, height: 100, objectFit: 'cover' }}
-            />
-            <Typography variant="caption">{file.name}</Typography>
-          </Box>
-        );
-      }
-      return <Box mt={2}>{file.name}</Box>;
+      return (
+        <Box mt={2} textAlign="center">
+          {file.type.startsWith('image/') ? (
+            <>
+              <img
+                src={URL.createObjectURL(file)}
+                alt={file.name}
+                style={{ width: 100, height: 100, objectFit: 'cover' }}
+              />
+              <Typography variant="caption">{file.name}</Typography>
+            </>
+          ) : (
+            <Typography variant="body2">{file.name}</Typography>
+          )}
+        </Box>
+      );
     }
     return null;
+  };
+
+  const handleSubmit = () => {
+    onSubmit(formData);
+    onClose();
   };
 
   return (
@@ -157,7 +127,6 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         {fields.map(field => {
-          // (1) Autocomplete متعدد
           if (field.isMultipleKeywords) {
             const currentValue: string[] = formData[field.name] || [];
             return (
@@ -167,13 +136,8 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 freeSolo
                 options={[]}
                 value={currentValue}
-                onChange={(_event, newValue) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    [field.name]: newValue,
-                  }));
-                }}
-                renderInput={(params) => (
+                onChange={(_e, newVal) => setFormData(prev => ({ ...prev, [field.name]: newVal }))}
+                renderInput={params => (
                   <TextField
                     {...params}
                     margin="dense"
@@ -185,32 +149,28 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 sx={{ mt: 2 }}
               />
             );
-          }
-          // (2) حقل select
-          else if (field.options) {
+          } else if (field.options) {
             return (
-<TextField
-  select
-  key={field.name}
-  margin="dense"
-  label={field.label}
-  name={field.name}
-  fullWidth
-  variant="outlined"
-  onChange={handleTextChange}
-  sx={{ mt: 2, ...field.style }}
-  value={formData[field.name] || ''}
->
-  {field.options.map(option => (
-    <MenuItem key={option.value} value={option.value.toString()}>
-      {option.label}
-    </MenuItem>
-  ))}
-</TextField>
+              <TextField
+                select
+                key={field.name}
+                margin="dense"
+                label={field.label}
+                name={field.name}
+                fullWidth
+                variant="outlined"
+                onChange={handleTextChange}
+                value={formData[field.name] || ''}
+                sx={{ mt: 2, ...field.style }}
+              >
+                {field.options.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value.toString()}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </TextField>
             );
-          }
-          // (3) حقل رفع ملفات
-          else if (field.isFile) {
+          } else if (field.isFile) {
             const multiple = !!field.multiple;
             const hasValue = formData[field.name];
             return (
@@ -221,10 +181,7 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                     type="file"
                     hidden
                     multiple={multiple}
-                    accept="image/*"
-                    onChange={(e) =>
-                      handleFileChange(field.name, e.target.files, multiple)
-                    }
+                    onChange={e => handleFileChange(field.name, e.target.files, multiple)}
                   />
                 </Button>
                 {hasValue && (
@@ -240,9 +197,26 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 {renderPreviews(field.name, multiple)}
               </Box>
             );
-          }
-          // (4) حقل نص عادي
-          else {
+          } else if (field.type === 'checkbox') {
+            const checked = !!formData[field.name];
+            return (
+              <Box
+                key={field.name}
+                display="flex"
+                alignItems="center"
+                mt={2}
+                style={field.style}
+              >
+                <Switch
+                  checked={checked}
+                  onChange={(_e, newVal) =>
+                    setFormData(prev => ({ ...prev, [field.name]: newVal }))
+                  }
+                />
+                <Typography>{field.label}</Typography>
+              </Box>
+            );
+          } else {
             return (
               <TextField
                 key={field.name}
@@ -252,10 +226,10 @@ const AddDataPopup: React.FC<AddDataPopupProps> = ({
                 fullWidth
                 variant="outlined"
                 onChange={handleTextChange}
-                sx={{ mt: 2, ...field.style }}
+                value={formData[field.name] || ''}
                 autoFocus={field.autoFocus}
                 type={field.type}
-                value={formData[field.name] || ''}
+                sx={{ mt: 2, ...field.style }}
               />
             );
           }

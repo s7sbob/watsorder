@@ -1,6 +1,7 @@
+// src/views/pages/session/ProductTreeView.tsx
 import React, { useState, useEffect } from 'react';
 import { Box, IconButton, Paper, Typography, Switch, TextField } from '@mui/material';
-import { TreeView, TreeItem } from '@mui/x-tree-view';
+import { TreeView, TreeItem } from '@mui/lab';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import EditIcon from '@mui/icons-material/Edit';
@@ -24,14 +25,17 @@ export interface Product {
   price?: number;
   isActive: boolean;
   order: number;
+  productPhoto?: string;
+  productDescription?: string;
+  isEcommerce: boolean;
 }
 
-export type SelectedItem = 
+export type SelectedItem =
   | { type: 'category'; data: Category }
-  | { type: 'product'; data: Product }
+  | { type: 'product';  data: Product }
   | null;
 
-export interface ProductTreeViewProps {
+interface ProductTreeViewProps {
   sessionId: number;
   onEdit: (item: SelectedItem) => void;
   onDelete: (item: SelectedItem) => void;
@@ -43,200 +47,173 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit }) 
   const [products, setProducts] = useState<Product[]>([]);
   const [searchText, setSearchText] = useState('');
 
-  // جلب التصنيفات
+  useEffect(() => { if (sessionId) { fetchCategories(); fetchProducts(); } }, [sessionId]);
+
   const fetchCategories = async () => {
     try {
-      const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
-      const sortedCategories = response.data.sort((a: Category, b: Category) => a.order - b.order);
-      setCategories(sortedCategories);
-    } catch (error) {
-      console.error('Error fetching categories', error);
-    }
+      const res = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
+      setCategories(res.data.sort((a:Category,b:Category)=>a.order-b.order));
+    } catch (err) { console.error(err); }
   };
 
-  // جلب المنتجات
   const fetchProducts = async () => {
     try {
-      const response = await axiosServices.get(`/api/sessions/${sessionId}/products`);
-      const sortedProducts = response.data.sort((a: Product, b: Product) => a.order - b.order);
-      setProducts(sortedProducts);
-    } catch (error) {
-      console.error('Error fetching products', error);
-    }
+      const res = await axiosServices.get(`/api/sessions/${sessionId}/products`);
+      setProducts(res.data.sort((a:Product,b:Product)=>a.order-b.order));
+    } catch (err) { console.error(err); }
   };
 
-  useEffect(() => {
-    if (sessionId) {
-      fetchCategories();
-      fetchProducts();
-    }
-  }, [sessionId]);
-
-  // تجميع المنتجات حسب التصنيف
-  const productsByCategory: { [key: number]: Product[] } = {};
-  products.forEach(product => {
-    if (!productsByCategory[product.category_id]) {
-      productsByCategory[product.category_id] = [];
-    }
-    productsByCategory[product.category_id].push(product);
+  const productsByCategory: Record<number,Product[]> = {};
+  products.forEach(p => {
+    if (!productsByCategory[p.category_id]) productsByCategory[p.category_id] = [];
+    productsByCategory[p.category_id].push(p);
   });
 
-  // تطبيق البحث على التصنيفات والمنتجات
-  const filteredCategories = categories.filter(category => {
-    const catMatches = category.category_name.toLowerCase().includes(searchText.toLowerCase());
-    const productsForCat = productsByCategory[category.id] || [];
-    const filteredProds = productsForCat.filter(product =>
-      product.product_name.toLowerCase().includes(searchText.toLowerCase())
-    );
-    return catMatches || filteredProds.length > 0;
+  const filteredCategories = categories.filter(cat => {
+    const matchCat = cat.category_name.toLowerCase().includes(searchText.toLowerCase());
+    const prods = productsByCategory[cat.id] || [];
+    const matchProd = prods.some(p => p.product_name.toLowerCase().includes(searchText.toLowerCase()));
+    return matchCat || matchProd;
   });
 
-  const handleDragEnd = async (result: DropResult, categoryId: number) => {
+  const handleDragEnd = async (result: DropResult, catId: number) => {
     if (!result.destination) return;
-    const prevProducts = [...products];
-    const items = Array.from(productsByCategory[categoryId] || []);
-    const [removed] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, removed);
-    const updatedItems = items.map((item, index) => ({ ...item, order: index + 1 }));
-    const updatedProducts = products.map(prod => {
-      if (prod.category_id === categoryId) {
-        const updated = updatedItems.find(item => item.id === prod.id);
-        return updated ? updated : prod;
-      }
-      return prod;
-    });
-    setProducts(updatedProducts);
+    const prev = [...products];
+    const items = Array.from(productsByCategory[catId] || []);
+    const [moved] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, moved);
+    const updated = items.map((itm, idx) => ({ ...itm, order: idx + 1 }));
+    setProducts(products.map(p => p.category_id === catId ? updated.find(u => u.id === p.id) || p : p));
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/products/reorder`, { products: updatedItems });
+      await axiosServices.post(`/api/sessions/${sessionId}/products/reorder`, { products: updated });
       fetchProducts();
-    } catch (error) {
-      console.error('Error updating order', error);
-      setProducts(prevProducts);
-      Swal.fire(t('ProductTreeView.reorderError') || 'Error updating order. Reverting changes.');
+    } catch {
+      setProducts(prev);
+      Swal.fire(t('ProductTreeView.reorderError') as string);
     }
   };
 
-  const handleToggleProduct = async (product: Product, newValue: boolean) => {
-    const prevProducts = [...products];
-    const updatedProducts = products.map(p => p.id === product.id ? { ...p, isActive: newValue } : p);
-    setProducts(updatedProducts);
+  const toggleField = async (
+    product: Product,
+    field: 'isActive' | 'isEcommerce',
+    newVal: boolean
+  ) => {
+    const prev = [...products];
+    setProducts(products.map(p => p.id === product.id ? { ...p, [field]: newVal } : p));
     try {
-      await axiosServices.post(`/api/sessions/${sessionId}/product/${product.id}/update`, {
-        product_name: product.product_name,
-        category_id: product.category_id,
-        price: product.price,
-        isActive: newValue,
-        order: product.order
-      });
-    } catch (error) {
-      console.error('Error toggling product', error);
-      setProducts(prevProducts);
-      Swal.fire(t('ProductTreeView.toggleError') || 'Error updating status. Reverting changes.');
+      await axiosServices.post(
+        `/api/sessions/${sessionId}/product/${product.id}/update`,
+        {
+          product_name:       product.product_name,
+          category_id:        product.category_id,
+          price:              product.price,
+          isActive:           field === 'isActive' ? newVal : product.isActive,
+          order:              product.order,
+          productDescription: product.productDescription,
+          isEcommerce:        field === 'isEcommerce' ? newVal : product.isEcommerce
+        }
+      );
+    } catch {
+      setProducts(prev);
+      Swal.fire(
+        field === 'isActive'
+          ? t('ProductTreeView.toggleError') as string
+          : t('ProductTreeView.toggleEcomError') as string
+      );
     }
   };
 
   const confirmDeleteProduct = async (product: Product) => {
-    const confirmed = await Swal.fire({
-      title: t('confirmDeleteTitle') || 'Are you sure?',
-      text: t('confirmDeleteText') || 'This action cannot be undone.',
+    const res = await Swal.fire({
+      title: t('confirmDeleteTitle') as string,
+      text: t('confirmDeleteText') as string,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: t('confirmDeleteConfirm') || 'Yes, delete it!',
-      cancelButtonText: t('confirmDeleteCancel') || 'Cancel'
+      confirmButtonText: t('confirmDeleteConfirm') as string,
+      cancelButtonText: t('confirmDeleteCancel') as string
     });
-    if (confirmed.isConfirmed) {
-      try {
-        await axiosServices.post(`/api/sessions/${sessionId}/product/${product.id}/delete`);
-        fetchProducts();
-      } catch (error) {
-        Swal.fire(t('ProductTreeView.errorDeletingProduct') || 'Error deleting product');
-      }
+    if (res.isConfirmed) {
+      try { await axiosServices.post(`/api/sessions/${sessionId}/product/${product.id}/delete`); fetchProducts(); }
+      catch { Swal.fire(t('ProductTreeView.errorDeletingProduct') as string); }
     }
   };
 
-
-
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
-      {/* حقل البحث */}
       <Box mb={2}>
         <TextField
-          label={t('ProductList.filterLabel') || "Search"}
-          variant="outlined"
-          fullWidth
+          fullWidth variant="outlined"
+          label={t('ProductList.filterLabel')}
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={e => setSearchText(e.target.value)}
         />
       </Box>
       <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />}>
-        {filteredCategories.map(category => {
-          // داخل كل فئة، نحسب المنتجات التي تتطابق مع البحث
-          const productsForCat = productsByCategory[category.id] || [];
-          const filteredProductsForCat = searchText
-            ? productsForCat.filter(product =>
-                product.product_name.toLowerCase().includes(searchText.toLowerCase())
-              )
-            : productsForCat;
-          return (
-            <TreeItem
-              key={`category-${category.id}`}
-              nodeId={`category-${category.id}`}
-              label={
-                <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Typography>
-                    {category.category_name}
+        {filteredCategories.map(cat => (
+          <TreeItem
+            key={cat.id}
+            nodeId={`cat-${cat.id}`}
+            label={
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Typography>{cat.category_name}</Typography>
+                <Switch
+                  checked={cat.isActive}
+                  onChange={e => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
+                />
+                {!cat.isActive && (
+                  <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                    Disabled
                   </Typography>
-                  <Box display="flex" alignItems="center">
-                    <Switch
-                      checked={category.isActive}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        // يمكنك إضافة دالة toggle للتصنيف هنا لو أردت
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    {!category.isActive && (
-                      <Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                        Disabled
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              }
-            >
-              <DragDropContext onDragEnd={(result) => handleDragEnd(result, category.id)}>
-                <Droppable droppableId={`droppable-${category.id}`}>
-                  {(provided) => (
-                    <Box ref={provided.innerRef} {...provided.droppableProps}>
-                      {filteredProductsForCat.map((product, index) => (
-                        <Draggable key={product.id.toString()} draggableId={`product-${product.id}`} index={index}>
-                          {(providedDraggable) => (
+                )}
+              </Box>
+            }
+          >
+            <DragDropContext onDragEnd={res => handleDragEnd(res, cat.id)}>
+              <Droppable droppableId={`droppable-${cat.id}`}> 
+                {provided => (
+                  <Box ref={provided.innerRef} {...provided.droppableProps}>
+                    {(productsByCategory[cat.id] || [])
+                      .filter(p => p.product_name.toLowerCase().includes(searchText.toLowerCase()))
+                      .map((product, idx) => (
+                        <Draggable key={product.id} draggableId={`prod-${product.id}`} index={idx}>
+                          {providedDraggable => (
                             <TreeItem
-                              key={`product-${product.id}`}
-                              nodeId={`product-${product.id}`}
+                              nodeId={`prod-${product.id}`}
+                              key={product.id}
                               label={
                                 <Box display="flex" alignItems="center" justifyContent="space-between">
                                   <Typography>
-                                    {`${product.order} - ${product.product_name}  ($${product.price ?? 'N/A'})`}
+                                    {`${product.order} - ${product.product_name} ($${product.price ?? 'N/A'})`}
                                   </Typography>
                                   <Box display="flex" alignItems="center">
                                     <Switch
                                       checked={product.isActive}
-                                      onChange={(e) => {
+                                      onChange={e => {
                                         e.stopPropagation();
-                                        handleToggleProduct(product, e.target.checked);
+                                        toggleField(product, 'isActive', e.target.checked);
                                       }}
-                                      onClick={(e) => e.stopPropagation()}
+                                      onClick={e => e.stopPropagation()}
                                     />
-                                    {!product.isActive && (
-                                      <Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                                        Disabled
-                                      </Typography>
-                                    )}
-                                    <IconButton onClick={(e) => { e.stopPropagation(); onEdit({ type: 'product', data: product }); }}>
+                                    <Switch
+                                      checked={product.isEcommerce}
+                                      onChange={e => {
+                                        e.stopPropagation();
+                                        toggleField(product, 'isEcommerce', e.target.checked);
+                                      }}
+                                      onClick={e => e.stopPropagation()}
+                                    />
+                                    <Typography variant="caption" sx={{ ml: 1 }}>
+                                      {t('ProductTreeView.labels.ecommerce')}
+                                    </Typography>
+                                    <IconButton
+                                      onClick={e => { e.stopPropagation(); onEdit({ type: 'product', data: product }); }}
+                                    >
                                       <EditIcon fontSize="small" />
                                     </IconButton>
-                                    <IconButton onClick={(e) => { e.stopPropagation(); confirmDeleteProduct(product); }}>
+                                    <IconButton
+                                      onClick={e => { e.stopPropagation(); confirmDeleteProduct(product); }}
+                                    >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
                                   </Box>
@@ -245,21 +222,18 @@ const ProductTreeView: React.FC<ProductTreeViewProps> = ({ sessionId, onEdit }) 
                               ref={providedDraggable.innerRef}
                               {...providedDraggable.draggableProps}
                               {...providedDraggable.dragHandleProps}
-                              sx={{
-                                mb: 1,
-                              }}
+                              sx={{ mb: 1 }}
                             />
                           )}
                         </Draggable>
                       ))}
-                      {provided.placeholder}
-                    </Box>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </TreeItem>
-          );
-        })}
+                    {provided.placeholder}
+                  </Box>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </TreeItem>
+        ))}
       </TreeView>
     </Paper>
   );

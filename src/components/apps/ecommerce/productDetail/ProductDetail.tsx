@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 
@@ -9,38 +11,25 @@ import {
   Typography,
   Chip,
   Button,
-  Rating,
   Divider,
   Stack,
   useTheme,
-  Fab,
   ButtonGroup,
 } from '@mui/material';
 
 import { useSelector, useDispatch } from 'src/store/Store';
-import { fetchProducts, addToCart } from '../../../../store/apps/eCommerce/ECommerceSlice';
-import { IconCheck, IconMinus, IconPlus } from '@tabler/icons-react';
-import AlertCart from '../productCart/AlertCart';
-import { ProductType } from 'src/types/apps/eCommerce';
+import { addToCart } from 'src/store/apps/eCommerce/ECommerceSlice';
+import { IconMinus, IconPlus } from '@tabler/icons-react';
+import AlertCart from 'src/components/apps/ecommerce/productCart/AlertCart';
 
 const ProductDetail = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const Id: any = useParams();
-
-  // Get Product
-  useEffect(() => {
-    dispatch(fetchProducts());
-  }, [dispatch]);
+  const { productId, storeName } = useParams();
 
   // Get Products
-  const product: ProductType = useSelector((state) => state.ecommerceReducer.products[Id.id - 1]);
-
-  /// select colors on click
-  const [scolor, setScolor] = useState(product ? product.colors[0] : '');
-  const setColor = (e: string) => {
-    setScolor(e);
-  };
+  const products = useSelector((state) => state.ecommerceReducer.products);
+  const product = products.find((p: { id: number | string }) => p.id.toString() === productId);
 
   //set qty
   const [count, setCount] = useState(1);
@@ -65,81 +54,32 @@ const ProductDetail = () => {
         <>
           <Box display="flex" alignItems="center">
             {/* ------------------------------------------- */}
-            {/* Badge and category */}
+            {/* Badge */}
             {/* ------------------------------------------- */}
-            <Chip label="In Stock" color="success" size="small" />
-            <Typography color="textSecondary" variant="caption" ml={1} textTransform="capitalize">
-              {product.category}
-            </Typography>
+            <Chip label="متوفر" color="success" size="small" />
           </Box>
           {/* ------------------------------------------- */}
-          {/* Title and description */}
+          {/* Title */}
           {/* ------------------------------------------- */}
           <Typography fontWeight="600" variant="h4" mt={1}>
-            {product.title}
+            {(product as { title?: string })?.title || ''}
           </Typography>
           <Typography variant="subtitle2" mt={1} color={theme.palette.text.secondary}>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ex arcu, tincidunt bibendum
-            felis.
+            لا يوجد وصف متاح لهذا المنتج.
           </Typography>
           {/* ------------------------------------------- */}
           {/* Price */}
           {/* ------------------------------------------- */}
           <Typography mt={2} variant="h4" fontWeight={600}>
-            <Box
-              component={'small'}
-              color={theme.palette.text.secondary}
-              sx={{ textDecoration: 'line-through' }}
-            >
-              ${product.salesPrice}
-            </Box>{' '}
-            ${product.price}
+            ${(product as { price?: number })?.price ?? 0}
           </Typography>
-          {/* ------------------------------------------- */}
-          {/* Ratings */}
-          {/* ------------------------------------------- */}
-          <Stack direction={'row'} alignItems="center" gap="10px" mt={2} pb={3}>
-            <Rating name="simple-controlled" size="small" value={product.rating} readOnly />
-            <Link to="/" color="inherit">
-              (236 reviews)
-            </Link>
-          </Stack>
-          <Divider />
-          {/* ------------------------------------------- */}
-          {/* Colors */}
-          {/* ------------------------------------------- */}
-          <Stack py={4} direction="row" alignItems="center">
-            <Typography variant="h6" mr={1}>
-              Colors:
-            </Typography>
-            <Box>
-              {product.colors.map((color) => (
-                <Fab
-                  color="primary"
-                  sx={{
-                    transition: '0.1s ease-in',
-                    scale: scolor === color ? '0.9' : '0.7',
-                    backgroundColor: `${color}`,
-                    '&:hover': {
-                      backgroundColor: `${color}`,
-                      opacity: 0.7,
-                    },
-                  }}
-                  size="small"
-                  key={color}
-                  onClick={() => setColor(color)}
-                >
-                  {scolor === color ? <IconCheck size="1.1rem" /> : ''}
-                </Fab>
-              ))}
-            </Box>
-          </Stack>
+          <Divider sx={{ my: 3 }} />
           {/* ------------------------------------------- */}
           {/* Qty */}
           {/* ------------------------------------------- */}
           <Stack direction="row" alignItems="center" pb={5}>
             <Typography variant="h6" mr={4}>
-              QTY:
+              الكمية:
             </Typography>
             <Box>
               <ButtonGroup size="small" color="secondary" aria-label="small button group">
@@ -165,10 +105,13 @@ const ProductDetail = () => {
                 fullWidth
                 component={Link}
                 variant="contained"
-                to="/apps/eco-checkout"
-                onClick={() => dispatch(addToCart(product))}
+                to={`/store/${storeName}/checkout`}
+                onClick={() => {
+                  const productWithQty = product ? { ...(product as object), qty: count } : { qty: count };
+                  dispatch(addToCart(productWithQty));
+                }}
               >
-                Buy Now
+                شراء الآن
               </Button>
             </Grid>
             <Grid item xs={12} lg={4} md={6}>
@@ -177,17 +120,21 @@ const ProductDetail = () => {
                 size="large"
                 fullWidth
                 variant="contained"
-                onClick={() => dispatch(addToCart(product)) && handleClick()}
+                onClick={() => {
+                  const productWithQty = product ? { ...(product as object), qty: count } : { qty: count };
+                  dispatch(addToCart(productWithQty));
+                  handleClick();
+                }}
               >
-                Add to Cart
+                إضافة إلى السلة
               </Button>
             </Grid>
           </Grid>
           <Typography color="textSecondary" variant="body1" mt={4}>
-            Dispatched in 2-3 weeks
+            يتم الشحن خلال 2-3 أسابيع
           </Typography>
-          <Link to="/" color="inherit">
-            Why the longer time for delivery?
+          <Link to="#" color="inherit">
+            لماذا يستغرق التوصيل وقتًا أطول؟
           </Link>
           {/* ------------------------------------------- */}
           {/* Alert When click on add to cart */}
@@ -195,7 +142,7 @@ const ProductDetail = () => {
           <AlertCart handleClose={handleClose} openCartAlert={cartalert} />
         </>
       ) : (
-        'No product'
+        'المنتج غير موجود'
       )}
     </Box>
   );

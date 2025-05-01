@@ -32,34 +32,42 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
     if (sessionId) loadCategories();
   }, [sessionId]);
 
-  const handleOpenAddProduct = async () => {
-    setOpenAddPopup(true);
-  };
+  const handleOpenAddProduct = () => setOpenAddPopup(true);
 
   const handleAddProduct = async (data: any) => {
     try {
-      if (data.isActive === undefined) {
-        data.isActive = true;
+      if (data.isActive === undefined) data.isActive = true;
+      if (data.order === undefined) data.order = 0;
+      // إذا كانت هناك صورة، يتم إرسال البيانات كـ FormData
+      const formData = new FormData();
+      for (const key in data) {
+        if (key === 'productPhoto' && data[key]) {
+          formData.append(key, data[key]);
+        } else {
+          formData.append(key, data[key].toString());
+        }
       }
-      await axiosServices.post(`/api/sessions/${sessionId}/product`, data);
+      await axiosServices.post(`/api/sessions/${sessionId}/product`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       setOpenAddPopup(false);
-      setRefresh(!refresh);
-      if (data.category_id) {
-        setLastCategoryId(Number(data.category_id));
-      }
-    } catch (error) {
+      setRefresh(prev => !prev);
+      if (data.category_id) setLastCategoryId(Number(data.category_id));
+    } catch {
       alert(t('ProductsTab.errorAddingProduct'));
     }
-  };
+  };  
 
   const handleEditProduct = async (item: SelectedItem) => {
-    if (item && item.type === 'product') {
-      if (productCategories.length === 0) {
+    if (item?.type === 'product') {
+      if (!productCategories.length) {
         try {
           const response = await axiosServices.get(`/api/sessions/${sessionId}/categories`);
           const cats = response.data.map((c: any) => ({ value: c.id, label: c.category_name }));
           setProductCategories(cats);
-        } catch (error) {
+        } catch {
           alert(t('ProductsTab.errorFetchingCategories'));
           return;
         }
@@ -67,32 +75,50 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
       setSelectedItem(item);
       setOpenEditPopup(true);
     } else {
-      alert(t('ProductsTab.selectProductToEdit') || 'Please select a product to edit.');
+      alert(t('ProductsTab.selectProductToEdit'));
     }
   };
 
   const handleDeleteProduct = async (item: SelectedItem) => {
-    if (item && item.type === 'product') {
+    if (item?.type === 'product') {
       try {
         await axiosServices.post(`/api/sessions/${sessionId}/product/${item.data.id}/delete`);
-        setRefresh(!refresh);
-      } catch (error) {
+        setRefresh(prev => !prev);
+      } catch {
         alert(t('ProductsTab.errorDeletingProduct'));
       }
     }
   };
 
   const handleUpdateProduct = async (data: any) => {
-    if (selectedItem && selectedItem.type === 'product') {
+    if (selectedItem?.type === 'product') {
       try {
-        if (data.isActive === undefined) {
-          data.isActive = true;
+        if (data.isActive === undefined) data.isActive = true;
+        if (data.order === undefined) data.order = selectedItem.data.order || 0;
+        // إذا كانت هناك صورة، يتم إرسال البيانات كـ FormData
+        const formData = new FormData();
+        for (const key in data) {
+          if (key === 'productPhoto' && data[key]) {
+            // if data.productPhoto is FileList, take the first item
+            formData.append(key, Array.isArray(data[key]) ? data[key][0] : data[key]);
+          } else {
+            formData.append(key, data[key]);
+          }
         }
-        await axiosServices.post(`/api/sessions/${sessionId}/product/${selectedItem.data.id}/update`, data);
+        await axiosServices.post(
+          `/api/sessions/${sessionId}/product/${selectedItem.data.id}/update`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
         setOpenEditPopup(false);
         setSelectedItem(null);
-        setRefresh(!refresh);
+        setRefresh(prev => !prev);
       } catch (error) {
+        console.error('Error updating product:', error);
         alert(t('ProductsTab.errorUpdatingProduct'));
       }
     }
@@ -103,12 +129,14 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
       <Button variant="contained" onClick={handleOpenAddProduct} sx={{ mb: 2 }}>
         {t('ProductsTab.buttons.addProduct')}
       </Button>
+
       <ProductTreeView
         sessionId={sessionId}
         key={refresh ? 'refresh' : 'no-refresh'}
         onEdit={handleEditProduct}
         onDelete={handleDeleteProduct}
       />
+
       <AddDataPopup
         open={openAddPopup}
         onClose={() => setOpenAddPopup(false)}
@@ -134,15 +162,38 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ sessionId }) => {
             defaultValue: lastCategoryId ? lastCategoryId.toString() : '',
             style: { marginTop: '16px' },
           },
+          {
+            label: t('ProductsTab.popup.fields.productPhoto'),
+            name: 'productPhoto',
+            isFile: true,
+            multiple: false,
+            style: { marginTop: '16px' },
+          },
+          {
+            label: t('ProductsTab.popup.fields.productDescription'),
+            name: 'productDescription',
+            style: { marginTop: '16px' },
+          },
+          {
+            label: t('ProductsTab.popup.fields.isEcommerce'),
+            name: 'isEcommerce',
+            type: 'checkbox',
+            style: { marginTop: '16px' },
+          },
+          {
+            label: t('ProductsTab.popup.fields.order'),
+            name: 'order',
+            type: 'number',
+            defaultValue: '0',
+            style: { marginTop: '16px' },
+          },
         ]}
       />
-      {openEditPopup && selectedItem && selectedItem.type === 'product' && (
+
+      {openEditPopup && selectedItem?.type === 'product' && (
         <EditProductPopup
           open={openEditPopup}
-          onClose={() => {
-            setOpenEditPopup(false);
-            setSelectedItem(null);
-          }}
+          onClose={() => { setOpenEditPopup(false); setSelectedItem(null); }}
           onSubmit={handleUpdateProduct}
           product={selectedItem.data}
           productCategories={productCategories}

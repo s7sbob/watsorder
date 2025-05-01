@@ -14,10 +14,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import axiosServices from 'src/utils/axios';
 import { useTranslation } from 'react-i18next';
+import SearchIcon from '@mui/icons-material/Search';
 
 interface MediaFile {
   mediaId: number;
-  mediaPath: string;
+  mediaUrl: string;   // ✅ بدلاً من mediaPath
   mediaName: string;
 }
 
@@ -39,7 +40,6 @@ interface GroupedKeyword {
   mediaFiles: MediaFile[];
 }
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.watsorder.com';
 
 const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   const { t } = useTranslation();
@@ -50,6 +50,23 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [, setOldMediaFiles] = useState<MediaFile[]>([]);
+  const [searchText, setSearchText] = useState('');
+
+  const filteredKeywords = useMemo((): GroupedKeyword[] => {
+    if (!searchText.trim()) return keywords;
+  
+    const term = searchText.toLowerCase();
+    return keywords.filter(group => {
+      // ابحث في أي keyword داخل المجموعة أو في replyText
+      const matchesKeyword = group.keywords.some(k =>
+        k.toLowerCase().includes(term)
+      );
+      const matchesReply   = group.replyText.toLowerCase().includes(term);
+      return matchesKeyword || matchesReply;
+    });
+  }, [keywords, searchText]);
+
+
 
   const fetchKeywords = async () => {
     try {
@@ -67,9 +84,9 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   }, [sessionId]);
 
   // تجميع الكلمات المفتاحية حسب replayId
-  const groupedKeywords = useMemo((): GroupedKeyword[] => {
-    return keywords;
-  }, [keywords]);
+  // const groupedKeywords = useMemo((): GroupedKeyword[] => {
+  //   return keywords;
+  // }, [keywords]);
 
   const handleEdit = (group: GroupedKeyword) => {
     setEditingId(group.replayId);
@@ -138,8 +155,21 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
 
   return (
     <Box>
+          {/* شريط البحث */}
+    <Box display="flex" alignItems="center" sx={{ mb: 2 }}>
+      <SearchIcon sx={{ mr: 1 }} />
+      <TextField
+        fullWidth
+        placeholder={t('KeywordList.searchPlaceholder') as string /* مثال: "ابحث..." */}
+        value={searchText}
+        onChange={e => setSearchText(e.target.value)}
+        size="small"
+      />
+    </Box>
+
+      {/* قائمة الكلمات المفتاحية */}
       <List>
-        {groupedKeywords.map((group) => {
+        {filteredKeywords.map((group) => {
           const isEditing = editingId === group.replayId;
           if (isEditing) {
             return (
@@ -225,11 +255,10 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                     {group.mediaFiles.map((media) => (
                       <Box key={media.mediaId} textAlign="center">
                         <img
-                          src={`${backendUrl}/${media.mediaPath}`}
+                          src={media.mediaUrl}
                           alt={media.mediaName}
                           style={{ width: 100, height: 100, objectFit: 'cover' }}
                         />
-                        <Typography variant="caption">{media.mediaName}</Typography>
                       </Box>
                     ))}
                   </Box>

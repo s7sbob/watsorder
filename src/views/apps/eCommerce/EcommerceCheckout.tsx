@@ -1,33 +1,18 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+// src/views/apps/eCommerce/EcommerceCheckout.tsx
 import React from 'react';
 import { Box } from '@mui/material';
-import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import PageContainer from 'src/components/container/PageContainer';
-import ProductChecout from 'src/components/apps/ecommerce/productCheckout/ProductCheckout';
+import ProductCheckout from 'src/components/apps/ecommerce/productCheckout/ProductCheckout';
 import ChildCard from 'src/components/shared/ChildCard';
+import { useTranslation } from 'react-i18next';
 
-const BCrumb = [
-  {
-    to: '/',
-    title: 'Home',
-  },
-  {
-    title: 'Checkout',
-  },
-];
-
-const EcommerceCheckout = () => {
+const EcommerceCheckout: React.FC = () => {
+  const { t } = useTranslation();
   return (
-    <PageContainer title="Checkout" description="this is Shop List page">
-      {/* breadcrumb */}
-      <Breadcrumb title="Checkout" items={BCrumb} />
+    <PageContainer title={t('Ecommerce.checkout') as string} description="This is the Checkout page">
       <ChildCard>
-        {/* ------------------------------------------- */}
-        {/* Right part */}
-        {/* ------------------------------------------- */}
         <Box p={3} flexGrow={1}>
-          <ProductChecout />
+          <ProductCheckout />
         </Box>
       </ChildCard>
     </PageContainer>

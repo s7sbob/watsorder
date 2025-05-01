@@ -305,6 +305,35 @@ const SessionListing = () => {
     }
   }
 
+
+  const handleToggleEcommerce = async (session: SessionType) => {
+    const newEcom = !session.ecommerceActive;
+    try {
+      await axiosServices.post(
+        `/api/sessions/${session.id}/ecommerce/update`,
+        { ecommerceActive: newEcom }
+      );
+      dispatch(
+        updateSession({
+          sessionId: session.id,
+          changes: { ecommerceActive: newEcom }
+        })
+      );
+      showAlert(
+        t('SessionListing.messages.ecommerceUpdated', {
+          status: newEcom ? 'ON' : 'OFF',
+          sessionId: session.id.toString()
+        }),
+        'info'
+      );
+    } catch (err) {
+      console.error('Error toggling e-commerce:', err);
+      showAlert(t('SessionListing.messages.ecommerceToggleError'), 'error');
+    }
+  };
+
+
+
   const handleLogoutSession = async (session: SessionType) => {
     const confirmation = window.confirm(t('SessionListing.messages.confirmLogout', { sessionId: session.id.toString() }) ?? '')
     if (!confirmation) return
@@ -491,6 +520,16 @@ const SessionListing = () => {
                             ? t('SessionListing.buttons.menuBotOff')
                             : t('SessionListing.buttons.menuBotOn')}
                         </Button>
+                        <Button
+      variant="contained"
+      color={session.ecommerceActive ? 'success' : 'warning'}
+      size="small"
+      onClick={() => handleToggleEcommerce(session)}
+    >
+      {session.ecommerceActive
+        ? t('SessionListing.buttons.ecomOff')
+        : t('SessionListing.buttons.ecomOn')}
+    </Button>
                         {session.status !== 'Terminated' && (
                           <Button variant='outlined' size='small' onClick={() => handleLogoutSession(session)}>
                             {t('SessionListing.buttons.logout')}

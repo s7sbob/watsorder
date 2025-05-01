@@ -26,6 +26,8 @@ import registrationNotificationRoutes from './routes/registrationNotification.ro
 import configRoutes from './routes/config.routes';
 import subscriptionRenewalRoutes from './routes/subscriptionRenewalRoutes';
 import adminRoutes from './routes/admin';
+import publicEcommerce from './routes/publicEcommerce';
+import path from 'path';
 
 dotenv.config();
 
@@ -67,10 +69,15 @@ app.use('/api', registrationNotificationRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/subscriptions', subscriptionRenewalRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api/public/ecommerce', publicEcommerce);
+// تقديم الملفات الثابتة للصور
+app.use('/product-images', express.static(path.join(__dirname, 'product-images')));
+app.use('/keywords-images', express.static(path.join(__dirname, 'keywords-images')));
+app.use('/session-logos', express.static(path.join(__dirname, 'session-logos')));
 // خدمة الملفات الثابتة
 app.use('/keywords-images', express.static('keywords-images'));
-
+import paymobRoutes from './routes/paymobRoutes'; // إضافة الـ PayMob Routes
+app.use('/api/paymob', paymobRoutes); // استخدام الـ PayMob Routes
 // إعداد Swagger UI لعرض توثيق API
 try {
   const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as Record<string, any>;

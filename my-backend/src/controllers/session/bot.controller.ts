@@ -160,3 +160,42 @@ export const updateMenuBotStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error updating menu bot status.' });
   }
 };
+
+
+
+/**
+ * تفعيل أو إيقاف e-Commerce Bot (true/false)
+ */
+export const updateEcommerceStatus = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10);
+  const { ecommerceActive } = req.body;
+
+  if (!sessionId || typeof ecommerceActive !== 'boolean') {
+    return res.status(400).json({ message: 'Invalid session ID or ecommerceActive flag.' });
+  }
+
+  try {
+    const pool = await poolPromise;
+    await checkSessionOwnership(pool, sessionId, req.user);
+
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('ecommerceActive', sql.Bit, ecommerceActive ? 1 : 0)
+      .query(`
+        UPDATE Sessions
+        SET ecommerceActive = @ecommerceActive
+        WHERE id = @sessionId
+      `);
+
+    return res.status(200).json({ message: 'e-Commerce status updated successfully.' });
+  } catch (error: any) {
+    if (error.message === 'SessionNotFound') {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+    if (error.message === 'Forbidden') {
+      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
+    }
+    console.error('Error updating e-Commerce status:', error);
+    return res.status(500).json({ message: 'Error updating e-Commerce status.' });
+  }
+};

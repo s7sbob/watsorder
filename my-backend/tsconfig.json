@@ -9,10 +9,13 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "typeRoots": ["node_modules/@types", "src/types"],
+    "types": ["multer"]
   },
   "include": [
+    "src",
     "src/**/*.ts",
-    "src/types/**/*.d.ts" // تأكد من إدراج ملف التعريف الجديد هنا
+    "src/types" // تأكد من إدراج ملف التعريف الجديد هنا
   ]
 }

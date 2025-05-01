@@ -121,3 +121,119 @@ export const deleteSession = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error deleting session.' });
   }
 };
+
+
+
+/**
+ * GET /api/sessions/:id/settings
+ */
+export const getSessionSettings = async (req: Request, res: Response) => {
+  const sessionId = parseInt(req.params.id, 10)
+  try {
+    const pool = await poolPromise
+    await checkSessionOwnership(pool, sessionId, req.user)
+
+    const result = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .query(`
+        SELECT 
+          ecommerceActive, 
+          sessionDisplayName, 
+          sessionAbout, 
+          sessionLogo
+        FROM Sessions
+        WHERE id = @sessionId
+      `)
+
+    if (!result.recordset.length) {
+      return res.status(404).json({ message: 'Session not found.' })
+    }
+    return res.json(result.recordset[0])
+  } catch (err: any) {
+    console.error('Error fetching session settings:', err)
+    if (err.message === 'SessionNotFound') {
+      return res.status(404).json({ message: 'Session not found.' })
+    }
+    if (err.message === 'Forbidden') {
+      return res.status(403).json({ message: 'Forbidden.' })
+    }
+    return res.status(500).json({ message: 'Server error.' })
+  }
+}
+
+/**
+ * POST /api/sessions/:id/settings
+ * multipart/form-data { sessionDisplayName, sessionAbout, ecommerceActive, removeLogo, [sessionLogo] }
+ */
+export const updateSessionSettings = async (req: Request, res: Response) => {
+  try {
+    const pool = await poolPromise;
+
+    /* ✅ التقاط المعرف الصحيح من الـ route */
+    const sessionId = parseInt(req.params.id, 10);
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ error: 'Invalid sessionId in URL path' });
+    }
+
+    const {
+      displayName,
+      description,
+      isEcommerceEnabled,
+      removeLogo,
+    } = req.body;
+
+    /* ✅ شعار جديد إن وُجد */
+    let sessionLogo: string | null = null;
+    if (req.file) {
+      sessionLogo = (req.file as any).location;
+    }
+
+    /* ✅ تجهيز حقول التعديل */
+    const fields: string[] = [];
+    const request = pool.request().input('sessionId', sql.Int, sessionId);
+
+    if (displayName) {
+      fields.push('DisplayName = @displayName');
+      request.input('displayName', displayName);
+    }
+    if (description) {
+      fields.push('Description = @description');
+      request.input('description', description);
+    }
+    if (sessionLogo) {
+      fields.push('sessionLogo = @sessionLogo');
+      request.input('sessionLogo', sessionLogo);
+    } else if (removeLogo === '1' || removeLogo === 'true') {
+      fields.push('sessionLogo = NULL');
+    }
+    if (isEcommerceEnabled !== undefined) {
+      fields.push('IsEcommerceEnabled = @isEcommerceEnabled');
+      request.input('isEcommerceEnabled', isEcommerceEnabled === 'true' ? 1 : 0);
+    }
+
+    if (!fields.length) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    /* ✅ تنفيذ التعديل */
+    const result = await request.query(`
+      UPDATE Sessions
+      SET ${fields.join(', ')}
+      WHERE Id = @sessionId
+    `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    return res.json({ message: 'Session settings updated successfully' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Error updating session settings' });
+  }
+};
+
+
+
+
+
