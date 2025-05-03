@@ -2,14 +2,12 @@
 // @ts-ignore
 import React, { useState } from 'react';
 import { Button, Box, Drawer, useMediaQuery, Theme } from '@mui/material';
-import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import EmailLists from 'src/components/apps/email/EmailList';
 import EmailFilter from 'src/components/apps/email/EmailFilter';
 import EmailSearch from 'src/components/apps/email/EmailSearch';
 import EmailContent from 'src/components/apps/email/EmailContent';
 import PageContainer from 'src/components/container/PageContainer';
 import AppCard from 'src/components/shared/AppCard';
-import emailIcon from 'src/assets/images/breadcrumb/emailSv.png';
 
 const drawerWidth = 240;
 const secdrawerWidth = 340;
@@ -22,9 +20,7 @@ const Email = () => {
 
   return (
     <PageContainer title="Email App" description="this is email page">
-      <Breadcrumb title="Email app" subtitle="Look at Inbox">
-        <img src={emailIcon} alt={emailIcon} width={'165px'} />
-      </Breadcrumb>
+
 
       <AppCard>
         {/* ------------------------------------------- */}

@@ -2,7 +2,6 @@
 // @ts-ignore
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useSelector } from 'src/store/Store';
 
 import {
   Box,
@@ -43,9 +42,7 @@ const a11yProps = (index: number) => {
 
 const ProductDesc = () => {
   const [value, setValue] = React.useState(0);
-  const { productId } = useParams();
-  const products = useSelector((state) => state.ecommerceReducer.products);
-  const product = products.find((p: { id: number | string }) => p.id.toString() === productId);
+  useParams();
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore

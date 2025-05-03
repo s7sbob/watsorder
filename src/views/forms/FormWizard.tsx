@@ -13,7 +13,6 @@ import {
   Stack
 } from '@mui/material';
 import PageContainer from 'src/components/container/PageContainer';
-import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import FormWizardCode from 'src/components/forms/form-wizard/code/FormWizardCode';
 import CustomTextField from 'src/components/forms/theme-elements/CustomTextField';
 import CustomCheckbox from 'src/components/forms/theme-elements/CustomCheckbox';
@@ -112,7 +111,6 @@ const FormWizard = () => {
 
   return (
     <PageContainer>
-      <Breadcrumb title="Form Wizard" subtitle="this is Form Wizard page" />
       <ParentCard title="Form Wizard" codeModel={<FormWizardCode />}>
         <Box width="100%">
           <Stepper activeStep={activeStep}>

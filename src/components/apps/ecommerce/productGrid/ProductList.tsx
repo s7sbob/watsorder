@@ -82,7 +82,7 @@ const ProductList: React.FC<Props> = ({ onCartUpdate }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  const [isLoading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   /** عند الضغط على زر إضافة للسلة أو البطاقة */
   const handleProductClick = (product: any) => {

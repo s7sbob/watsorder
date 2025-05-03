@@ -1,9 +1,9 @@
 // src/components/apps/ecommerce/Cart.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { sum } from 'lodash';
 import { IconX } from '@tabler/icons-react';
 import { Box, Typography, Drawer, IconButton, Button, Stack } from '@mui/material';
-import { useSelector, useDispatch } from 'src/store/Store';
+import { useSelector } from 'src/store/Store';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import CartItems from './CartItems'; // مكون لعرض عناصر السلة
@@ -16,7 +16,6 @@ type Props = {
 const Cart: React.FC<Props> = ({ open, onClose }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const cart = useSelector((state) => state.ecommerceReducer.cart);
   const { storeName } = useParams<{ storeName: string }>(); // جلب storeName من الـ URL
 

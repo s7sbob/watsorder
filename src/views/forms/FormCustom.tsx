@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import { SliderThumb } from '@mui/material/Slider';
 
-import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import PageContainer from 'src/components/container/PageContainer';
 
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -100,7 +99,6 @@ const FormCustom = () => {
   return (
     <PageContainer title="Custom Form" description="this is Custom Form page">
       {/* breadcrumb */}
-      <Breadcrumb title="Custom Form" subtitle="custom designed element" />
       {/* end breadcrumb */}
       <ParentCard title="Custom Form" codeModel={<FormCustomCode />}>
         <Grid container spacing={3}>

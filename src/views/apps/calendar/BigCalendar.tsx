@@ -21,7 +21,6 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import './Calendar.css';
 import PageContainer from 'src/components/container/PageContainer';
-import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import { IconCheck } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 
@@ -165,7 +164,6 @@ const BigCalendar = () => {
 
   return (
     <PageContainer title="Calendar ui" description="this is Calendar page">
-      <Breadcrumb title="Calendar" subtitle="App" />
       <BlankCard>
         {/* ------------------------------------------- */}
         {/* Calendar */}

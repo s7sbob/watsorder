@@ -1,4 +1,3 @@
-// src/components/apps/ecommerce/productCart/AddToCart.tsx
 import React from 'react';
 import {
   Box, Typography, Avatar, Stack, ButtonGroup, Button, Table, TableContainer, TableHead, TableRow, TableCell, TableBody, IconButton
@@ -8,11 +7,12 @@ import { useTranslation } from 'react-i18next';
 import { IconMinus, IconPlus, IconTrash } from '@tabler/icons-react';
 import { increment, decrement, deleteCart } from 'src/store/apps/eCommerce/ECommerceSlice';
 import emptyCart from 'src/assets/images/products/empty-shopping-cart.svg';
+import { ProductType } from 'src/types/apps/eCommerce'; // عدّل المسار حسب مكان ملف types
 
 const AddToCart: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const cart = useSelector((state) => state.ecommerceReducer.cart);
+  const cart = useSelector((state: any) => state.ecommerceReducer.cart as ProductType[]);
 
   const Increase = (productId: number | string) => {
     dispatch(increment(productId));
@@ -38,9 +38,6 @@ const AddToCart: React.FC = () => {
               <TableBody>
                 {cart.map((product) => (
                   <TableRow key={product.id}>
-                    {/* ------------------------------------------- */}
-                    {/* Product Image & Title */}
-                    {/* ------------------------------------------- */}
                     <TableCell>
                       <Stack direction="row" alignItems="center" gap={2}>
                         <Avatar
@@ -54,7 +51,7 @@ const AddToCart: React.FC = () => {
                         />
                         <Box>
                           <Typography variant="h6">{product.title}</Typography>
-                          {product.notes && (
+                          {'notes' in product && product.notes && (
                             <Typography color="textSecondary" variant="body2">
                               {t('Ecommerce.notes')}: {product.notes}
                             </Typography>

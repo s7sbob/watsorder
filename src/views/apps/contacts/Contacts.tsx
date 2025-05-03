@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Button, Box, Drawer, useMediaQuery, Theme } from '@mui/material';
 import PageContainer from 'src/components/container/PageContainer';
-import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import ContactDetails from 'src/components/apps/contacts/ContactDetails';
 import ContactList from 'src/components/apps/contacts/ContactList';
 import ContactSearch from 'src/components/apps/contacts/ContactSearch';
@@ -21,7 +20,6 @@ const Contacts = () => {
 
   return (
     <PageContainer title="Contact App" description="this is Contact page">
-      <Breadcrumb title="Contact app" subtitle="List Your Contacts" />
       <AppCard>
         {/* ------------------------------------------- */}
         {/* Left Part */}
