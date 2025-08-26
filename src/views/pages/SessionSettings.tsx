@@ -5,19 +5,19 @@ import { Box, Button, Typography, AppBar, Tabs, Tab } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 
 // tabs
-import CategoriesTab   from './CategoriesTab'
-import ProductsTab     from './ProductsTab'
+// import CategoriesTab   from './CategoriesTab'
+// import ProductsTab     from './ProductsTab'
 import KeywordsTab     from './KeywordsTab'
 import MarketingTab    from './MarketingTab'
-import EcommerceTab    from './EcommerceTab'   // ← NEW
+// import EcommerceTab    from './EcommerceTab'   // ← NEW
 import GreetingTab     from './GreetingTab'
 
 // icons
-import CategoryIcon    from '@mui/icons-material/Category'
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag'
+// import CategoryIcon    from '@mui/icons-material/Category'
+// import ShoppingBagIcon from '@mui/icons-material/ShoppingBag'
 import LocalOfferIcon  from '@mui/icons-material/LocalOffer'
 import CampaignIcon    from '@mui/icons-material/Campaign'
-import StorefrontIcon  from '@mui/icons-material/Storefront'  // ← NEW
+// import StorefrontIcon  from '@mui/icons-material/Storefront'  // ← NEW
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions'
 
 function a11yProps(index: number) {
@@ -52,7 +52,7 @@ const SessionSettings: React.FC = () => {
   const { t } = useTranslation()
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
-  const [value, setValue] = useState(0)
+  const [value, setValue] = useState(0) // start from 0
 
   if (!sessionId) {
     return <Typography variant="h6">{t('SessionSettings.noSession')}</Typography>
@@ -78,35 +78,26 @@ const SessionSettings: React.FC = () => {
           indicatorColor="primary"
           aria-label="session tabs"
         >
-          {/* <Tab icon={<CategoryIcon />}    label={t('SessionSettings.tabs.categories')} {...a11yProps(0)} />
-          <Tab icon={<ShoppingBagIcon />} label={t('SessionSettings.tabs.products')}   {...a11yProps(1)} /> */}
-          <Tab icon={<LocalOfferIcon />}  label={t('SessionSettings.tabs.keywords')}   {...a11yProps(2)} />
-          <Tab icon={<CampaignIcon />}    label={t('SessionSettings.tabs.marketing')}  {...a11yProps(3)} />
-          {/* <Tab icon={<StorefrontIcon />}  label={t('SessionSettings.tabs.ecommerce')} {...a11yProps(4)} /> */}
-          <Tab icon={<EmojiEmotionsIcon />} label={t('SessionSettings.tabs.greeting')} {...a11yProps(5)} />
+          {/* تصحيح الأرقام - تبدأ من 0 */}
+          <Tab icon={<LocalOfferIcon />}     label={t('SessionSettings.tabs.keywords')}   {...a11yProps(0)} />
+          <Tab icon={<CampaignIcon />}       label={t('SessionSettings.tabs.marketing')}  {...a11yProps(1)} />
+          <Tab icon={<EmojiEmotionsIcon />}  label={t('SessionSettings.tabs.greeting')}   {...a11yProps(2)} />
         </Tabs>
       </AppBar>
 
+      {/* تصحيح أرقام TabPanels */}
       <TabPanel value={value} index={0}>
-        <CategoriesTab sessionId={+sessionId} />
-      </TabPanel>
-      <TabPanel value={value} index={1}>
-        <ProductsTab sessionId={+sessionId} />
-      </TabPanel>
-      <TabPanel value={value} index={2}>
         <KeywordsTab sessionId={+sessionId} />
       </TabPanel>
-      <TabPanel value={value} index={3}>
+      <TabPanel value={value} index={1}>
         <MarketingTab sessionId={+sessionId} />
       </TabPanel>
-      <TabPanel value={value} index={4}>
-        <EcommerceTab sessionId={+sessionId} />   {/* ← NEW */}
-      </TabPanel>
-      <TabPanel value={value} index={5}>
+      <TabPanel value={value} index={2}>
         <GreetingTab sessionId={+sessionId} />
       </TabPanel>
     </Box>
   )
 }
+
 
 export default SessionSettings

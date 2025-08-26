@@ -293,44 +293,44 @@ const SessionListing = () => {
     }
   }
 
-  const handleToggleMenuBot = async (session: SessionType) => {
-    const newMenuBotActive = !session.menuBotActive
-    try {
-      await axiosServices.post(`/api/sessions/${session.id}/menu-bot/update`, { menuBotActive: newMenuBotActive })
-      dispatch(updateSession({ sessionId: session.id, changes: { menuBotActive: newMenuBotActive } }))
-      showAlert(t('SessionListing.messages.menuBotUpdated', { status: newMenuBotActive ? 'ON' : 'OFF', sessionId: session.id.toString() }), 'info')
-    } catch (error) {
-      console.error('Error toggling menu bot:', error)
-      showAlert(t('SessionListing.messages.menuBotToggleError'), 'error')
-    }
-  }
+  // const handleToggleMenuBot = async (session: SessionType) => {
+  //   const newMenuBotActive = !session.menuBotActive
+  //   try {
+  //     await axiosServices.post(`/api/sessions/${session.id}/menu-bot/update`, { menuBotActive: newMenuBotActive })
+  //     dispatch(updateSession({ sessionId: session.id, changes: { menuBotActive: newMenuBotActive } }))
+  //     showAlert(t('SessionListing.messages.menuBotUpdated', { status: newMenuBotActive ? 'ON' : 'OFF', sessionId: session.id.toString() }), 'info')
+  //   } catch (error) {
+  //     console.error('Error toggling menu bot:', error)
+  //     showAlert(t('SessionListing.messages.menuBotToggleError'), 'error')
+  //   }
+  // }
 
 
-  const handleToggleEcommerce = async (session: SessionType) => {
-    const newEcom = !session.ecommerceActive;
-    try {
-      await axiosServices.post(
-        `/api/sessions/${session.id}/ecommerce/update`,
-        { ecommerceActive: newEcom }
-      );
-      dispatch(
-        updateSession({
-          sessionId: session.id,
-          changes: { ecommerceActive: newEcom }
-        })
-      );
-      showAlert(
-        t('SessionListing.messages.ecommerceUpdated', {
-          status: newEcom ? 'ON' : 'OFF',
-          sessionId: session.id.toString()
-        }),
-        'info'
-      );
-    } catch (err) {
-      console.error('Error toggling e-commerce:', err);
-      showAlert(t('SessionListing.messages.ecommerceToggleError'), 'error');
-    }
-  };
+  // const handleToggleEcommerce = async (session: SessionType) => {
+  //   const newEcom = !session.ecommerceActive;
+  //   try {
+  //     await axiosServices.post(
+  //       `/api/sessions/${session.id}/ecommerce/update`,
+  //       { ecommerceActive: newEcom }
+  //     );
+  //     dispatch(
+  //       updateSession({
+  //         sessionId: session.id,
+  //         changes: { ecommerceActive: newEcom }
+  //       })
+  //     );
+  //     showAlert(
+  //       t('SessionListing.messages.ecommerceUpdated', {
+  //         status: newEcom ? 'ON' : 'OFF',
+  //         sessionId: session.id.toString()
+  //       }),
+  //       'info'
+  //     );
+  //   } catch (err) {
+  //     console.error('Error toggling e-commerce:', err);
+  //     showAlert(t('SessionListing.messages.ecommerceToggleError'), 'error');
+  //   }
+  // };
 
 
 
