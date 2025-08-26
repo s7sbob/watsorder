@@ -510,7 +510,7 @@ const SessionListing = () => {
                         >
                           {session.botActive ? t('SessionListing.buttons.botOff') : t('SessionListing.buttons.botOn')}
                         </Button>
-                        <Button
+                        {/* <Button
                           variant='contained'
                           color={session.menuBotActive ? 'success' : 'warning'}
                           size='small'
@@ -519,8 +519,8 @@ const SessionListing = () => {
                           {session.menuBotActive
                             ? t('SessionListing.buttons.menuBotOff')
                             : t('SessionListing.buttons.menuBotOn')}
-                        </Button>
-                        <Button
+                        </Button> */}
+                        {/* <Button
       variant="contained"
       color={session.ecommerceActive ? 'success' : 'warning'}
       size="small"
@@ -529,7 +529,7 @@ const SessionListing = () => {
       {session.ecommerceActive
         ? t('SessionListing.buttons.ecomOff')
         : t('SessionListing.buttons.ecomOn')}
-    </Button>
+    </Button> */}
                         {session.status !== 'Terminated' && (
                           <Button variant='outlined' size='small' onClick={() => handleLogoutSession(session)}>
                             {t('SessionListing.buttons.logout')}

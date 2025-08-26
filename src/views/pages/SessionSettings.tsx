@@ -78,11 +78,11 @@ const SessionSettings: React.FC = () => {
           indicatorColor="primary"
           aria-label="session tabs"
         >
-          <Tab icon={<CategoryIcon />}    label={t('SessionSettings.tabs.categories')} {...a11yProps(0)} />
-          <Tab icon={<ShoppingBagIcon />} label={t('SessionSettings.tabs.products')}   {...a11yProps(1)} />
+          {/* <Tab icon={<CategoryIcon />}    label={t('SessionSettings.tabs.categories')} {...a11yProps(0)} />
+          <Tab icon={<ShoppingBagIcon />} label={t('SessionSettings.tabs.products')}   {...a11yProps(1)} /> */}
           <Tab icon={<LocalOfferIcon />}  label={t('SessionSettings.tabs.keywords')}   {...a11yProps(2)} />
           <Tab icon={<CampaignIcon />}    label={t('SessionSettings.tabs.marketing')}  {...a11yProps(3)} />
-          <Tab icon={<StorefrontIcon />}  label={t('SessionSettings.tabs.ecommerce')} {...a11yProps(4)} />
+          {/* <Tab icon={<StorefrontIcon />}  label={t('SessionSettings.tabs.ecommerce')} {...a11yProps(4)} /> */}
           <Tab icon={<EmojiEmotionsIcon />} label={t('SessionSettings.tabs.greeting')} {...a11yProps(5)} />
         </Tabs>
       </AppBar>
