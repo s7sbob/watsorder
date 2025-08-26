@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Box, TextField, FormControlLabel, Checkbox, Button } from '@mui/material'
+import { Box, FormControlLabel, Checkbox, Button, Typography } from '@mui/material'
 import axiosServices from 'src/utils/axios'
 import { useTranslation } from 'react-i18next'
+import WhatsAppRichTextEditor from 'src/components/WhatsAppRichTextEditor'
 
 interface GreetingTabProps {
   sessionId: number
@@ -16,6 +17,7 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
     greetingMessage: '',
     greetingActive: false
   })
+  const [formattedMessage, setFormattedMessage] = useState('')
 
   // جلب البيانات عند التحميل
   useEffect(() => {
@@ -23,9 +25,10 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
       try {
         const response = await axiosServices.get(`/api/sessions/${sessionId}/greeting`)
         setGreetingData({
-          greetingMessage: response.data.greetingMessage,
-          greetingActive: response.data.greetingActive
+          greetingMessage: response.data.greetingMessage || '',
+          greetingActive: response.data.greetingActive || false
         })
+        setFormattedMessage(response.data.greetingMessage || '')
       } catch (error) {
         console.error('Error fetching greeting data:', error)
       }
@@ -37,7 +40,7 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
   const handleGreetingUpdate = async () => {
     try {
       await axiosServices.post(`/api/sessions/${sessionId}/greeting/update`, {
-        greetingMessage: greetingData.greetingMessage,
+        greetingMessage: formattedMessage, // إرسال النص المنسق
         greetingActive: greetingData.greetingActive
       })
       alert(t('GreetingTab.alerts.updateSuccess'))
@@ -47,19 +50,28 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
     }
   }
 
+  const handleRichTextChange = (rawText: string, formatted: string) => {
+    setGreetingData({ ...greetingData, greetingMessage: rawText })
+    setFormattedMessage(formatted)
+  }
+
   return (
     <Box>
-      <TextField
-        label={t('GreetingTab.fields.greetingMessage')}
-        fullWidth
-        multiline
-        rows={3}
+      <Typography variant="h6" gutterBottom>
+        {t('GreetingTab.title', 'رسالة الترحيب')}
+      </Typography>
+      
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        استخدم أدوات التنسيق لإنشاء رسالة ترحيب جميلة ومنسقة. يمكنك استخدام النص العريض والمائل والقوائم والمزيد.
+      </Typography>
+
+      <WhatsAppRichTextEditor
         value={greetingData.greetingMessage}
-        onChange={e =>
-          setGreetingData({ ...greetingData, greetingMessage: e.target.value })
-        }
-        sx={{ mt: 2 }}
+        onChange={handleRichTextChange}
+        placeholder="اكتب رسالة الترحيب هنا... يمكنك استخدام التنسيق لجعلها أكثر جاذبية"
+        maxLength={2000}
       />
+
       <FormControlLabel
         control={
           <Checkbox
@@ -69,16 +81,44 @@ const GreetingTab: React.FC<GreetingTabProps> = ({ sessionId }) => {
             }
           />
         }
-        label={t('GreetingTab.fields.enableGreeting')}
+        label={t('GreetingTab.fields.enableGreeting', 'تفعيل رسالة الترحيب')}
         sx={{ mt: 2 }}
       />
+
       <Box mt={2}>
-        <Button variant='contained' onClick={handleGreetingUpdate}>
-          {t('GreetingTab.buttons.save')}
+        <Button 
+          variant='contained' 
+          onClick={handleGreetingUpdate}
+          disabled={!formattedMessage.trim()}
+        >
+          {t('GreetingTab.buttons.save', 'حفظ')}
         </Button>
       </Box>
+
+      {/* معاينة الرسالة المحفوظة */}
+      {formattedMessage && (
+        <Box sx={{ mt: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            الرسالة التي ستُرسل:
+          </Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              backgroundColor: '#fff',
+              p: 1,
+              borderRadius: 1,
+              border: '1px solid #ddd'
+            }}
+          >
+            {formattedMessage}
+          </Typography>
+        </Box>
+      )}
     </Box>
   )
 }
 
 export default GreetingTab
+

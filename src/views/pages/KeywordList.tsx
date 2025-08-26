@@ -22,9 +22,14 @@ interface MediaFile {
   mediaName: string;
 }
 
+interface KeywordObject {
+  keywordId: number;
+  keyword: string;
+}
+
 export interface KeywordItem {
   replayId: number;
-  keywords: string[];
+  keywords: KeywordObject[]; // بدلاً من string[]
   replyText: string;
   mediaFiles: MediaFile[];
 }
@@ -35,7 +40,7 @@ interface KeywordListProps {
 
 interface GroupedKeyword {
   replayId: number;
-  keywords: string[];
+  keywords: (string | KeywordObject)[]; // يمكن أن تكون strings أو objects
   replyText: string;
   mediaFiles: MediaFile[];
 }
@@ -52,19 +57,20 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   const [, setOldMediaFiles] = useState<MediaFile[]>([]);
   const [searchText, setSearchText] = useState('');
 
-  const filteredKeywords = useMemo((): GroupedKeyword[] => {
-    if (!searchText.trim()) return keywords;
-  
-    const term = searchText.toLowerCase();
-    return keywords.filter(group => {
-      // ابحث في أي keyword داخل المجموعة أو في replyText
-      const matchesKeyword = group.keywords.some(k =>
-        k.toLowerCase().includes(term)
-      );
-      const matchesReply   = group.replyText.toLowerCase().includes(term);
-      return matchesKeyword || matchesReply;
+const filteredKeywords = useMemo((): GroupedKeyword[] => {
+  if (!searchText.trim()) return keywords;
+
+  const term = searchText.toLowerCase();
+  return keywords.filter(group => {
+    // ابحث في أي keyword داخل المجموعة أو في replyText
+    const matchesKeyword = group.keywords.some(kw => {
+      const keywordText = typeof kw === 'string' ? kw : kw.keyword;
+      return keywordText.toLowerCase().includes(term);
     });
-  }, [keywords, searchText]);
+    const matchesReply = group.replyText.toLowerCase().includes(term);
+    return matchesKeyword || matchesReply;
+  });
+}, [keywords, searchText]);
 
 
 
@@ -88,14 +94,20 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
   //   return keywords;
   // }, [keywords]);
 
-  const handleEdit = (group: GroupedKeyword) => {
-    setEditingId(group.replayId);
-    setGroupKeywords(group.keywords);
-    setNewReplyText(group.replyText);
-    setOldMediaFiles(group.mediaFiles || []);
-    setSelectedFiles([]);
-    setPreviewUrls([]);
-  };
+const handleEdit = (group: GroupedKeyword) => {
+  setEditingId(group.replayId);
+  
+  // استخراج النصوص من objects
+  const keywordStrings = group.keywords.map(kw => 
+    typeof kw === 'string' ? kw : kw.keyword
+  );
+  
+  setGroupKeywords(keywordStrings);
+  setNewReplyText(group.replyText);
+  setOldMediaFiles(group.mediaFiles || []);
+  setSelectedFiles([]);
+  setPreviewUrls([]);
+};
 
   const handleCancelEdit = () => {
     setEditingId(null);
@@ -246,10 +258,14 @@ const KeywordList: React.FC<KeywordListProps> = ({ sessionId }) => {
                 key={group.replayId}
                 sx={{ display: 'block', mb: 2, border: '1px solid #eee', p: 1 }}
               >
-                <ListItemText
-                  primary={`${t('KeywordList.keywordLabel')}: ${group.keywords.join(', ')}`}
-                  secondary={`${t('KeywordList.replyTextLabel')}: ${group.replyText}`}
-                />
+<ListItemText
+  primary={`${t('KeywordList.keywordLabel')}: ${
+    group.keywords.map(kw => 
+      typeof kw === 'string' ? kw : kw.keyword
+    ).join(', ')
+  }`}
+  secondary={`${t('KeywordList.replyTextLabel')}: ${group.replyText}`}
+/>
                 {group.mediaFiles && group.mediaFiles.length > 0 && (
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
                     {group.mediaFiles.map((media) => (

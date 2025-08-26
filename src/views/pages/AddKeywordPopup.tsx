@@ -1,136 +1,189 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
-  Box
-} from '@mui/material'
-import axiosServices from 'src/utils/axios'
+  TextField,
+  Box,
+  Typography,
+  Chip,
+  Stack,
+  Input
+} from '@mui/material';
+import { Add, Delete } from '@mui/icons-material';
+import WhatsAppRichTextEditor from 'src/components/WhatsAppRichTextEditor';
 
 interface AddKeywordPopupProps {
-  open: boolean
-  onClose: () => void
-  sessionId: number
-  onSuccess: () => void // دالة لإعادة التحديث بالخارج (لإعادة الجلب مثلًا)
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: {
+    keywords: string[];
+    replyText: string;
+    replyMedia: File[];
+  }) => void;
+  title: string;
 }
 
 const AddKeywordPopup: React.FC<AddKeywordPopupProps> = ({
   open,
   onClose,
-  sessionId,
-  onSuccess
+  onSubmit,
+  title
 }) => {
-  const [keyword, setKeyword] = useState('')
-  const [replyText, setReplyText] = useState('')
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [currentKeyword, setCurrentKeyword] = useState('');
+  const [replyText, setReplyText] = useState('');
+  const [formattedReplyText, setFormattedReplyText] = useState('');
+  const [replyMedia, setReplyMedia] = useState<File[]>([]);
 
-  // نخزن الملفات التي سيختارها المستخدم
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  // للمعاينة (إن أردت معاينة الصور قبل الرفع)
-  const [previewUrls, setPreviewUrls] = useState<string[]>([])
-
-  // عند تغيير الملفات
-  const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files) return
-    const filesArray = Array.from(event.target.files)
-    setSelectedFiles(filesArray)
-
-    // إنشاء روابط مؤقتة للمعاينة (URL.createObjectURL)
-    const previews = filesArray.map(file => URL.createObjectURL(file))
-    setPreviewUrls(previews)
-  }
-
-  // عند إغلاق الـDialog، ننظف الحالة
-  useEffect(() => {
-    if (!open) {
-      setKeyword('')
-      setReplyText('')
-      setSelectedFiles([])
-      setPreviewUrls([])
+  const handleAddKeyword = () => {
+    if (currentKeyword.trim() && !keywords.includes(currentKeyword.trim())) {
+      setKeywords([...keywords, currentKeyword.trim()]);
+      setCurrentKeyword('');
     }
-  }, [open])
+  };
 
-  const handleSubmit = async () => {
-    try {
-      // نستخدم FormData
-      const formData = new FormData()
-      formData.append('keyword', keyword)
-      formData.append('replyText', replyText)
+  const handleRemoveKeyword = (keywordToRemove: string) => {
+    setKeywords(keywords.filter(keyword => keyword !== keywordToRemove));
+  };
 
-      // نضيف كل الملفات
-      selectedFiles.forEach(file => {
-        formData.append('media', file) // نفس الحقل الذي يستقبله multer.array('media', ...)
-      })
-
-      await axiosServices.post(`/api/sessions/${sessionId}/keyword`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-
-      onClose()
-      onSuccess() // إعادة جلب الكلمات المفتاحية مثلًا
-    } catch (error) {
-      console.error('Error adding keyword:', error)
-      // يمكنك إضافة Snackbar أو Alert حسب واجهتك
-      alert('Error adding keyword.')
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleAddKeyword();
     }
-  }
+  };
+
+  const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setReplyMedia(Array.from(event.target.files));
+    }
+  };
+
+  const handleRichTextChange = (rawText: string, formatted: string) => {
+    setReplyText(rawText);
+    setFormattedReplyText(formatted);
+  };
+
+  const handleSubmit = () => {
+    onSubmit({
+      keywords,
+      replyText: formattedReplyText, // إرسال النص المنسق
+      replyMedia
+    });
+    // إعادة تعيين النموذج
+    setKeywords([]);
+    setCurrentKeyword('');
+    setReplyText('');
+    setFormattedReplyText('');
+    setReplyMedia([]);
+  };
+
+  const handleClose = () => {
+    // إعادة تعيين النموذج عند الإغلاق
+    setKeywords([]);
+    setCurrentKeyword('');
+    setReplyText('');
+    setFormattedReplyText('');
+    setReplyMedia([]);
+    onClose();
+  };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth='sm'>
-      <DialogTitle>Add Keyword</DialogTitle>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
-        <TextField
-          label='Keyword'
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          fullWidth
-          sx={{ mt: 2 }}
-        />
-        <TextField
-          label='Reply Text'
-          value={replyText}
-          onChange={e => setReplyText(e.target.value)}
-          fullWidth
-          sx={{ mt: 2 }}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+          {/* إضافة الكلمات المفتاحية */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              الكلمات المفتاحية
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                value={currentKeyword}
+                onChange={(e) => setCurrentKeyword(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="أدخل كلمة مفتاحية واضغط Enter"
+              />
+              <Button
+                variant="outlined"
+                onClick={handleAddKeyword}
+                disabled={!currentKeyword.trim()}
+                startIcon={<Add />}
+              >
+                إضافة
+              </Button>
+            </Box>
+            
+            {/* عرض الكلمات المفتاحية المضافة */}
+            {keywords.length > 0 && (
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {keywords.map((keyword, index) => (
+                  <Chip
+                    key={index}
+                    label={keyword}
+                    onDelete={() => handleRemoveKeyword(keyword)}
+                    deleteIcon={<Delete />}
+                    variant="outlined"
+                    color="primary"
+                  />
+                ))}
+              </Stack>
+            )}
+          </Box>
 
-        <Button variant='contained' component='label' sx={{ mt: 2 }}>
-          Upload Image(s)
-          <input
-            type='file'
-            hidden
-            multiple // السماح برفع أكثر من ملف
-            accept='image/*'
-            onChange={handleFilesChange}
-          />
-        </Button>
-
-        {/* عرض معاينات الصور (إن وجدت) */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
-          {previewUrls.map((url, index) => (
-            <img
-              key={index}
-              src={url}
-              alt='preview'
-              style={{ width: 100, height: 100, objectFit: 'cover' }}
+          {/* محرر النص المنسق للرد */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              نص الرد
+            </Typography>
+            <WhatsAppRichTextEditor
+              value={replyText}
+              onChange={handleRichTextChange}
+              placeholder="اكتب نص الرد هنا... يمكنك استخدام التنسيق لجعله أكثر جاذبية"
+              maxLength={4096}
             />
-          ))}
+          </Box>
+
+          {/* رفع الملفات */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              ملفات مرفقة (اختياري)
+            </Typography>
+            <Input
+              type="file"
+              inputProps={{ multiple: true, accept: 'image/*,video/*,audio/*,.pdf,.doc,.docx' }}
+              onChange={handleMediaChange}
+              fullWidth
+            />
+            {replyMedia.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  الملفات المحددة: {replyMedia.map(file => file.name).join(', ')}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color='secondary'>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} color='primary' variant='contained'>
-          Save
+        <Button onClick={handleClose}>إلغاء</Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={keywords.length === 0 || !formattedReplyText.trim()}
+        >
+          إضافة
         </Button>
       </DialogActions>
     </Dialog>
-  )
-}
+  );
+};
 
-export default AddKeywordPopup
+export default AddKeywordPopup;
+

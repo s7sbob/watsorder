@@ -1,5 +1,6 @@
 import { Client, Message } from 'whatsapp-web.js';
 import * as sql from 'mssql';
+import WhatsAppMessageFormatter from '../../../utils/whatsappMessageFormatter';
 
 interface GreetingHandlerParams {
   client: Client;
@@ -26,8 +27,7 @@ export const handleGreeting = async ({
   phoneNumber,
   menuBotActive
 }: GreetingHandlerParams): Promise<void> => {
-  const bold = (txt: string) => `*${txt}*`;
-
+  
   // تعريف ما إذا كانت الرسالة عبارة عن أمر
   const isCommand =
     ['NEWORDER', 'SHOWCATEGORIES', 'VIEWCART', 'CARTCONFIRM'].some(cmd => upperText === cmd) ||
@@ -37,6 +37,9 @@ export const handleGreeting = async ({
 
   // حالة الترحيب العامة (عند عدم كون الرسالة أمر)
   if (greetingActive && !isCommand) {
+    console.log(`[${new Date().toISOString()}] Processing greeting for customer: ${customerPhone}`);
+    
+    // التحقق من وجود طلب نشط للعميل
     const existingOrder = await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .input('custPhone', sql.NVarChar, customerPhone)
@@ -47,118 +50,162 @@ export const handleGreeting = async ({
           AND customerPhoneNumber = @custPhone
           AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
       `);
+
+    // إرسال رسالة الترحيب فقط إذا لم يكن هناك طلب نشط
     if (existingOrder.recordset.length === 0) {
-      const now = new Date();
-      const greetingLogRow = await pool.request()
-        .input('sessionId', sql.Int, sessionId)
-        .input('custPhone', sql.NVarChar, customerPhone)
-        .query(`
-          SELECT lastSentAt
-          FROM GreetingLog
-          WHERE sessionId = @sessionId
-            AND phoneNumber = @custPhone
-        `);
-      let canSendGreeting = false;
-      if (!greetingLogRow.recordset.length) {
-        canSendGreeting = true;
-      } else {
-        const lastSent = new Date(greetingLogRow.recordset[0].lastSentAt);
-        const diffMinutes = (new Date().getTime() - lastSent.getTime()) / 1000 / 60;
-        if (diffMinutes >= 60) {
-          canSendGreeting = true;
-        }
-      }
-      if (canSendGreeting && greetingMessage) {
-        await client.sendMessage(msg.from, greetingMessage);
-        if (!greetingLogRow.recordset.length) {
-          await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .input('now', sql.DateTime, now)
-            .query(`
-              INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
-              VALUES (@sessionId, @custPhone, @now)
-            `);
+      try {
+        // التحقق من وجود رسالة ترحيب
+        if (greetingMessage && greetingMessage.trim()) {
+          console.log(`[${new Date().toISOString()}] Sending formatted greeting message`);
+          
+          // رسالة الترحيب مُحفوظة بالفعل بتنسيق WhatsApp، لذا نرسلها مباشرة
+          let formattedGreeting = greetingMessage;
+          
+          // إضافة معلومات إضافية للرسالة
+          formattedGreeting = WhatsAppMessageFormatter.addMetadata(formattedGreeting, {
+            timestamp: new Date(),
+            sessionName: undefined // يمكن إضافة اسم الجلسة هنا إذا كان متاحاً
+          });
+          
+          // إرسال رسالة الترحيب
+          await sendMessageWithRetry(client, msg.from, formattedGreeting);
+          
+          console.log(`[${new Date().toISOString()}] Greeting message sent successfully`);
         } else {
-          await pool.request()
-            .input('sessionId', sql.Int, sessionId)
-            .input('custPhone', sql.NVarChar, customerPhone)
-            .input('now', sql.DateTime, now)
-            .query(`
-              UPDATE GreetingLog
-              SET lastSentAt = @now
-              WHERE sessionId = @sessionId
-                AND phoneNumber = @custPhone
-            `);
+          console.log(`[${new Date().toISOString()}] No greeting message configured for session ${sessionId}`);
+        }
+        
+        // إرسال قائمة الأوامر إذا كان Menu Bot مفعل
+        if (menuBotActive) {
+          await sendMenuCommands(client, msg.from, phoneNumber);
+        }
+        
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error sending greeting message:`, error);
+        
+        // إرسال رسالة ترحيب بديلة في حالة الخطأ
+        try {
+          const fallbackGreeting = `مرحباً بك! 👋\n\nنحن سعداء لتواصلك معنا.`;
+          await sendMessageWithRetry(client, msg.from, fallbackGreeting);
+        } catch (fallbackError) {
+          console.error(`[${new Date().toISOString()}] Failed to send fallback greeting:`, fallbackError);
         }
       }
-    }
-  }
-
-  // حالة ترحيب خاصة بمنيو بوت في حالة عدم وجود طلب مفتوح
-  if (
-    menuBotActive &&
-    (await pool.request()
-      .input('sessionId', sql.Int, sessionId)
-      .input('custPhone', sql.NVarChar, customerPhone)
-      .query(`
-        SELECT TOP 1 id 
-        FROM Orders 
-        WHERE sessionId = @sessionId 
-          AND customerPhoneNumber = @custPhone
-          AND status IN ('IN_CART','AWAITING_ADDRESS','AWAITING_LOCATION','AWAITING_QUANTITY','AWAITING_NAME')
-      `)).recordset.length === 0 &&
-    !isCommand
-  ) {
-    const specialPhoneForMenuBot = customerPhone + '-menubot';
-    const now = new Date();
-    const menuBotLogRow = await pool.request()
-      .input('sessionId', sql.Int, sessionId)
-      .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
-      .query(`
-        SELECT lastSentAt
-        FROM GreetingLog
-        WHERE sessionId = @sessionId
-          AND phoneNumber = @specialPhone
-      `);
-    let canSendMenuBot = false;
-    if (!menuBotLogRow.recordset.length) {
-      canSendMenuBot = true;
     } else {
-      const lastSent = new Date(menuBotLogRow.recordset[0].lastSentAt);
-      const diffMinutes = (now.getTime() - lastSent.getTime()) / 1000 / 60;
-      if (diffMinutes >= 60) {
-        canSendMenuBot = true;
-      }
+      console.log(`[${new Date().toISOString()}] Customer ${customerPhone} has active order, skipping greeting`);
     }
-    if (canSendMenuBot) {
-      const menuBotGuide = `*ملاحظة* يرجى الضغط على الرابط المراد اختياره ثم الضغط على زر الإرسال
-
-*لتسجيل طلب جديد*
-wa.me/${phoneNumber}?text=NEWORDER
-`;
-      await client.sendMessage(msg.from, menuBotGuide);
-      if (!menuBotLogRow.recordset.length) {
-        await pool.request()
-          .input('sessionId', sql.Int, sessionId)
-          .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
-          .input('now', sql.DateTime, now)
-          .query(`
-            INSERT INTO GreetingLog (sessionId, phoneNumber, lastSentAt)
-            VALUES (@sessionId, @specialPhone, @now)
-          `);
-      } else {
-        await pool.request()
-          .input('sessionId', sql.Int, sessionId)
-          .input('specialPhone', sql.NVarChar, specialPhoneForMenuBot)
-          .input('now', sql.DateTime, now)
-          .query(`
-            UPDATE GreetingLog
-            SET lastSentAt = @now
-            WHERE sessionId = @sessionId
-              AND phoneNumber = @specialPhone
-          `);
-      }
-    }
+  } else if (!greetingActive) {
+    console.log(`[${new Date().toISOString()}] Greeting is disabled for session ${sessionId}`);
+  } else {
+    console.log(`[${new Date().toISOString()}] Message is a command, skipping greeting`);
   }
 };
+
+/**
+ * إرسال قائمة الأوامر المتاحة
+ */
+const sendMenuCommands = async (client: Client, chatId: string, phoneNumber: string): Promise<void> => {
+  try {
+    const menuMessage = `
+📋 *الأوامر المتاحة:*
+
+🛒 *NEWORDER* - بدء طلب جديد
+📂 *SHOWCATEGORIES* - عرض الفئات
+🛍️ *VIEWCART* - عرض السلة
+✅ *CARTCONFIRM* - تأكيد الطلب
+
+📞 للاستفسارات: ${phoneNumber || 'اتصل بنا'}
+
+_أرسل أي من الأوامر أعلاه للبدء_
+    `.trim();
+    
+    await sendMessageWithRetry(client, chatId, menuMessage);
+    console.log(`[${new Date().toISOString()}] Menu commands sent successfully`);
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error sending menu commands:`, error);
+  }
+};
+
+/**
+ * دالة مساعدة لإرسال رسالة مع إعادة المحاولة في حالة الفشل
+ */
+const sendMessageWithRetry = async (
+  client: Client, 
+  chatId: string, 
+  message: string, 
+  maxRetries: number = 3
+): Promise<boolean> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await client.sendMessage(chatId, message);
+      console.log(`[${new Date().toISOString()}] Message sent successfully on attempt ${attempt}`);
+      return true;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Failed to send message on attempt ${attempt}:`, error);
+      
+      if (attempt < maxRetries) {
+        // انتظار متزايد بين المحاولات
+        const delay = attempt * 1000;
+        console.log(`[${new Date().toISOString()}] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error(`[${new Date().toISOString()}] Failed to send message after ${maxRetries} attempts`);
+  return false;
+};
+
+/**
+ * دالة مساعدة للحصول على اسم العميل من رقم الهاتف
+ */
+const getCustomerDisplayName = async (pool: any, sessionId: number, customerPhone: string): Promise<string> => {
+  try {
+    const customerResult = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('customerPhone', sql.NVarChar, customerPhone)
+      .query(`
+        SELECT customerName 
+        FROM CustomerInfo 
+        WHERE sessionId = @sessionId AND customerPhone = @customerPhone
+      `);
+    
+    if (customerResult.recordset.length > 0 && customerResult.recordset[0].customerName) {
+      return customerResult.recordset[0].customerName;
+    }
+    
+    // إذا لم يكن هناك اسم محفوظ، استخدم جزء من رقم الهاتف
+    return `عميل ${customerPhone.slice(-4)}`;
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error getting customer name:`, error);
+    return `عميل ${customerPhone.slice(-4)}`;
+  }
+};
+
+/**
+ * دالة مساعدة لحفظ تفاعل العميل مع رسالة الترحيب
+ */
+const logGreetingInteraction = async (
+  pool: any, 
+  sessionId: number, 
+  customerPhone: string, 
+  messageType: 'greeting' | 'menu'
+): Promise<void> => {
+  try {
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('customerPhone', sql.NVarChar, customerPhone)
+      .input('messageType', sql.NVarChar, messageType)
+      .input('timestamp', sql.DateTime, new Date())
+      .query(`
+        INSERT INTO CustomerInteractions (sessionId, customerPhone, messageType, timestamp)
+        VALUES (@sessionId, @customerPhone, @messageType, @timestamp)
+      `);
+    
+    console.log(`[${new Date().toISOString()}] Logged ${messageType} interaction for customer ${customerPhone}`);
+  } catch (error) {
+    // لا نريد أن يؤثر خطأ في التسجيل على إرسال الرسالة
+    console.error(`[${new Date().toISOString()}] Error logging interaction:`, error);
+  }
+};
+

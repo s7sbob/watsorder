@@ -3,41 +3,64 @@ import { Request, Response } from 'express';
 import { poolPromise } from '../../config/db';
 import * as sql from 'mssql';
 import { checkSessionOwnership } from '../../utils/sessionUserChecks';
+import WhatsAppMessageFormatter from '../../utils/whatsappMessageFormatter';
 
 /**
- * (1) إضافة مجموعة كلمات مفتاحية + الرد
+ * إضافة مجموعة كلمات مفتاحية + الرد مع دعم Rich Text
  */
 export const addKeyword = async (req: Request, res: Response) => {
   try {
     const pool = await poolPromise;
-    const sessionId = parseInt(req.params.sessionId, 10); // أخذ sessionId من المسار
+    const sessionId = parseInt(req.params.sessionId, 10);
     const { keywords, replyText, isActive } = req.body;
     let mediaUrl = null;
 
-    // التحقق من أن sessionId ليس NaN
+    // التحقق من صحة sessionId
     if (isNaN(sessionId)) {
-      return res.status(400).json({ error: 'Invalid sessionId in URL path' });
+      return res.status(400).json({ error: 'معرف الجلسة غير صحيح في مسار URL' });
     }
 
-    // التحقق من أن keywords ليست فارغة
+    // التحقق من وجود الكلمات المفتاحية
     if (!keywords) {
-      return res.status(400).json({ error: 'Keyword is required' });
+      return res.status(400).json({ error: 'الكلمات المفتاحية مطلوبة' });
     }
 
-    // إذا تم رفع ملف وسائط جديد، خزن مسار S3
+    // التحقق من وجود نص الرد
+    if (!replyText) {
+      return res.status(400).json({ error: 'نص الرد مطلوب' });
+    }
+
+    // التحقق من ملكية الجلسة
+    await checkSessionOwnership(pool, sessionId, (req as any).user);
+
+    // تحويل نص الرد إلى تنسيق WhatsApp
+    const formattedReplyText = WhatsAppMessageFormatter.formatForWhatsApp(replyText);
+    
+    // التحقق من طول الرسالة
+    const lengthValidation = WhatsAppMessageFormatter.validateMessageLength(formattedReplyText, 4096);
+    if (!lengthValidation.isValid) {
+      return res.status(400).json({ 
+        error: 'نص الرد طويل جداً',
+        details: lengthValidation.message,
+        maxLength: 4096,
+        currentLength: formattedReplyText.length
+      });
+    }
+
+    // معالجة الملفات المرفوعة
     if (req.file) {
-      mediaUrl = (req.file as any).location; // مؤقتًا حتى يتم تطبيق ملف التصريح
+      mediaUrl = (req.file as any).location;
       console.log('Media uploaded for keyword (single), URL:', mediaUrl);
     } else if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      mediaUrl = (req.files[0] as any).location; // في حالة استخدام array
+      mediaUrl = (req.files[0] as any).location;
       console.log('Media uploaded for keyword (array), URL:', mediaUrl);
     } else {
-      console.log('No media file uploaded for keyword, req.file:', req.file, 'req.files:', req.files);
+      console.log('No media file uploaded for keyword');
     }
 
-    // أولاً: إنشاء الرد في جدول Replays
+    // إنشاء الرد في جدول Replays
     const replayResult = await pool.request()
-      .input('replyText', replyText)
+      .input('replyText', sql.NVarChar(sql.MAX), formattedReplyText)
       .query(`
         INSERT INTO Replays (replyText)
         VALUES (@replyText);
@@ -46,25 +69,27 @@ export const addKeyword = async (req: Request, res: Response) => {
 
     const replayId = replayResult.recordset[0].id;
 
-    // ثانيًا: إنشاء الكلمة المفتاحية في جدول Keywords وربطها بالرد
-    const keywordResult = await pool.request()
-      .input('sessionId', sessionId)
-      .input('keyword', keywords)
-      .input('replayId', replayId)
-      .query(`
-        INSERT INTO Keywords (sessionId, keyword, replay_id)
-        VALUES (@sessionId, @keyword, @replayId);
-        SELECT SCOPE_IDENTITY() as id;
-      `);
+    // معالجة الكلمات المفتاحية (قد تكون مفصولة بفواصل)
+    const keywordsList = Array.isArray(keywords) ? keywords : keywords.split(',').map((k: string) => k.trim()).filter((k: string) => k);
+    
+    // إدراج كل كلمة مفتاحية
+    for (const keyword of keywordsList) {
+      await pool.request()
+        .input('sessionId', sql.Int, sessionId)
+        .input('keyword', sql.NVarChar, keyword.trim())
+        .input('replayId', sql.Int, replayId)
+        .query(`
+          INSERT INTO Keywords (sessionId, keyword, replay_id)
+          VALUES (@sessionId, @keyword, @replayId);
+        `);
+    }
 
-    const keywordId = keywordResult.recordset[0].id;
-
-    // ثالثًا: إذا تم رفع ملف وسائط، أضفه إلى جدول ReplayMedia
+    // إضافة الملف المرفق إذا وُجد
     if (mediaUrl) {
       await pool.request()
-        .input('replayId', replayId)
-        .input('filePath', mediaUrl)
-        .input('fileName', req.file ? req.file.originalname : (Array.isArray(req.files) && req.files.length > 0 ? (req.files[0] as any).originalname : null))
+        .input('replayId', sql.Int, replayId)
+        .input('filePath', sql.NVarChar, mediaUrl)
+        .input('fileName', sql.NVarChar, req.file ? req.file.originalname : (Array.isArray(req.files) && req.files.length > 0 ? (req.files[0] as any).originalname : null))
         .query(`
           INSERT INTO ReplayMedia (replayId, filePath, fileName)
           VALUES (@replayId, @filePath, @fileName);
@@ -72,16 +97,27 @@ export const addKeyword = async (req: Request, res: Response) => {
       console.log('Media URL inserted into ReplayMedia for keyword:', mediaUrl);
     }
 
-    res.status(201).json({ id: keywordId, message: 'Keyword added successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error adding keyword' });
+    res.status(201).json({ 
+      id: replayId, 
+      message: 'تم إضافة الكلمات المفتاحية بنجاح',
+      formattedReplyText: formattedReplyText,
+      keywordsCount: keywordsList.length,
+      preview: WhatsAppMessageFormatter.generatePreview(formattedReplyText)
+    });
+  } catch (error: any) {
+    if (error.message === 'SessionNotFound') {
+      return res.status(404).json({ error: 'الجلسة غير موجودة' });
+    }
+    if (error.message === 'Forbidden') {
+      return res.status(403).json({ error: 'غير مسموح: لا تملك هذه الجلسة' });
+    }
+    console.error('Error adding keyword:', error);
+    res.status(500).json({ error: 'خطأ في إضافة الكلمات المفتاحية' });
   }
 };
 
-
 /**
- * (2) جلب كل الكلمات المفتاحية الخاصة بالجلسة
+ * جلب كل الكلمات المفتاحية الخاصة بالجلسة
  */
 export const getKeywordsForSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.sessionId, 10);
@@ -99,220 +135,253 @@ export const getKeywordsForSession = async (req: Request, res: Response) => {
           r.id AS replayId,
           r.replyText,
           rm.id AS mediaId,
-          rm.filePath AS mediaUrl,
-          rm.fileName AS mediaName
+          rm.filePath,
+          rm.fileName
         FROM Keywords k
-        JOIN Replays r ON k.replay_id = r.id
-        LEFT JOIN ReplayMedia rm ON rm.replayId = r.id
+        LEFT JOIN Replays r ON k.replay_id = r.id
+        LEFT JOIN ReplayMedia rm ON r.id = rm.replayId
         WHERE k.sessionId = @sessionId
+        ORDER BY r.id DESC, k.id ASC
       `);
 
-    const rows = queryResult.recordset;
-    const map = new Map<number, any>();
-
-    for (const row of rows) {
-      if (!map.has(row.replayId)) {
-        map.set(row.replayId, {
-          replayId: row.replayId,
-          keywords: [row.keyword],
+    // تجميع البيانات حسب replayId
+    const groupedData: { [key: number]: any } = {};
+    
+    queryResult.recordset.forEach(row => {
+      const replayId = row.replayId;
+      
+      if (!groupedData[replayId]) {
+        groupedData[replayId] = {
+          replayId: replayId,
           replyText: row.replyText,
-          mediaFiles: []
+          preview: WhatsAppMessageFormatter.generatePreview(row.replyText || ''),
+          keywords: [],
+          media: []
+        };
+      }
+      
+      // إضافة الكلمة المفتاحية إذا لم تكن موجودة
+      const existingKeyword = groupedData[replayId].keywords.find((k: any) => k.keywordId === row.keywordId);
+      if (!existingKeyword && row.keywordId) {
+        groupedData[replayId].keywords.push({
+          keywordId: row.keywordId,
+          keyword: row.keyword
         });
-      } else {
-        map.get(row.replayId).keywords.push(row.keyword);
       }
-      if (row.mediaId) {
-        const mediaArray = map.get(row.replayId).mediaFiles;
-        if (!mediaArray.find((media: any) => media.mediaId === row.mediaId)) {
-          mediaArray.push({
-            mediaId: row.mediaId,
-            mediaUrl: row.mediaUrl,
-            mediaName: row.mediaName
-          });
-        }
+      
+      // إضافة الملف المرفق إذا لم يكن موجوداً
+      const existingMedia = groupedData[replayId].media.find((m: any) => m.mediaId === row.mediaId);
+      if (!existingMedia && row.mediaId) {
+        groupedData[replayId].media.push({
+          mediaId: row.mediaId,
+          filePath: row.filePath,
+          fileName: row.fileName
+        });
       }
-    }
+    });
 
-    const keywordsArray = Array.from(map.values());
-    return res.status(200).json(keywordsArray);
+    const result = Object.values(groupedData);
+    res.status(200).json(result);
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found.' });
+      return res.status(404).json({ error: 'الجلسة غير موجودة' });
     }
     if (error.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
+      return res.status(403).json({ error: 'غير مسموح: لا تملك هذه الجلسة' });
     }
     console.error('Error fetching keywords:', error);
-    return res.status(500).json({ message: 'Error fetching keywords.' });
+    res.status(500).json({ error: 'خطأ في جلب الكلمات المفتاحية' });
   }
 };
 
 /**
- * (3) تحديث مجموعة الكلمات المفتاحية
+ * تحديث مجموعة الكلمات المفتاحية مع دعم Rich Text
  */
 export const updateKeyword = async (req: Request, res: Response) => {
   try {
     const pool = await poolPromise;
+    const sessionId = parseInt(req.params.sessionId, 10);
+    const replayId = parseInt(req.params.keywordId, 10); // في الواقع هو replayId
+    const { newKeyword, newReplyText } = req.body;
 
-    // استلم keywordId بأي اسم أرسلته في الـ route
-    const keywordId = parseInt(
-      (req.params.keywordId || req.params.replayId || req.params.id) as string,
-      10,
-    );
-
-    if (isNaN(keywordId)) {
-      return res.status(400).json({ error: 'Invalid keywordId in URL path' });
+    if (!newKeyword || !newReplyText) {
+      return res.status(400).json({ message: 'الكلمات المفتاحية الجديدة ونص الرد مطلوبان' });
     }
 
-    const { newKeyword, newReplyText, isActive } = req.body;
-    let mediaUrl: string | null = null;
-
-    if (req.file) {
-      mediaUrl = (req.file as any).location;
-    } else if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      mediaUrl = (req.files[0] as any).location;
-    }
-
-    /* ---------- تحديث جدول Keywords ---------- */
-    const updateFields: string[] = [];
-    const request = pool.request().input('keywordId', sql.Int, keywordId);
-
-    if (newKeyword) {
-      updateFields.push('keyword = @newKeyword');
-      request.input('newKeyword', newKeyword);
-    }
-    if (isActive !== undefined) {
-      updateFields.push('IsActive = @isActive');
-      request.input('isActive', isActive === 'true' ? 1 : 0);
-    }
-
-    if (updateFields.length) {
-      await request.query(
-        `UPDATE Keywords SET ${updateFields.join(', ')} WHERE id = @keywordId`,
-      );
-    }
-
-    /* ---------- تحديث جدول Replays لو وُجد نص جديد ---------- */
-    if (newReplyText) {
-      await pool
-        .request()
-        .input('keywordId', sql.Int, keywordId)
-        .input('newReplyText', newReplyText)
-        .query(`
-          UPDATE r
-          SET r.replyText = @newReplyText
-          FROM Replays r
-          JOIN Keywords k ON k.replay_id = r.id
-          WHERE k.id = @keywordId
-        `);
-    }
-
-    /* ---------- تحديث الوسائط ---------- */
-    if (mediaUrl) {
-      // احصل على replay_id أولاً
-      const { recordset } = await pool
-        .request()
-        .input('keywordId', sql.Int, keywordId)
-        .query('SELECT replay_id FROM Keywords WHERE id = @keywordId');
-
-      const replayId = recordset[0]?.replay_id;
-      if (replayId) {
-        // احذف القديم
-        await pool
-          .request()
-          .input('replayId', sql.Int, replayId)
-          .query('DELETE FROM ReplayMedia WHERE replayId = @replayId');
-
-        // أضف الجديد
-        await pool
-          .request()
-          .input('replayId', sql.Int, replayId)
-          .input('filePath', mediaUrl)
-          .input(
-            'fileName',
-            req.file
-              ? req.file.originalname
-              : (Array.isArray(req.files) && req.files.length > 0
-                  ? (req.files[0] as any).originalname
-                  : null),
-          )
-          .query(
-            'INSERT INTO ReplayMedia (replayId, filePath, fileName) VALUES (@replayId, @filePath, @fileName)',
-          );
-      }
-    }
-
-    return res.json({ message: 'Keyword updated successfully' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Error updating keyword' });
-  }
-};
-
-
-
-/**
- * (4) حذف مجموعة الكلمات المفتاحية
- */
-export const deleteKeyword = async (req: Request, res: Response) => {
-  const sessionId = parseInt(req.params.sessionId, 10);
-  const keywordId = parseInt(req.params.keywordId, 10);
-
-  try {
-    const pool = await poolPromise;
+    // التحقق من ملكية الجلسة
     await checkSessionOwnership(pool, sessionId, (req as any).user);
 
+    // تحويل نص الرد إلى تنسيق WhatsApp
+    const formattedReplyText = WhatsAppMessageFormatter.formatForWhatsApp(newReplyText);
+    
+    // التحقق من طول الرسالة
+    const lengthValidation = WhatsAppMessageFormatter.validateMessageLength(formattedReplyText, 4096);
+    if (!lengthValidation.isValid) {
+      return res.status(400).json({ 
+        error: 'نص الرد طويل جداً',
+        details: lengthValidation.message,
+        maxLength: 4096,
+        currentLength: formattedReplyText.length
+      });
+    }
+
+    // تقسيم الكلمات المفتاحية الجديدة
+    const keywordsArray = newKeyword.split(',').map((kw: string) => kw.trim()).filter((kw: string) => kw);
+
+    // التحقق من وجود مجموعة الكلمات المفتاحية
     const keywordRows = await pool.request()
-      .input('keywordId', sql.Int, keywordId)
       .input('sessionId', sql.Int, sessionId)
+      .input('replayId', sql.Int, replayId)
       .query(`
-        SELECT id, replay_id FROM Keywords
-        WHERE id = @keywordId AND sessionId = @sessionId
+        SELECT id FROM Keywords
+        WHERE sessionId = @sessionId AND replay_id = @replayId
       `);
 
     if (!keywordRows.recordset.length) {
-      return res.status(404).json({ message: 'Keyword not found.' });
+      return res.status(404).json({ message: 'مجموعة الكلمات المفتاحية غير موجودة' });
     }
 
-    const replayId = keywordRows.recordset[0].replay_id;
-
+    // تحديث نص الرد
     await pool.request()
-      .input('keywordId', sql.Int, keywordId)
-      .input('sessionId', sql.Int, sessionId)
+      .input('replayId', sql.Int, replayId)
+      .input('newReplyText', sql.NVarChar(sql.MAX), formattedReplyText)
       .query(`
-        DELETE FROM Keywords
-        WHERE id = @keywordId AND sessionId = @sessionId
+        UPDATE Replays
+        SET replyText = @newReplyText
+        WHERE id = @replayId
       `);
 
-    // التحقق مما إذا كان هناك كلمات مفتاحية أخرى مرتبطة بنفس الرد
-    const checkReplay = await pool.request()
+    // حذف الكلمات المفتاحية القديمة
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
       .input('replayId', sql.Int, replayId)
       .query(`
-        SELECT COUNT(*) as cnt
-        FROM Keywords
-        WHERE replay_id = @replayId
+        DELETE FROM Keywords
+        WHERE sessionId = @sessionId AND replay_id = @replayId
       `);
 
-    if (checkReplay.recordset[0].cnt === 0) {
-      // إذا لم يكن هناك كلمات مفتاحية أخرى مرتبطة، احذف الرد
+    // إدراج الكلمات المفتاحية الجديدة
+    for (const kw of keywordsArray) {
       await pool.request()
-        .input('replayId', sql.Int, replayId)
-        .query(`DELETE FROM ReplayMedia WHERE replayId = @replayId`);
-
-      await pool.request()
-        .input('replayId', sql.Int, replayId)
-        .query(`DELETE FROM Replays WHERE id = @replayId`);
+        .input('sessionId', sql.Int, sessionId)
+        .input('keyword', sql.NVarChar, kw)
+        .input('replay_id', sql.Int, replayId)
+        .query(`
+          INSERT INTO [dbo].[Keywords] (sessionId, keyword, replay_id)
+          VALUES (@sessionId, @keyword, @replay_id)
+        `);
     }
 
-    return res.status(200).json({ message: 'Keyword deleted successfully.' });
+    return res.status(200).json({ 
+      message: 'تم تحديث مجموعة الكلمات المفتاحية بنجاح',
+      formattedReplyText: formattedReplyText,
+      keywordsCount: keywordsArray.length,
+      preview: WhatsAppMessageFormatter.generatePreview(formattedReplyText)
+    });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found.' });
+      return res.status(404).json({ message: 'الجلسة غير موجودة' });
     }
     if (error.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
+      return res.status(403).json({ message: 'غير مسموح: لا تملك هذه الجلسة' });
     }
-    console.error('Error deleting keyword:', error);
-    return res.status(500).json({ message: 'Error deleting keyword.' });
+    console.error('Error updating keyword group:', error);
+    return res.status(500).json({ message: 'خطأ في تحديث مجموعة الكلمات المفتاحية' });
   }
 };
+
+/**
+ * حذف مجموعة الكلمات المفتاحية
+ */
+export const deleteKeyword = async (req: Request, res: Response) => {
+  try {
+    const pool = await poolPromise;
+    const sessionId = parseInt(req.params.sessionId, 10);
+    const replayId = parseInt(req.params.keywordId, 10); // في الواقع هو replayId
+
+    // التحقق من ملكية الجلسة
+    await checkSessionOwnership(pool, sessionId, (req as any).user);
+
+    // التحقق من وجود مجموعة الكلمات المفتاحية
+    const keywordRows = await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('replayId', sql.Int, replayId)
+      .query(`
+        SELECT id FROM Keywords
+        WHERE sessionId = @sessionId AND replay_id = @replayId
+      `);
+
+    if (!keywordRows.recordset.length) {
+      return res.status(404).json({ message: 'مجموعة الكلمات المفتاحية غير موجودة' });
+    }
+
+    // حذف الكلمات المفتاحية
+    await pool.request()
+      .input('sessionId', sql.Int, sessionId)
+      .input('replayId', sql.Int, replayId)
+      .query(`
+        DELETE FROM Keywords
+        WHERE sessionId = @sessionId AND replay_id = @replayId
+      `);
+
+    // حذف الملفات المرفقة
+    await pool.request()
+      .input('replayId', sql.Int, replayId)
+      .query(`
+        DELETE FROM ReplayMedia
+        WHERE replayId = @replayId
+      `);
+
+    // حذف الرد
+    await pool.request()
+      .input('replayId', sql.Int, replayId)
+      .query(`
+        DELETE FROM Replays
+        WHERE id = @replayId
+      `);
+
+    return res.status(200).json({ message: 'تم حذف مجموعة الكلمات المفتاحية بنجاح' });
+  } catch (error: any) {
+    if (error.message === 'SessionNotFound') {
+      return res.status(404).json({ message: 'الجلسة غير موجودة' });
+    }
+    if (error.message === 'Forbidden') {
+      return res.status(403).json({ message: 'غير مسموح: لا تملك هذه الجلسة' });
+    }
+    console.error('Error deleting keyword group:', error);
+    return res.status(500).json({ message: 'خطأ في حذف مجموعة الكلمات المفتاحية' });
+  }
+};
+
+/**
+ * معاينة نص الرد كما سيظهر في WhatsApp
+ */
+export const previewKeywordReply = async (req: Request, res: Response) => {
+  const { replyText } = req.body;
+  
+  try {
+    if (!replyText) {
+      return res.status(400).json({ message: 'نص الرد مطلوب' });
+    }
+
+    // تحويل النص إلى تنسيق WhatsApp
+    const formattedMessage = WhatsAppMessageFormatter.formatForWhatsApp(replyText);
+    
+    // التحقق من طول الرسالة
+    const lengthValidation = WhatsAppMessageFormatter.validateMessageLength(formattedMessage, 4096);
+    
+    // إنشاء معاينة HTML
+    const htmlPreview = WhatsAppMessageFormatter.generatePreview(formattedMessage);
+    
+    return res.status(200).json({
+      formattedMessage: formattedMessage,
+      htmlPreview: htmlPreview,
+      lengthValidation: lengthValidation,
+      characterCount: formattedMessage.length
+    });
+  } catch (error) {
+    console.error('Error previewing keyword reply:', error);
+    return res.status(500).json({ message: 'خطأ في معاينة نص الرد' });
+  }
+};
+

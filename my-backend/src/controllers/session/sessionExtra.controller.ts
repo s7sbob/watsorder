@@ -5,36 +5,60 @@ import * as sql from 'mssql';
 import fs from 'fs-extra';
 import { checkSessionOwnership } from '../../utils/sessionUserChecks';
 import { whatsappClients } from '../whatsappClients';
+import WhatsAppMessageFormatter from '../../utils/whatsappMessageFormatter';
 
 /**
- * تحديث رسالة الترحيب
+ * تحديث رسالة الترحيب مع دعم Rich Text
  */
 export const updateGreeting = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
   const { greetingMessage, greetingActive } = req.body;
+  
   try {
     const pool = await poolPromise;
     await checkSessionOwnership(pool, sessionId, req.user);
 
+    // تحويل النص المنسق إلى تنسيق WhatsApp
+    let formattedMessage = '';
+    if (greetingMessage) {
+      formattedMessage = WhatsAppMessageFormatter.formatForWhatsApp(greetingMessage);
+      
+      // التحقق من طول الرسالة
+      const lengthValidation = WhatsAppMessageFormatter.validateMessageLength(formattedMessage, 2000);
+      if (!lengthValidation.isValid) {
+        return res.status(400).json({ 
+          message: 'رسالة الترحيب طويلة جداً',
+          details: lengthValidation.message,
+          maxLength: 2000,
+          currentLength: formattedMessage.length
+        });
+      }
+    }
+
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
-      .input('greetingMessage', sql.NVarChar(sql.MAX), greetingMessage || null)
+      .input('greetingMessage', sql.NVarChar(sql.MAX), formattedMessage || null)
       .input('greetingActive', sql.Bit, greetingActive ? 1 : 0)
       .query(`
         UPDATE Sessions
         SET greetingMessage = @greetingMessage, greetingActive = @greetingActive
         WHERE id = @sessionId
       `);
-    res.status(200).json({ message: 'Greeting updated successfully.' });
+
+    res.status(200).json({ 
+      message: 'تم تحديث رسالة الترحيب بنجاح',
+      formattedMessage: formattedMessage,
+      preview: WhatsAppMessageFormatter.generatePreview(formattedMessage)
+    });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found.' });
+      return res.status(404).json({ message: 'الجلسة غير موجودة' });
     }
     if (error.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
+      return res.status(403).json({ message: 'غير مسموح: لا تملك هذه الجلسة' });
     }
     console.error('Error updating greeting:', error);
-    res.status(500).json({ message: 'Error updating greeting.' });
+    res.status(500).json({ message: 'خطأ في تحديث رسالة الترحيب' });
   }
 };
 
@@ -54,17 +78,52 @@ export const getGreeting = async (req: Request, res: Response) => {
       `);
 
     if (!result.recordset.length) {
-      return res.status(404).json({ message: 'Session not found.' });
+      return res.status(404).json({ message: 'الجلسة غير موجودة' });
     }
 
     const row = result.recordset[0];
+    const greetingMessage = row.greetingMessage || '';
+    
     return res.status(200).json({
-      greetingMessage: row.greetingMessage || '',
-      greetingActive: row.greetingActive === true
+      greetingMessage: greetingMessage,
+      greetingActive: row.greetingActive === true,
+      preview: greetingMessage ? WhatsAppMessageFormatter.generatePreview(greetingMessage) : ''
     });
   } catch (error) {
     console.error('Error fetching greeting:', error);
-    return res.status(500).json({ message: 'Error fetching greeting.' });
+    return res.status(500).json({ message: 'خطأ في جلب رسالة الترحيب' });
+  }
+};
+
+/**
+ * معاينة رسالة الترحيب كما ستظهر في WhatsApp
+ */
+export const previewGreeting = async (req: Request, res: Response) => {
+  const { greetingMessage } = req.body;
+  
+  try {
+    if (!greetingMessage) {
+      return res.status(400).json({ message: 'رسالة الترحيب مطلوبة' });
+    }
+
+    // تحويل النص إلى تنسيق WhatsApp
+    const formattedMessage = WhatsAppMessageFormatter.formatForWhatsApp(greetingMessage);
+    
+    // التحقق من طول الرسالة
+    const lengthValidation = WhatsAppMessageFormatter.validateMessageLength(formattedMessage, 2000);
+    
+    // إنشاء معاينة HTML
+    const htmlPreview = WhatsAppMessageFormatter.generatePreview(formattedMessage);
+    
+    return res.status(200).json({
+      formattedMessage: formattedMessage,
+      htmlPreview: htmlPreview,
+      lengthValidation: lengthValidation,
+      characterCount: formattedMessage.length
+    });
+  } catch (error) {
+    console.error('Error previewing greeting:', error);
+    return res.status(500).json({ message: 'خطأ في معاينة رسالة الترحيب' });
   }
 };
 
@@ -74,22 +133,22 @@ export const getGreeting = async (req: Request, res: Response) => {
 export const deleteSession = async (req: Request, res: Response) => {
   const sessionId = parseInt(req.params.id, 10);
   if (!sessionId) {
-    return res.status(400).json({ message: 'Invalid session ID.' });
+    return res.status(400).json({ message: 'معرف الجلسة غير صحيح' });
   }
   try {
     const pool = await poolPromise;
 
-    // التحقق من الملكية (كما في السابق)
+    // التحقق من الملكية
     await checkSessionOwnership(pool, sessionId, req.user);
 
-    // لو العميل واتساب شغّال، ندمّره
+    // إيقاف عميل WhatsApp إذا كان يعمل
     const client = whatsappClients[sessionId];
     if (client) {
       await client.destroy();
       delete whatsappClients[sessionId];
     }
 
-    // 1) حذف الجلسة فعلياً من Sessions
+    // تحديث حالة الجلسة إلى محذوفة
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -98,9 +157,7 @@ export const deleteSession = async (req: Request, res: Response) => {
         WHERE id = @sessionId
       `);
 
-    // 2) تحديث SubscriptionRenewals وربطها بالـ isActive=0 (لو تريد أرشفتها)
-    //    أو يمكنك تركها نشطة isActive=1 لو تحب.
-    //    هنا نفترض أنك أضفت عمود isActive=bit في SubscriptionRenewals
+    // أرشفة تجديدات الاشتراك
     await pool.request()
       .input('sessionId', sql.Int, sessionId)
       .query(`
@@ -109,20 +166,18 @@ export const deleteSession = async (req: Request, res: Response) => {
         WHERE sessionId = @sessionId
       `);
 
-    return res.status(200).json({ message: 'Session deleted and subscription renewals archived.' });
+    return res.status(200).json({ message: 'تم حذف الجلسة وأرشفة تجديدات الاشتراك بنجاح' });
   } catch (error: any) {
     if (error.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found.' });
+      return res.status(404).json({ message: 'الجلسة غير موجودة' });
     }
     if (error.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden: You do not own this session.' });
+      return res.status(403).json({ message: 'غير مسموح: لا تملك هذه الجلسة' });
     }
     console.error('Error deleting session:', error);
-    return res.status(500).json({ message: 'Error deleting session.' });
+    return res.status(500).json({ message: 'خطأ في حذف الجلسة' });
   }
 };
-
-
 
 /**
  * GET /api/sessions/:id/settings
@@ -146,18 +201,18 @@ export const getSessionSettings = async (req: Request, res: Response) => {
       `)
 
     if (!result.recordset.length) {
-      return res.status(404).json({ message: 'Session not found.' })
+      return res.status(404).json({ message: 'الجلسة غير موجودة' })
     }
     return res.json(result.recordset[0])
   } catch (err: any) {
     console.error('Error fetching session settings:', err)
     if (err.message === 'SessionNotFound') {
-      return res.status(404).json({ message: 'Session not found.' })
+      return res.status(404).json({ message: 'الجلسة غير موجودة' })
     }
     if (err.message === 'Forbidden') {
-      return res.status(403).json({ message: 'Forbidden.' })
+      return res.status(403).json({ message: 'غير مسموح' })
     }
-    return res.status(500).json({ message: 'Server error.' })
+    return res.status(500).json({ message: 'خطأ في الخادم' })
   }
 }
 
@@ -169,10 +224,9 @@ export const updateSessionSettings = async (req: Request, res: Response) => {
   try {
     const pool = await poolPromise;
 
-    /* ✅ التقاط المعرف الصحيح من الـ route */
     const sessionId = parseInt(req.params.id, 10);
     if (isNaN(sessionId)) {
-      return res.status(400).json({ error: 'Invalid sessionId in URL path' });
+      return res.status(400).json({ error: 'معرف الجلسة غير صحيح في مسار URL' });
     }
 
     const {
@@ -182,13 +236,13 @@ export const updateSessionSettings = async (req: Request, res: Response) => {
       removeLogo,
     } = req.body;
 
-    /* ✅ شعار جديد إن وُجد */
+    // شعار جديد إن وُجد
     let sessionLogo: string | null = null;
     if (req.file) {
       sessionLogo = (req.file as any).location;
     }
 
-    /* ✅ تجهيز حقول التعديل */
+    // تجهيز حقول التعديل
     const fields: string[] = [];
     const request = pool.request().input('sessionId', sql.Int, sessionId);
 
@@ -212,10 +266,10 @@ export const updateSessionSettings = async (req: Request, res: Response) => {
     }
 
     if (!fields.length) {
-      return res.status(400).json({ error: 'No fields to update' });
+      return res.status(400).json({ error: 'لا توجد حقول للتحديث' });
     }
 
-    /* ✅ تنفيذ التعديل */
+    // تنفيذ التعديل
     const result = await request.query(`
       UPDATE Sessions
       SET ${fields.join(', ')}
@@ -223,17 +277,13 @@ export const updateSessionSettings = async (req: Request, res: Response) => {
     `);
 
     if (result.rowsAffected[0] === 0) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: 'الجلسة غير موجودة' });
     }
 
-    return res.json({ message: 'Session settings updated successfully' });
+    return res.json({ message: 'تم تحديث إعدادات الجلسة بنجاح' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Error updating session settings' });
+    return res.status(500).json({ error: 'خطأ في تحديث إعدادات الجلسة' });
   }
 };
-
-
-
-
 

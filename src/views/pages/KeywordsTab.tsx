@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Button } from '@mui/material';
 import KeywordList from './KeywordList';
-import AddDataPopup from './AddDataPopup';
+import AddKeywordPopup from './AddKeywordPopup'; // سنحتاج لتحديث هذا أيضاً
 import axiosServices from 'src/utils/axios';
 import { useTranslation } from 'react-i18next';
 
@@ -28,7 +28,7 @@ const KeywordsTab: React.FC<KeywordsTabProps> = ({ sessionId }) => {
       const formData = new FormData();
       // إرسال الكلمات كمجموعة باستخدام سلسلة مفصولة بفواصل
       formData.append('keywords', keywords.join(', '));
-      formData.append('replyText', replyText);
+      formData.append('replyText', replyText); // هذا سيكون النص المنسق
       if (Array.isArray(replyMedia) && replyMedia.length > 0) {
         replyMedia.forEach((file: File) => {
           formData.append('media', file, file.name);
@@ -51,19 +51,15 @@ const KeywordsTab: React.FC<KeywordsTabProps> = ({ sessionId }) => {
         {t('KeywordsTab.buttons.addKeywords')}
       </Button>
       <KeywordList sessionId={sessionId} key={refresh ? 'refresh' : 'no-refresh'} />
-      <AddDataPopup
+      <AddKeywordPopup
         open={openAddPopup}
         onClose={() => setOpenAddPopup(false)}
         onSubmit={handleAddKeywords}
         title={t('KeywordsTab.popup.title')}
-        fields={[
-          { label: t('KeywordsTab.popup.fields.keywords'), name: 'keywords', isMultipleKeywords: true },
-          { label: t('KeywordsTab.popup.fields.replyText'), name: 'replyText' },
-          { label: t('KeywordsTab.popup.fields.replyMedia'), name: 'replyMedia', isFile: true, multiple: true }
-        ]}
       />
     </Box>
   );
 };
 
 export default KeywordsTab;
+
